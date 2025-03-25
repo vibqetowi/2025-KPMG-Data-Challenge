@@ -1,69 +1,155 @@
-Team 7's submission to the KPMG case
-Assumptions made:
-Charge-out rate:
-A charge-out rate is an indication of percentage completion of the project, however this is sometimes not valid, as some employees produce better quality output, hence a dollar billed is not always the same percentage increase in project development.
+[![EN](https://img.shields.io/badge/🇨🇦-English-red.svg)](README.md)
 
-The amount of hours required to complete a phase is approximately equal to the BAC / the average charge-out rate of the people assigned to a phase.
-Justification: We are estimating the amount of hours based on the Because BAC is =  to the sum of Σ assignee(i) hours * rate (i), then the estimate above is a reasonable estimate. 
-Impact: If we have the approximate work hours and the assumed start date of the project, we are able to derive the duration and end date of the project.
+# KPMG Data Challenge - Team 7: Project Management Analysis
 
-We are assuming project phases complete at a linear rate over time.
-Impact: It allows us to calculate an estimate of the planned value of the project.
+<div align="center">
 
-Estimated duration of the project
-We make assumptions for the estimated duration of the project based on the average hourly rate of the employees involved and the BAC
+[![Python](https://img.shields.io/badge/Python-3.9%20or%20higher-blue?style=for-the-badge&logo=python)](https://www.python.org/)
+[![PowerBI](https://img.shields.io/badge/Power%20BI-Data%20Visualization-yellow?style=for-the-badge&logo=powerbi)](https://powerbi.microsoft.com/)
+[![SQL](https://img.shields.io/badge/SQL-Database%20Queries-orange?style=for-the-badge&logo=microsoftsqlserver)](https://www.microsoft.com/sql-server)
+[![Excel](https://img.shields.io/badge/Excel-Data%20Analysis-green?style=for-the-badge&logo=microsoftexcel)](https://www.microsoft.com/excel)
 
-Employees at the same level are interchangeable: we can 
-Impact: We can assign them interchangeably based on project needs, with no efficiency loss.
+</div>
 
-The start of the project is assumed to be the date of the first billing of the phase.
-Impact: It allows us to set the start date of the mandate, which was not provided. 
+## 🏆 Team 7
 
-Planned value:
-Assumption made: The project gets comple
+| Team Member | Role |
+|-------------|------|
+| Member 1 | Data Analyst |
+| Member 2 | Project Management Specialist |
+| Member 3 | Financial Analyst |
 
-Figures used for the proof of concept on excel:
+## 🎯 Project Overview
 
+Team 7's submission to the KPMG case challenge, analyzing project management data. Our solution provides insights into project performance metrics through earned value management (EVM) analysis, helping stakeholders understand project health and make data-driven decisions despite incomplete dataset challenges.
 
-AC (Actual costs):
-= Sum of standard price + sum of admin fees
+### Platform Showcase
 
-Planned value of the project:
-= Days elapsed since the start of the project (assuming linear progress over time) 
+![Dashboard Preview](./img/dashboard.png)
 
-Hours required to complete project:
-= Average charge-out / BAC
+## 🌟 Key Features
 
-Total estimated duration (days) of the project:
-= Hours required to complete project / number of employees on the project / 24
+- Earned Value Management (EVM) metrics calculation
+- Project performance visualization
+- Resource allocation analysis
+- Schedule and cost variance tracking
+- Predictive project completion forecasting
 
-Days Elapsed:
-= Today-start date
+## 🏗️ Architecture
 
-Percentage schedule elapsed:
-= Days elapsed / Total estimated duration in days
+### Technology Stack
 
-PV
-= BAC * percentage Schedule elapsed
+- **Data Analysis**: Python, Excel
+- **Data Storage**: SQL 
+- **Visualization**: Power BI
+- **Reporting**: Excel, Power BI
 
-Estimated % completion (in hours)
-=  Hours billed / total estimated average FTE hours to bill
+## 📊 Report Components
 
-EV
- = BAC * Estimated % completion (in hours)
+### Key Assumptions
 
-CPI:
-= EV / AC 
+- A charge-out rate indicates percentage completion, though quality variations exist between employees.
+  - Justification: Different employees may produce varying quality output, so a dollar billed doesn't always represent the same project advancement.
+  - Impact: Affects how we measure actual project progress.
 
-SPI: Scheduled performance index
-= EV / PV
+- Hours required to complete a phase ≈ BAC / average charge-out rate of assigned personnel.
+  - Justification: Since BAC equals the sum of each assignee's hours × their rate, this provides a reasonable estimate.
+  - Impact: Enables estimation of project duration and end date when combined with start date.
 
-Example:
+- Project phases complete at a linear rate over time.
+  - Impact: Allows calculation of planned value (PV) at any point in time.
 
-Budget at completion:
-In this case, 2.3M is the budget for project with code ending 365, phase 000010
+- Employees at the same level are interchangeable.
+  - Impact: Allows assignment flexibility based on project needs without efficiency loss.
 
+- Project starts on the date of the first billing of the phase.
+  - Impact: Establishes the mandate start date (not provided in original data).
 
-Calculations made:
-We find the total number of employees active on each project and project phase
+- Phase duration ≈ estimated man-hours / number of people.
+  - Impact: Enables estimation of actual durations.
 
+- All projects have equal importance.
+  - Justification: No indication otherwise.
+  - Impact: Optimization focuses on full assignment rather than prioritization.
+
+### Key Metrics Derivation
+
+#### Actual Cost (AC)
+- **Formula**: Sum of standard price + sum of admin fees
+- **Purpose**: Measures actual expenditure to date
+
+#### Planned Value (PV)
+- **Formula**: BAC × (Days elapsed / Total estimated duration in days)
+- **Purpose**: Measures expected project value based on time elapsed
+- **Assumption**: Linear progress over time
+
+#### Earned Value (EV)
+- **Formula**: BAC × Estimated % completion (in hours)
+- **Purpose**: Measures actual value delivered based on work completed
+
+#### Cost Performance Index (CPI)
+- **Formula**: EV / AC
+- **Purpose**: Efficiency measure of cost utilization (>1 is good)
+
+#### Schedule Performance Index (SPI)
+- **Formula**: EV / PV
+- **Purpose**: Efficiency measure of schedule performance (>1 is good)
+
+## 🚀 Getting Started
+
+```bash
+# Clone repository
+git clone [repository-url]
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Open Power BI dashboard
+open ./dashboards/project_performance.pbix
+```
+
+## Calculation Methodology
+
+1. **Hours Required to Complete Project**:
+   - Formula: BAC / Average charge-out rate
+
+2. **Total Estimated Duration (days)**:
+   - Formula: Hours required / number of employees / 24
+
+3. **Days Elapsed**:
+   - Formula: Current date - Start date
+
+4. **Percentage Schedule Elapsed**:
+   - Formula: Days elapsed / Total estimated duration
+
+5. **Estimated % Completion (in hours)**:
+   - Formula: Hours billed / Total estimated average FTE hours to bill
+
+## 📈 Performance Metrics
+
+For a project with code ending 365, phase 000010:
+- Budget at completion (BAC): $2.3M
+- CPI: [Value calculated]
+- SPI: [Value calculated]
+- Estimated completion date: [Date calculated]
+
+## 🛣️ Future Developments
+
+### Roadmap Overview
+
+- Implement more sophisticated resource allocation algorithms
+- Enhance data collection methodology for more accurate progress tracking
+- Develop automated reporting capabilities
+- Integrate real-time project monitoring features
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+
+*Built for the KPMG Data Challenge 2025*
+
+</div>
