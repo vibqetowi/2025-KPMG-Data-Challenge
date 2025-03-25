@@ -1,0 +1,45 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table employees {
+  personnel_no integer [primary key]
+  employee_name varchar
+  staff_level varchar
+}
+
+Table clients {
+  client_no integer [primary key]
+  client_name varchar
+}
+
+Table engagements {
+  eng_no integer [primary key]
+  eng_description varchar
+  client_no integer
+}
+
+Table phases {
+  eng_no integer
+  eng_phase integer
+  phase_description varchar
+  budget decimal
+  
+  indexes {
+    (eng_no, eng_phase) [pk] // composite primary key
+  }
+}
+
+Table allocations {
+  id integer [primary key]
+  personnel_no integer
+  eng_no integer
+  eng_phase integer
+  work_date date
+  hours decimal
+}
+
+// Foreign key references moved to the end
+Ref: engagements.client_no > clients.client_no
+Ref: phases.eng_no > engagements.eng_no
+Ref: allocations.personnel_no > employees.personnel_no
+Ref: allocations.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
