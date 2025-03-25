@@ -72,6 +72,9 @@ Team 7's submission to the KPMG case challenge, analyzing project management dat
   - Justification: No indication otherwise.
   - Impact: Optimization focuses on full assignment rather than prioritization.
 
+- Going forward, we assume the CPI is 1, we optimize for an SPI of 1
+  Based on this assumption, the goal of this dashboard is to allocate employee resources to obtain an SPI of 1.
+
 ### Key Metrics Derivation
 
 #### Actual Cost (AC)
