@@ -81,6 +81,8 @@ Team 7's submission to the KPMG case challenge, analyzing project management dat
 
   - People are not late to enter their hours, the entered date and posting date will remain the same. Timely time-sheet filing is key to successful project management. This avoids the need to interpolate hours logged. 
 
+  - We extrapolate a person's next week availability based on their prior three week's of staffing availability. 
+
 ### Key Metrics Derivation
 
 #### Budget at Completion (BAC)
