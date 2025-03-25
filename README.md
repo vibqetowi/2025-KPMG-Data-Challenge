@@ -99,6 +99,9 @@ We've implemented a dedicated database setup because:
   - Justification: No indication otherwise.
   - Impact: Optimization focuses on full assignment rather than prioritization.
 
+- **Due to dicrepancy between staffing and time sheets we will default to staffing**
+  - Justification: Staffing contains a client ID number that is not present in 'TIME', which seems to be company Y's identifier.
+  - Impact: We will assume that the client ID numbers in 'TIME' for cleint Y are erroneous and replace them with the value from staffing.
 
 - **Negative hours logged offset hours on other projects for the same client**
   - Justification: By looking at the data, we see that anytime there is a consultant billing negative hours, that consultant worked on other mandates for the same client.
