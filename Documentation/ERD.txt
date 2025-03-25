@@ -5,6 +5,7 @@ Table employees {
   personnel_no integer [primary key]
   employee_name varchar
   staff_level varchar
+  is_external bool
 }
 
 Table clients {
@@ -22,7 +23,7 @@ Table phases {
   eng_no integer
   eng_phase integer
   phase_description varchar
-  budget decimal [note: 'From Budget.csv, total budget for the phase']
+  budget decimal
   
   indexes {
     (eng_no, eng_phase) [pk] // composite primary key
@@ -34,12 +35,8 @@ Table staffing {
   personnel_no integer
   eng_no integer
   eng_phase integer
-  week_start_date date [note: 'First Monday of the week, from Staffing CSVs']
-  planned_hours decimal [note: 'Weekly allocated hours']
-  
-  indexes {
-    (personnel_no, eng_no, eng_phase, week_start_date) [unique, note: 'Prevents duplicate staffing entries']
-  }
+  week_start_date date [note: 'First Monday of the week, e.g. 2025-01-06']
+  planned_hours decimal
 }
 
 Table timesheets {
@@ -49,11 +46,16 @@ Table timesheets {
   eng_phase integer
   work_date date
   hours decimal
-  time_entry_date date [note: 'When timesheet was entered']
-  posting_date date [note: 'When timesheet was submitted']
-  charge_out_rate decimal [note: 'Hourly wage charged to client']
-  std_price decimal [note: 'Hourly wage × Hours worked']
-  adm_surcharge decimal [note: 'Administrative fees']
+  time_entry_date date
+  posting_date date
+  charge_out_rate decimal
+  std_price decimal
+  adm_surcharge decimal
+}
+
+Table dictionary {
+  key varchar [primary key]
+  description varchar
 }
 
 // Foreign key references moved to the end

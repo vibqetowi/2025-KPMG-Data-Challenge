@@ -1,0 +1,17 @@
+id,category,key,value,description
+1,Engagement,Eng. No.,Eng. No.,Mandate key
+2,Engagement,Eng. Description,Eng. Description,Mandate description
+3,Engagement,Eng. Phase,Eng. Phase,Mandate phase
+4,General,Phase Description,Phase Description,Mandate phase description
+5,Client,Client No.,Client No.,Client key
+6,Client,Client Name,Client Name,Client name
+7,Employee,Personnel No.,Personnel No.,Employee key
+8,Employee,Employee Name,Employee Name,Employenomn
+9,General,Staff Level,Staff Level,Employee title
+10,Date,Work Date,Work Date,Work day
+11,Date,Time Entry Date,Time Entry Date,Day when the employee entered the details of their timesheet
+12,Date,Posting Date,Posting Date,Day when the employee sent the details of their timesheet
+13,General,Hours,Hours,Number of hours entered in the timesheet
+14,General,Charge+AC0-Out Rate,Charge+AC0-Out Rate,Hourly wage of the employee which is charged to the client
+15,General,Std. Price,Std. Price,Hourly wage +ACo- Number of hours worked
+16,General,Adm. Surcharge,Adm. Surcharge,Administrative fees

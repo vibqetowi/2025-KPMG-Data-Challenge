@@ -290,6 +290,8 @@ git clone [repository-url]
 # Install Python dependencies
 pip install -r requirements.txt
 
+# Connect to SQL databasee using appropriate methods
+
 # Open Power BI dashboard
 open ./dashboards/project_performance.pbix
 ```
