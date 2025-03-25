@@ -48,12 +48,11 @@ Team 7's submission to the KPMG case challenge, analyzing project management dat
 
 ### Key Assumptions
 
-- A charge-out rate indicates percentage completion, though quality variations exist between employees.
-  - Justification: Different employees may produce varying quality output, so a dollar billed doesn't always represent the same project advancement.
-  - Impact: Affects how we measure actual project progress.
+- The ratio of hours worked by staff tier on a mandate is fairly consistent across time
+    - Impact: allows us to make projections and inferences for instance calculating a better average charge-out rate by using weights instead of simple average
 
-- Hours required to complete a phase ≈ BAC / average charge-out rate of assigned personnel.
-  - Justification: Since BAC equals the sum of each assignee's hours × their rate, this provides a reasonable estimate.
+- Hours required to complete a phase ≈ $\text{BAC} / \text{average charge-out rate}$ of assigned personnel.
+  - Justification: Since $\text{BAC} = \sum_{i=1}^{n} \text{Hours}_i \times \text{Rate}_i$ (sum of each assignee's hours × their rate), this provides a reasonable estimate.
   - Impact: Enables estimation of project duration and end date when combined with start date.
 
 - Project phases complete at a linear rate over time.
@@ -74,26 +73,33 @@ Team 7's submission to the KPMG case challenge, analyzing project management dat
 
 ### Key Metrics Derivation
 
+#### Budget at Completion (BAC)
+- **Formula**: $\text{BAC} = \sum_{i=1}^{n} \text{Hours}_i \times \text{Rate}_i$
+- **Purpose**: Total budgeted value of the project
+
 #### Actual Cost (AC)
-- **Formula**: Sum of standard price + sum of admin fees
+- **Formula**: $\text{AC} = \sum_{i=1}^{n} \text{StandardPrice}_i + \sum_{i=1}^{n} \text{AdminFees}_i$
 - **Purpose**: Measures actual expenditure to date
 
 #### Planned Value (PV)
-- **Formula**: BAC × (Days elapsed / Total estimated duration in days)
+- **Formula**: $\text{PV} = \text{BAC} \times \frac{\text{Days elapsed}}{\text{Total estimated duration in days}}$
 - **Purpose**: Measures expected project value based on time elapsed
 - **Assumption**: Linear progress over time
 
+#### Estimated Project Completion (%)
+- **Formula**: $\text{Completion%} = \frac{\sum_{i=1}^{n} \text{Hours billed}_i}{\text{Total estimated hours}}$
+
 #### Earned Value (EV)
-- **Formula**: BAC × Estimated % completion (in hours)
+- **Formula**: $\text{EV} = \text{BAC} \times \text{Completion%}$
 - **Purpose**: Measures actual value delivered based on work completed
 
 #### Cost Performance Index (CPI)
-- **Formula**: EV / AC
-- **Purpose**: Efficiency measure of cost utilization (>1 is good)
+- **Formula**: $\text{CPI} = \frac{\text{EV}}{\text{AC}}$
+- **Purpose**: Efficiency measure of cost utilization ($>1$ is good)
 
 #### Schedule Performance Index (SPI)
-- **Formula**: EV / PV
-- **Purpose**: Efficiency measure of schedule performance (>1 is good)
+- **Formula**: $\text{SPI} = \frac{\text{EV}}{\text{PV}}$
+- **Purpose**: Efficiency measure of schedule performance ($>1$ is good)
 
 ## 🚀 Getting Started
 
@@ -111,19 +117,19 @@ open ./dashboards/project_performance.pbix
 ## Calculation Methodology
 
 1. **Hours Required to Complete Project**:
-   - Formula: BAC / Average charge-out rate
+   - Formula: $\text{Hours}_{\text{required}} = \frac{\text{BAC}}{\text{Avg. charge-out rate}}$
 
 2. **Total Estimated Duration (days)**:
-   - Formula: Hours required / number of employees / 24
+   - Formula: $\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required}}}{\text{Number of employees} \times 24}$
 
 3. **Days Elapsed**:
-   - Formula: Current date - Start date
+   - Formula: $\text{Days}_{\text{elapsed}} = \text{Current date} - \text{Start date}$
 
 4. **Percentage Schedule Elapsed**:
-   - Formula: Days elapsed / Total estimated duration
+   - Formula: $\text{Schedule%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}$
 
 5. **Estimated % Completion (in hours)**:
-   - Formula: Hours billed / Total estimated average FTE hours to bill
+   - Formula: $\text{Completion%} = \frac{\text{Hours billed}}{\text{Hours}_{\text{required}}}$
 
 ## 📈 Performance Metrics
 
