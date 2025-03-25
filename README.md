@@ -137,6 +137,8 @@ Subject to:
 
 Where $w_p$ represents the relative importance of project $p$.
 
+  - We extrapolate a person's next week availability based on their prior three week's of staffing availability. 
+
 ### Key Metrics Derivation
 
 #### Budget at Completion (BAC)
