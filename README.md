@@ -79,7 +79,8 @@ Team 7's submission to the KPMG case challenge, analyzing project management dat
 
 
   - In the case that the client name of the same client number changes, we assume that the client is the same, despite the change in name. One person has done a database course and trusts the importance of primary keys. For instance, Company X and Y have the same client number, so we assume both these entities to be the same client. Impact: we can change all the client names to Company X.
-    
+
+  - People are not late to enter their hours, the entered date and posting date will remain the same. Timely time-sheet filing is key to successful project management. This avoids the need to interpolate hours logged. 
 
 ### Key Metrics Derivation
 
