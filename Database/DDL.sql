@@ -1,7 +1,8 @@
 CREATE TABLE [employees] (
   [personnel_no] integer PRIMARY KEY,
   [employee_name] nvarchar(255),
-  [staff_level] nvarchar(255)
+  [staff_level] nvarchar(255),
+  [is_external] bool
 )
 GO
 
@@ -49,6 +50,12 @@ CREATE TABLE [timesheets] (
   [charge_out_rate] decimal,
   [std_price] decimal,
   [adm_surcharge] decimal
+)
+GO
+
+CREATE TABLE [dictionary] (
+  [key] nvarchar(255) PRIMARY KEY,
+  [description] nvarchar(255)
 )
 GO
 
