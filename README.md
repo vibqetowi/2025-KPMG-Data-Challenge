@@ -75,6 +75,12 @@ Team 7's submission to the KPMG case challenge, analyzing project management dat
 - Going forward, we assume the CPI is 1, we optimize for an SPI of 1
   Based on this assumption, the goal of this dashboard is to allocate employee resources to obtain an SPI of 1.
 
+- Any negative hours logged to a given mandate is used to offset hours recorded on another project billed to the same client, as they had the goal of respecting certain billing caps or requirements. By looking at the data, we see that anytime there is a consultant billing negative hours, that consultant worked on other mandates for the same client. We cannot verify the validity of this assumption or the possible implications.
+
+
+  - In the case that the client name of the same client number changes, we assume that the client is the same, despite the change in name. One person has done a database course and trusts the importance of primary keys. For instance, Company X and Y have the same client number, so we assume both these entities to be the same client. Impact: we can change all the client names to Company X.
+    
+
 ### Key Metrics Derivation
 
 #### Actual Cost (AC)
