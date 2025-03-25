@@ -109,6 +109,44 @@ this will be reflected in our db and the basis of the pbi report
 - **Client identity determined by client number**
 
   - Standardizes client identification where Company X and Y with same client numbers are treated as same entity
+- **The ratio of hours worked by staff tier on a mandate is fairly consistent across time**
+  - Impact: Allows us to make projections and inferences for instance calculating a better average charge-out rate by using weights instead of simple average
+
+- **Hours required to complete a phase ≈ $\text{BAC} / \text{average charge-out rate}$ of assigned personnel**
+  - Justification: Since $\text{BAC} = \sum_{i=1}^{n} \text{Hours}_i \times \text{Rate}_i$ (sum of each assignee's hours × their rate), this provides a reasonable estimate.
+  - Impact: Enables estimation of project duration and end date when combined with start date.
+
+- **Project phases complete at a linear rate over time**
+  - Impact: Allows calculation of planned value (PV) at any point in time.
+
+- **Employees at the same level are interchangeable**
+  - Impact: Allows assignment flexibility based on project needs without efficiency loss.
+
+- **Project starts on the date of the first billing of the phase**
+  - Impact: Establishes the mandate start date (not provided in original data).
+
+- **Phase duration ≈ estimated man-hours / number of people**
+  - Impact: Enables estimation of actual durations.
+
+- **All projects have equal importance**
+  - Justification: No indication otherwise.
+  - Impact: Optimization focuses on full assignment rather than prioritization.
+
+- **Due to dicrepancy between staffing and time sheets we will default to staffing**
+  - Justification: Staffing contains a client ID number that is not present in 'TIME', which seems to be company Y's identifier.
+  - Impact: We will assume that the client ID numbers in 'TIME' for cleint Y are erroneous and replace them with the value from staffing.
+
+- **Negative hours logged offset hours on other projects for the same client**
+  - Justification: By looking at the data, we see that anytime there is a consultant billing negative hours, that consultant worked on other mandates for the same client.
+  - Impact: We cannot verify the validity of this assumption or the possible implications.
+
+- **Client identity is determined by client number rather than name**
+  - Justification: One person has done a database course and trusts the importance of primary keys.
+  - Impact: We can standardize client names (e.g., Company X and Y with the same client number are treated as the same client).
+
+- **Hours are entered in a timely manner**
+  - Justification: Timely time-sheet filing is key to successful project management.
+  - Impact: 
 
 ### Database Schema Requirements
 
