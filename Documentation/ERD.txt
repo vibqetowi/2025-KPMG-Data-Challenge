@@ -22,24 +22,44 @@ Table phases {
   eng_no integer
   eng_phase integer
   phase_description varchar
-  budget decimal
+  budget decimal [note: 'From Budget.csv, total budget for the phase']
   
   indexes {
     (eng_no, eng_phase) [pk] // composite primary key
   }
 }
 
-Table allocations {
+Table staffing {
+  id integer [primary key]
+  personnel_no integer
+  eng_no integer
+  eng_phase integer
+  week_start_date date [note: 'First Monday of the week, from Staffing CSVs']
+  planned_hours decimal [note: 'Weekly allocated hours']
+  
+  indexes {
+    (personnel_no, eng_no, eng_phase, week_start_date) [unique, note: 'Prevents duplicate staffing entries']
+  }
+}
+
+Table timesheets {
   id integer [primary key]
   personnel_no integer
   eng_no integer
   eng_phase integer
   work_date date
   hours decimal
+  time_entry_date date [note: 'When timesheet was entered']
+  posting_date date [note: 'When timesheet was submitted']
+  charge_out_rate decimal [note: 'Hourly wage charged to client']
+  std_price decimal [note: 'Hourly wage × Hours worked']
+  adm_surcharge decimal [note: 'Administrative fees']
 }
 
 // Foreign key references moved to the end
 Ref: engagements.client_no > clients.client_no
 Ref: phases.eng_no > engagements.eng_no
-Ref: allocations.personnel_no > employees.personnel_no
-Ref: allocations.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
+Ref: staffing.personnel_no > employees.personnel_no
+Ref: staffing.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
+Ref: timesheets.personnel_no > employees.personnel_no
+Ref: timesheets.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
