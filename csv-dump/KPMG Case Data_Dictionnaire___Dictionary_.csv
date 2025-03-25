@@ -1,0 +1,16 @@
+Eng. No.,Mandate key
+Eng. Description,Mandate description
+Eng. Phase,Mandate phase
+Phase Description,Mandate phase description
+Client No.,Client key
+Client Name,Client name
+Personnel No.,Employee key
+Employee Name,Employenomn
+Staff Level,Employee title
+Work Date,Work day
+Time Entry Date,Day when the employee entered the details of their timesheet
+Posting Date,Day when the employee sent the details of their timesheet
+Hours,Number of hours entered in the timesheet
+Charge+AC0-Out Rate,Hourly wage of the employee which is charged to the client
+Std. Price,Hourly wage +ACo- Number of hours worked
+Adm. Surcharge,Administrative fees
