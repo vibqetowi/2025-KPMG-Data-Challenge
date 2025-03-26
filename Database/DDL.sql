@@ -59,6 +59,51 @@ CREATE TABLE [dictionary] (
 )
 GO
 
+CREATE INDEX [employees_index_0] ON [employees] ("staff_level")
+GO
+
+CREATE INDEX [employees_index_1] ON [employees] ("staff_level", "is_external")
+GO
+
+CREATE INDEX [clients_index_2] ON [clients] ("client_name")
+GO
+
+CREATE INDEX [engagements_index_3] ON [engagements] ("client_no")
+GO
+
+CREATE INDEX [engagements_index_4] ON [engagements] ("eng_description")
+GO
+
+CREATE INDEX [phases_index_5] ON [phases] ("budget")
+GO
+
+CREATE INDEX [staffing_index_6] ON [staffing] ("personnel_no", "week_start_date")
+GO
+
+CREATE INDEX [staffing_index_7] ON [staffing] ("eng_no", "eng_phase", "week_start_date")
+GO
+
+CREATE INDEX [staffing_index_8] ON [staffing] ("week_start_date")
+GO
+
+CREATE INDEX [staffing_index_9] ON [staffing] ("eng_no", "week_start_date")
+GO
+
+CREATE INDEX [timesheets_index_10] ON [timesheets] ("work_date")
+GO
+
+CREATE INDEX [timesheets_index_11] ON [timesheets] ("personnel_no", "work_date")
+GO
+
+CREATE INDEX [timesheets_index_12] ON [timesheets] ("eng_no", "eng_phase", "work_date")
+GO
+
+CREATE INDEX [timesheets_index_13] ON [timesheets] ("posting_date")
+GO
+
+CREATE INDEX [timesheets_index_14] ON [timesheets] ("eng_no", "work_date")
+GO
+
 EXEC sp_addextendedproperty
 @name = N'Column_Description',
 @value = 'First Monday of the week, e.g. 2025-01-06',

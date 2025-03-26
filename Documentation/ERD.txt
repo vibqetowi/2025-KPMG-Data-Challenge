@@ -6,17 +6,31 @@ Table employees {
   employee_name varchar
   staff_level varchar
   is_external bool
+  
+  indexes {
+    staff_level // Index to filter employees by level
+    (staff_level, is_external) // index to filter by level and by internal/not
+  }
 }
 
 Table clients {
   client_no integer [primary key]
   client_name varchar
+  
+  indexes {
+    client_name // Index to search clients by name
+  }
 }
 
 Table engagements {
   eng_no integer [primary key]
   eng_description varchar
   client_no integer
+  
+  indexes {
+    client_no // Index for faster joins with clients table
+    eng_description // Index for searching by description
+  }
 }
 
 Table phases {
@@ -27,16 +41,24 @@ Table phases {
   
   indexes {
     (eng_no, eng_phase) [pk] // composite primary key
+    budget // Index for budget analysis queries
   }
 }
 
 Table staffing {
-  id integer [primary key]
+  id integer [pk]
   personnel_no integer
   eng_no integer
   eng_phase integer
   week_start_date date [note: 'First Monday of the week, e.g. 2025-01-06']
   planned_hours decimal
+  
+  indexes {
+    (personnel_no, week_start_date) // Efficient lookup for employee schedule
+    (eng_no, eng_phase, week_start_date) // Project phase planning by time period
+    week_start_date // For time-based reporting
+    (eng_no, week_start_date) // Project timeline queries
+  }
 }
 
 Table timesheets {
@@ -51,6 +73,14 @@ Table timesheets {
   charge_out_rate decimal
   std_price decimal
   adm_surcharge decimal
+  
+  indexes {
+    work_date // Time-based reporting and filtering
+    (personnel_no, work_date) // Employee timesheet by date
+    (eng_no, eng_phase, work_date) // Project phase activity by date
+    posting_date // For accounting period reports
+    (eng_no, work_date) // Project timeline analysis
+  }
 }
 
 Table dictionary {

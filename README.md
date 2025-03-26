@@ -82,6 +82,7 @@ this will be reflected in our db and the basis of the pbi report
 
   - Derivation: Based on standard project management contingency of 10% at enterprise consulting firms, with KPMG associates assumed to be highly efficient and rarely exceeding budgets
   - Impact: Near-optimal balance between profitability and realistic planning
+  - Practical Note: Let's be honest, EVM metrics are incredibly difficult to calculate accurately in consulting projects. Clients rarely define concrete "percent complete" measures, and most project managers struggle to quantify completion in knowledge work. The fixed CPI assumption of 0.98 provides a pragmatic workaround that allows for sensible resource allocation without requiring impossibly precise progress measurements.
 - **Project Timeline Inference**
 
   - Derivation: Missing critical project start/end dates require mathematical inference from available data
@@ -250,12 +251,14 @@ Where $w_p$ represents the relative importance of project $p$.
 - **Formula**: $\text{EV} = \text{AC} \times \text{CPI}$
 - **Purpose**: Measures actual value delivered based on work completed
 - **Note**: With our fixed CPI assumption of 0.98, this represents a 2% efficiency target
+- **Real-world perspective**: In consulting, calculating "true" earned value is notoriously difficult. The percent-complete approach used in construction or manufacturing simply doesn't translate well to knowledge work. Our CPI assumption provides a practical path forward where traditional EVM calculations would be impractical or misleading.
 
 #### Cost Performance Index (CPI)
 
 - **Value**: Fixed at 0.98 based on industry benchmarks
 - **Justification**: Derived from standard 10% contingency with KPMG efficiency factor
 - **Purpose**: Converts actual costs to earned value
+- **Practical note**: This fixed CPI approach may seem simplistic, but it's actually more pragmatic than pretending we can accurately measure percent complete on ambiguous consulting deliverables. It's a refreshingly honest approach to EVM in professional services.
 
 #### Schedule Performance Index (SPI)
 
