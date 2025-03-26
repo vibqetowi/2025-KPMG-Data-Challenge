@@ -1,16 +1,28 @@
 // Use DBML to define your database structure
 // Docs: https://dbml.dbdiagram.io/docs
 
+Table practices {
+  practice_id integer [primary key]
+  practice_name varchar [note: 'E.g., SAP, Oracle, Cloud, Risk Advisory, etc.']
+  description varchar
+  
+  indexes {
+    practice_name // For searching by practice name
+  }
+}
+
 Table employees {
   personnel_no integer [primary key]
   employee_name varchar
   staff_level varchar
   is_external bool
   employment_basis decimal [note: 'Contracted weekly hours (e.g., 40.0, 37.5)']
+  practice_id integer [note: 'Primary consulting department/practice area']
   
   indexes {
     staff_level // Index to filter employees by level
     (staff_level, is_external) // index to filter by level and by internal/not
+    practice_id // Index to filter by consulting practice
   }
 }
 
@@ -27,10 +39,17 @@ Table engagements {
   eng_no integer [primary key]
   eng_description varchar
   client_no integer
+  start_date date [note: 'Engagement start date']
+  end_date date [note: 'Planned engagement end date']
+  actual_end_date date [note: 'Actual engagement completion date, NULL if ongoing']
+  primary_practice_id integer [note: 'Main practice area responsible for delivery']
   
   indexes {
     client_no // Index for faster joins with clients table
     eng_description // Index for searching by description
+    start_date // Index for timeline and schedule analysis
+    end_date // Index for filtering upcoming project end dates
+    primary_practice_id // Index for filtering by practice area
   }
 }
 
@@ -39,10 +58,15 @@ Table phases {
   eng_phase integer
   phase_description varchar
   budget decimal
+  start_date date [note: 'Phase start date']
+  end_date date [note: 'Planned phase end date']
+  actual_end_date date [note: 'Actual phase completion date, NULL if ongoing']
   
   indexes {
     (eng_no, eng_phase) [pk] // composite primary key
     budget // Index for budget analysis queries
+    start_date // Index for phase timeline tracking
+    end_date // Index for phase schedule analysis
   }
 }
 
@@ -101,7 +125,9 @@ Table vacations {
   }
 }
 
-// Foreign key references moved to the end
+// Foreign key references
+Ref: employees.practice_id > practices.practice_id
+Ref: engagements.primary_practice_id > practices.practice_id
 Ref: engagements.client_no > clients.client_no
 Ref: phases.eng_no > engagements.eng_no
 Ref: staffing.personnel_no > employees.personnel_no
