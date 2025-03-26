@@ -11,11 +11,11 @@
 
 ## 🏆 Team 7
 
-| Team Member | github                        |
-| ----------- | ----------------------------- |
-| Member 1    | @vibqetowi                    |
-| Member 2    | @carterj-c                    |
-| Member 3    | Financial Analyst             |
+| Team Member | github            |
+| ----------- | ----------------- |
+| Member 1    | @vibqetowi        |
+| Member 2    | @carterj-c        |
+| Member 3    | Financial Analyst |
 
 ## 🎯 Project Overview
 
@@ -144,7 +144,7 @@ The defined ERD structure is implemented in our database and serves as the found
 15) Differential Time Reporting Behaviors Between Internal and External Consultants
 
     - Justification: Analysis of timesheet submission patterns revealed significant delays from some senior managers, with entries submitted up to 55+ days late. This pattern aligns with observations that internal consultants (who receive regular salaries regardless of timely reporting) may have fewer immediate incentives for prompt time entry compared to external consultants whose compensation depends directly on reported hours.
-    - Impact: This behavioral difference creates potential data integrity issues for real-time project tracking and resource allocation. The database structure includes a designation field to accommodate this distinction for implementation purposes.
+    - Impact: For the sake of a demo, statistical analysis was conducted and consultants who wait on average less than 3 days to report their work hours were tagged as external, managers and above were excluded.
 
 ## Optimization Challenge
 
@@ -199,7 +199,6 @@ Where $w_p$ represents the relative importance or priority of project $p$.
 - **Formula**: $\text{Schedule%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}$
 - **Purpose**: Standardizes the measurement of schedule progress, allowing for comparison across projects regardless of their duration.
 
-
 #### Actual Cost (AC)
 
 - **Formula**: $\text{AC} = \sum_{i=1}^{n} \text{StandardPrice}_i + \sum_{i=1}^{n} \text{AdminFees}_i$
@@ -211,13 +210,11 @@ Where $w_p$ represents the relative importance or priority of project $p$.
 - **Formula**: $\text{PV} = \text{BAC} \times \frac{\text{Weeks elapsed}}{\text{Total estimated duration in weeks}}$
 - **Purpose**: Measures the expected value of work that should have been completed by a specific point in time, based on the project budget and schedule.
 
-
 #### Earned Value (EV)
 
 - **Formula**: $\text{EV} = \text{AC} \times \text{CPI}$
 - **Purpose**: Represents the actual value of work completed, adjusted by the Cost Performance Index (CPI) to reflect efficiency and cost-effectiveness.
 - **Note**: With a fixed CPI assumption of 0.98, Earned Value is effectively Actual Cost discounted by 2%, reflecting an expected level of efficiency.
-
 
 #### Cost Performance Index (CPI)
 

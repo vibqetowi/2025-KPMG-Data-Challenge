@@ -1,5 +1,5 @@
 -- T-SQL DML INSERT statements generated from transformed CSV files
--- Generation timestamp: 2025-03-26 13:54:27
+-- Generation timestamp: 2025-03-26 16:41:23
 
 -- Use the database created by the DDL script
 USE [KPMG_Data_Challenge];
@@ -20,7 +20,7 @@ BEGIN TRY
     -- Batch 1/1
     INSERT INTO [dbo].[clients] ([client_no], [client_name]) VALUES
 (1000017023, N'Company X'),
-(1000017024, N'Company X');
+(1000017024, N'Company Y');
     COMMIT TRANSACTION;
     PRINT 'Committed 1 records for clients';
 END TRY
@@ -42,20 +42,20 @@ BEGIN TRY
     -- Batch 1/1
     INSERT INTO [dbo].[employees] ([personnel_no], [employee_name], [staff_level], [is_external], [employment_basis]) VALUES
 (14523, N'Alice Dupont', N'SPECIALIST/SENIOR CONSULT', 0, 40.00),
-(14524, N'Bastien Lefèvre', N'SPECIALIST/SENIOR CONSULT', 0, 40.00),
+(14524, N'Bastien Lefèvre', N'SPECIALIST/SENIOR CONSULT', 1, 40.00),
 (14525, N'Camille Moreau', N'MANAGER', 0, 40.00),
 (14526, N'Damien Girard', N'SENIOR MANAGER', 0, 40.00),
 (14529, N'Gaëlle Petit', N'SENIOR MANAGER', 0, 40.00),
 (14528, N'Fabien Martin', N'SENIOR MANAGER', 0, 40.00),
 (14534, N'Mathieu Dubois', N'SENIOR MANAGER', 0, 40.00),
-(14536, N'Olivier Robert', N'STAFF ACCOUNTANT/CONSULTA', 0, 40.00),
+(14536, N'Olivier Robert', N'STAFF ACCOUNTANT/CONSULTA', 1, 40.00),
 (14535, N'Nina Simon', N'SPECIALIST/SENIOR CONSULT', 0, 40.00),
-(14532, N'Julien Thomas', N'SPECIALIST/SENIOR CONSULT', 0, 40.00),
+(14532, N'Julien Thomas', N'SPECIALIST/SENIOR CONSULT', 1, 40.00),
 (14533, N'Léa Fournier', N'MANAGER', 0, 40.00),
 (14527, N'Élodie Roux', N'SPECIALIST/SENIOR CONSULT', 0, 40.00),
 (14537, N'Sophie Garnier', N'SENIOR MANAGER', 0, 40.00),
 (14530, N'Hugo Lemoine', N'SPECIALIST/SENIOR CONSULT', 0, 40.00),
-(14531, N'Inès Bernard', N'SPECIALIST/SENIOR CONSULT', 0, 40.00);
+(14531, N'Inès Bernard', N'SPECIALIST/SENIOR CONSULT', 1, 40.00);
     COMMIT TRANSACTION;
     PRINT 'Committed 1 records for employees';
 END TRY
