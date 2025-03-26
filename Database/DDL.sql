@@ -19,58 +19,58 @@ USE KPMG_Data_Challenge;
 GO
 
 CREATE TABLE [employees] (
-  [personnel_no] integer PRIMARY KEY,
+  [personnel_no] int PRIMARY KEY,
   [employee_name] nvarchar(255),
   [staff_level] nvarchar(255),
-  [is_external] bool,
-  [employment_basis] decimal
+  [is_external] bit,
+  [employment_basis] decimal(5,2)
 )
 GO
 
 CREATE TABLE [clients] (
-  [client_no] integer PRIMARY KEY,
+  [client_no] int PRIMARY KEY,
   [client_name] nvarchar(255)
 )
 GO
 
 CREATE TABLE [engagements] (
-  [eng_no] integer PRIMARY KEY,
+  [eng_no] bigint PRIMARY KEY,
   [eng_description] nvarchar(255),
-  [client_no] integer
+  [client_no] int
 )
 GO
 
 CREATE TABLE [phases] (
-  [eng_no] integer,
-  [eng_phase] integer,
+  [eng_no] bigint,
+  [eng_phase] int,
   [phase_description] nvarchar(255),
-  [budget] decimal,
+  [budget] decimal(18,2),
   PRIMARY KEY ([eng_no], [eng_phase])
 )
 GO
 
 CREATE TABLE [staffing] (
-  [id] integer PRIMARY KEY,
-  [personnel_no] integer,
-  [eng_no] integer,
-  [eng_phase] integer,
+  [id] INT IDENTITY(1,1) PRIMARY KEY,
+  [personnel_no] int,
+  [eng_no] bigint,
+  [eng_phase] int,
   [week_start_date] date,
-  [planned_hours] decimal
+  [planned_hours] decimal(8,2)
 )
 GO
 
 CREATE TABLE [timesheets] (
-  [id] integer PRIMARY KEY,
-  [personnel_no] integer,
-  [eng_no] integer,
-  [eng_phase] integer,
+  [id] INT IDENTITY(1,1) PRIMARY KEY,
+  [personnel_no] int,
+  [eng_no] bigint,
+  [eng_phase] int,
   [work_date] date,
-  [hours] decimal,
+  [hours] decimal(8,2),
   [time_entry_date] date,
   [posting_date] date,
-  [charge_out_rate] decimal,
-  [std_price] decimal,
-  [adm_surcharge] decimal
+  [charge_out_rate] decimal(10,2),
+  [std_price] decimal(10,2),
+  [adm_surcharge] decimal(10,2)
 )
 GO
 
@@ -81,64 +81,66 @@ CREATE TABLE [dictionary] (
 GO
 
 CREATE TABLE [vacations] (
-  [personnel_no] integer,
+  [personnel_no] int,
   [start_date] date,
   [end_date] date,
   PRIMARY KEY ([personnel_no], [start_date])
 )
 GO
 
-CREATE INDEX [employees_index_0] ON [employees] ("staff_level")
+-- Create indexes with correct syntax for SQL Server
+CREATE INDEX [employees_index_0] ON [employees] ([staff_level])
 GO
 
-CREATE INDEX [employees_index_1] ON [employees] ("staff_level", "is_external")
+CREATE INDEX [employees_index_1] ON [employees] ([staff_level], [is_external])
 GO
 
-CREATE INDEX [clients_index_2] ON [clients] ("client_name")
+CREATE INDEX [clients_index_2] ON [clients] ([client_name])
 GO
 
-CREATE INDEX [engagements_index_3] ON [engagements] ("client_no")
+CREATE INDEX [engagements_index_3] ON [engagements] ([client_no])
 GO
 
-CREATE INDEX [engagements_index_4] ON [engagements] ("eng_description")
+CREATE INDEX [engagements_index_4] ON [engagements] ([eng_description])
 GO
 
-CREATE INDEX [phases_index_5] ON [phases] ("budget")
+CREATE INDEX [phases_index_5] ON [phases] ([budget])
 GO
 
-CREATE INDEX [staffing_index_6] ON [staffing] ("personnel_no", "week_start_date")
+CREATE INDEX [staffing_index_6] ON [staffing] ([personnel_no], [week_start_date])
 GO
 
-CREATE INDEX [staffing_index_7] ON [staffing] ("eng_no", "eng_phase", "week_start_date")
+CREATE INDEX [staffing_index_7] ON [staffing] ([eng_no], [eng_phase], [week_start_date])
 GO
 
-CREATE INDEX [staffing_index_8] ON [staffing] ("week_start_date")
+CREATE INDEX [staffing_index_8] ON [staffing] ([week_start_date])
 GO
 
-CREATE INDEX [staffing_index_9] ON [staffing] ("eng_no", "week_start_date")
+CREATE INDEX [staffing_index_9] ON [staffing] ([eng_no], [week_start_date])
 GO
 
-CREATE INDEX [timesheets_index_10] ON [timesheets] ("work_date")
+CREATE INDEX [timesheets_index_10] ON [timesheets] ([work_date])
 GO
 
-CREATE INDEX [timesheets_index_11] ON [timesheets] ("personnel_no", "work_date")
+CREATE INDEX [timesheets_index_11] ON [timesheets] ([personnel_no], [work_date])
 GO
 
-CREATE INDEX [timesheets_index_12] ON [timesheets] ("eng_no", "eng_phase", "work_date")
+CREATE INDEX [timesheets_index_12] ON [timesheets] ([eng_no], [eng_phase], [work_date])
 GO
 
-CREATE INDEX [timesheets_index_13] ON [timesheets] ("posting_date")
+CREATE INDEX [timesheets_index_13] ON [timesheets] ([posting_date])
 GO
 
-CREATE INDEX [timesheets_index_14] ON [timesheets] ("eng_no", "work_date")
+CREATE INDEX [timesheets_index_14] ON [timesheets] ([eng_no], [work_date])
 GO
 
-CREATE INDEX [vacations_index_15] ON [vacations] ("end_date")
+CREATE INDEX [vacations_index_15] ON [vacations] ([end_date])
 GO
 
-CREATE INDEX [vacations_index_16] ON [vacations] ("personnel_no")
+CREATE INDEX [vacations_index_16] ON [vacations] ([personnel_no])
 GO
 
+-- Add extended properties
 EXEC sp_addextendedproperty
 @name = N'Column_Description',
 @value = 'Contracted weekly hours (e.g., 40.0, 37.5)',
@@ -155,23 +157,31 @@ EXEC sp_addextendedproperty
 @level2type = N'Column', @level2name = 'week_start_date';
 GO
 
-ALTER TABLE [engagements] ADD FOREIGN KEY ([client_no]) REFERENCES [clients] ([client_no])
+-- Add foreign key constraints
+ALTER TABLE [engagements] ADD CONSTRAINT [FK_engagements_clients] 
+    FOREIGN KEY ([client_no]) REFERENCES [clients] ([client_no])
 GO
 
-ALTER TABLE [phases] ADD FOREIGN KEY ([eng_no]) REFERENCES [engagements] ([eng_no])
+ALTER TABLE [phases] ADD CONSTRAINT [FK_phases_engagements]
+    FOREIGN KEY ([eng_no]) REFERENCES [engagements] ([eng_no])
 GO
 
-ALTER TABLE [staffing] ADD FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
+ALTER TABLE [staffing] ADD CONSTRAINT [FK_staffing_employees]
+    FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
 GO
 
-ALTER TABLE [staffing] ADD FOREIGN KEY ([eng_no], [eng_phase]) REFERENCES [phases] ([eng_no], [eng_phase])
+ALTER TABLE [staffing] ADD CONSTRAINT [FK_staffing_phases]
+    FOREIGN KEY ([eng_no], [eng_phase]) REFERENCES [phases] ([eng_no], [eng_phase])
 GO
 
-ALTER TABLE [timesheets] ADD FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
+ALTER TABLE [timesheets] ADD CONSTRAINT [FK_timesheets_employees]
+    FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
 GO
 
-ALTER TABLE [timesheets] ADD FOREIGN KEY ([eng_no], [eng_phase]) REFERENCES [phases] ([eng_no], [eng_phase])
+ALTER TABLE [timesheets] ADD CONSTRAINT [FK_timesheets_phases]
+    FOREIGN KEY ([eng_no], [eng_phase]) REFERENCES [phases] ([eng_no], [eng_phase])
 GO
 
-ALTER TABLE [vacations] ADD FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
+ALTER TABLE [vacations] ADD CONSTRAINT [FK_vacations_employees]
+    FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
 GO

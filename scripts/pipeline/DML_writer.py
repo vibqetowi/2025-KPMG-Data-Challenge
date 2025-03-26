@@ -38,21 +38,21 @@ class DMLWriter:
             'vacations': ['personnel_no', 'start_date', 'end_date']
         }
         
-        # Define column data types for proper SQL formatting (T-SQL specific)
+        # Define column data types for proper SQL Server (T-SQL) formatting
         self.column_types = {
-            'personnel_no': 'integer',
+            'personnel_no': 'int',
             'employee_name': 'nvarchar',
             'staff_level': 'nvarchar',
             'is_external': 'bit',
             'employment_basis': 'decimal',
-            'client_no': 'integer',
+            'client_no': 'int',
             'client_name': 'nvarchar',
-            'eng_no': 'integer',
+            'eng_no': 'bigint',
             'eng_description': 'nvarchar',
-            'eng_phase': 'integer',
+            'eng_phase': 'int',
             'phase_description': 'nvarchar',
             'budget': 'decimal',
-            'id': 'integer',
+            'id': 'int',
             'week_start_date': 'date',
             'planned_hours': 'decimal',
             'work_date': 'date',
@@ -125,7 +125,7 @@ class DMLWriter:
         
         value = str(value).strip()
         
-        if column_type == 'integer':
+        if column_type == 'integer' or column_type == 'int' or column_type == 'bigint':
             try:
                 return str(int(float(value)))
             except (ValueError, TypeError):
@@ -133,20 +133,19 @@ class DMLWriter:
         elif column_type == 'decimal':
             try:
                 float_val = float(value)
-                # Format with 2 decimal places for employment_basis
+                # Format with 2 decimal places for money values
                 return f"{float_val:.2f}"
             except (ValueError, TypeError):
                 return 'NULL'
         elif column_type == 'date':
             try:
-                # Try different date formats
+                # Use proper SQL Server date conversion
                 if isinstance(value, pd.Timestamp):
                     return f"CONVERT(DATE, '{value.strftime('%Y-%m-%d')}', 120)"
                 else:
                     for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y-%m-%d %H:%M:%S']:
                         try:
                             date_obj = pd.to_datetime(value, format=fmt)
-                            # T-SQL date format
                             return f"CONVERT(DATE, '{date_obj.strftime('%Y-%m-%d')}', 120)"
                         except:
                             continue
@@ -160,10 +159,11 @@ class DMLWriter:
                 return '0'
             else:
                 return 'NULL'
-        elif column_type.startswith('nvarchar'):  # Use N prefix for Unicode strings in T-SQL
+        elif column_type.startswith('nvarchar'):
+            # Use N prefix for Unicode strings and proper escaping
             escaped_value = str(value).replace("'", "''")
             return f"N'{escaped_value}'"
-        else:  # varchar and other text types
+        else:
             escaped_value = str(value).replace("'", "''")
             return f"'{escaped_value}'"
     
@@ -234,6 +234,7 @@ class DMLWriter:
     def write_dml_file(self):
         """
         Write all INSERT statements to a single DML file using T-SQL syntax with batched transactions.
+        Assuming database has already been created by DDL script.
         """
         # Generate statements for all tables
         self.generate_insert_statements()
@@ -243,77 +244,74 @@ class DMLWriter:
             f.write("-- T-SQL DML INSERT statements generated from transformed CSV files\n")
             f.write("-- Generation timestamp: " + pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S") + "\n\n")
             
-            f.write("-- Use the master database to ensure clean execution environment\n")
-            f.write("USE [master];\n")
-            f.write("GO\n\n")
-            
-            f.write("-- Check if the database exists and drop it if it does\n")
-            f.write("IF DB_ID('KPMG_Data_Challenge') IS NOT NULL\n")
-            f.write("BEGIN\n")
-            f.write("    ALTER DATABASE KPMG_Data_Challenge SET SINGLE_USER WITH ROLLBACK IMMEDIATE;\n")
-            f.write("    DROP DATABASE KPMG_Data_Challenge;\n")
-            f.write("END\n")
-            f.write("GO\n\n")
-            
-            f.write("-- Create a new database\n")
-            f.write("CREATE DATABASE KPMG_Data_Challenge;\n")
-            f.write("GO\n\n")
-            
-            f.write("-- Switch to the newly created database\n")
+            f.write("-- Use the database created by the DDL script\n")
             f.write("USE [KPMG_Data_Challenge];\n")
             f.write("GO\n\n")
             
             f.write("-- Turn off count of rows affected to improve performance\n")
-            f.write("SET NOCOUNT ON;\n\n")
+            f.write("SET NOCOUNT ON;\n")
+            f.write("GO\n\n")
             
-            f.write("BEGIN TRY\n")
+            f.write("-- Enable identity insert where needed\n")
+            f.write("PRINT 'Starting data insertion...';\n")
+            f.write("GO\n\n")
             
             # Define insertion order for tables to handle foreign key constraints
-            # Start with tables without dependencies, then tables with dependencies
             table_order = [
                 'clients', 
                 'employees', 
                 'engagements', 
                 'phases', 
+                'dictionary',
                 'staffing', 
                 'timesheets',
-                'dictionary',
                 'vacations'
             ]
             
             # Write statements for each table in the defined order
             for table in table_order:
                 statements = self.sql_statements.get(table, [])
-                if statements:
-                    statement_count = len(statements)
-                    total_rows = sum(stmt.count('VALUES') for stmt in statements)
+                if not statements:
+                    continue
                     
-                    f.write(f"    -- INSERT statements for {table} table ({total_rows} records)\n")
-                    f.write(f"    PRINT 'Inserting data into {table} table ({total_rows} records)...';\n")
-                    
-                    f.write("    BEGIN TRANSACTION;\n")
-                    
-                    for i, stmt in enumerate(statements):
-                        f.write(f"    -- Batch {i+1}/{statement_count}\n")
-                        f.write("    " + stmt + "\n\n")
-                    
-                    f.write("    COMMIT TRANSACTION;\n")
-                    f.write(f"    PRINT 'Committed all records for {table}';\n\n")
-            
-            f.write("    PRINT 'All data inserted successfully.';\n")
-            f.write("END TRY\n")
-            f.write("BEGIN CATCH\n")
-            f.write("    IF @@TRANCOUNT > 0\n")
-            f.write("        ROLLBACK TRANSACTION;\n\n")
-            f.write("    DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();\n")
-            f.write("    DECLARE @ErrorSeverity INT = ERROR_SEVERITY();\n")
-            f.write("    DECLARE @ErrorState INT = ERROR_STATE();\n\n")
-            f.write("    PRINT 'Error occurred: ' + @ErrorMessage;\n")
-            f.write("    RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);\n")
-            f.write("END CATCH;\n\n")
+                statement_count = len(statements)
+                total_rows = sum(stmt.count('VALUES') for stmt in statements)
+                
+                f.write(f"-- INSERT statements for {table} table ({total_rows} records)\n")
+                f.write(f"PRINT 'Inserting data into {table} table ({total_rows} records)...';\n")
+                f.write("BEGIN TRY\n")
+                f.write("    BEGIN TRANSACTION;\n")
+                
+                # Handle identity insert for tables with identity columns if needed
+                if table in ('staffing', 'timesheets') and any('id' in stmt for stmt in statements):
+                    f.write(f"    SET IDENTITY_INSERT [dbo].[{table}] ON;\n")
+                
+                for i, stmt in enumerate(statements):
+                    f.write(f"    -- Batch {i+1}/{statement_count}\n")
+                    f.write("    " + stmt + "\n")
+                
+                # Turn off identity insert if it was turned on
+                if table in ('staffing', 'timesheets') and any('id' in stmt for stmt in statements):
+                    f.write(f"    SET IDENTITY_INSERT [dbo].[{table}] OFF;\n")
+                
+                f.write("    COMMIT TRANSACTION;\n")
+                f.write(f"    PRINT 'Committed {total_rows} records for {table}';\n")
+                f.write("END TRY\n")
+                f.write("BEGIN CATCH\n")
+                f.write("    IF @@TRANCOUNT > 0\n")
+                f.write("        ROLLBACK TRANSACTION;\n")
+                f.write("    DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();\n")
+                f.write("    DECLARE @ErrorSeverity INT = ERROR_SEVERITY();\n")
+                f.write("    DECLARE @ErrorState INT = ERROR_STATE();\n")
+                f.write(f"    PRINT 'Error inserting data into {table}: ' + @ErrorMessage;\n")
+                f.write("    RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);\n")
+                f.write("END CATCH;\n")
+                f.write("GO\n\n")
             
             f.write("-- Turn count of rows affected back on\n")
             f.write("SET NOCOUNT OFF;\n")
+            f.write("GO\n\n")
+            f.write("PRINT 'Data insertion completed successfully.';\n")
             f.write("GO\n")
         
         # Print summary
