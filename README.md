@@ -14,7 +14,7 @@
 | Team Member | github                        |
 | ----------- | ----------------------------- |
 | Member 1    | @vibqetowi                    |
-| Member 2    | Project Management Specialist |
+| Member 2    | @carterj-c                    |
 | Member 3    | Financial Analyst             |
 
 ## 🎯 Project Overview
