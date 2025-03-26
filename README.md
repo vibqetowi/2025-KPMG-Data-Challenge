@@ -202,7 +202,7 @@ Where $w_p$ represents the relative importance or priority of project $p$.
 
 #### Actual Cost (AC)
 
-- **Formula**: $\text{AC} = \sum_{i=1}^{n} \text{StandardPrice}_i + \sum_{i=1}^{n} \text{AdminFees}_i$
+- **Formula**: $`\text{AC} = \sum_{i=1}^{n} \text{StandardPrice}_i + \sum_{i=1}^{n} \text{AdminFees}_i`$
 - **Purpose**: Calculates the total actual expenditure incurred to date, derived from timesheet entries including standard prices and administrative fees.
 - **Note**: Calculated on a weekly basis to align with staffing allocation and performance review cycles.
 
