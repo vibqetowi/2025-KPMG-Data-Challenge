@@ -185,7 +185,7 @@ Where $w_p$ represents the relative importance or priority of project $p$.
 
 #### Total Estimated Duration
 
-- **Formula**: $\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required}}}{\text{Number of employees assigned} \times \text{hours per workday}}$
+- **Formula**: $`\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required}}}{\text{Number of employees assigned} \times \text{hours per workday}}`$
 - **Note**: This calculation incorporates the number of employees assigned and standard workday hours to provide a realistic estimate of project timelines.
 - **Purpose**: Establishes a baseline for measuring schedule performance and for project planning purposes.
 
@@ -196,7 +196,7 @@ Where $w_p$ represents the relative importance or priority of project $p$.
 
 #### Percentage Schedule Elapsed
 
-- **Formula**: $\text{Schedule%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}$
+- **Formula**: $`\text{Schedule%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}`$
 - **Purpose**: Standardizes the measurement of schedule progress, allowing for comparison across projects regardless of their duration.
 
 
