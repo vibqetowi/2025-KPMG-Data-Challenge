@@ -173,7 +173,7 @@ Where $w_p$ represents the relative importance or priority of project $p$.
 
 #### Weighted Average Chargeout Rate
 
-- **Formula**: $\text{Weighted Chargeout Rate} = \sum_{i=1}^{n} \text{Chargeout}_{i} \times \frac{\text{Hours}_{i}}{\sum_{j=1}^{n} \text{Hours}_{j}}$
+- **Formula**: $`\text{Weighted Average Chargeout Rate} = \sum_{i=1}^{n} \text{Chargeout}_{i} \times \frac{\text{Hours}_{i}}{\sum_{j=1}^{n} \text{Hours}_{j}}`$
 - **Purpose**: Calculates a realistic average chargeout rate for a project phase by weighting individual chargeout rates by the proportion of hours worked by each employee, thereby accurately reflecting the staffing mix.
 - **Note**: This rate is used to convert budget amounts into estimated hours and to calculate overall project duration.
 - **Variables**:  $i$ represents each individual employee assigned to the project phase.
