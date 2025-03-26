@@ -27,14 +27,15 @@ class DMLWriter:
         
         # Define table schemas based on DDL (match exactly with database structure)
         self.schemas = {
-            'employees': ['personnel_no', 'employee_name', 'staff_level', 'is_external'],
+            'employees': ['personnel_no', 'employee_name', 'staff_level', 'is_external', 'employment_basis'],
             'clients': ['client_no', 'client_name'],
             'engagements': ['eng_no', 'eng_description', 'client_no'],
             'phases': ['eng_no', 'eng_phase', 'phase_description', 'budget'],
             'staffing': ['id', 'personnel_no', 'eng_no', 'eng_phase', 'week_start_date', 'planned_hours'],
             'timesheets': ['id', 'personnel_no', 'eng_no', 'eng_phase', 'work_date', 'hours', 
                           'time_entry_date', 'posting_date', 'charge_out_rate', 'std_price', 'adm_surcharge'],
-            'dictionary': ['key', 'description']  # Updated to match DDL
+            'dictionary': ['key', 'description'],
+            'vacations': ['personnel_no', 'start_date', 'end_date']
         }
         
         # Define column data types for proper SQL formatting (T-SQL specific)
@@ -43,6 +44,7 @@ class DMLWriter:
             'employee_name': 'nvarchar',
             'staff_level': 'nvarchar',
             'is_external': 'bit',
+            'employment_basis': 'decimal',
             'client_no': 'integer',
             'client_name': 'nvarchar',
             'eng_no': 'integer',
@@ -61,7 +63,9 @@ class DMLWriter:
             'std_price': 'decimal',
             'adm_surcharge': 'decimal',
             'key': 'nvarchar',
-            'description': 'nvarchar'
+            'description': 'nvarchar',
+            'start_date': 'date',
+            'end_date': 'date'
         }
         
         # Define auto-generated columns that should be excluded from INSERT statements
@@ -240,7 +244,8 @@ class DMLWriter:
                 'phases', 
                 'staffing', 
                 'timesheets',
-                'dictionary'
+                'dictionary',
+                'vacations'  # Added new table
             ]
             
             # Write statements for each table in the defined order

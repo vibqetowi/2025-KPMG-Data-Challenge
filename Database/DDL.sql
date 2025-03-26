@@ -1,29 +1,9 @@
-USE master;
-GO
-
--- Check if the database exists
-IF DB_ID('KPMG_Data_Challenge') IS NOT NULL
-BEGIN
-    -- Database exists, so drop it after setting to single user mode and rolling back immediate transactions
-    ALTER DATABASE KPMG_Data_Challenge SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE KPMG_Data_Challenge;
-END
-GO
-
--- Create the new database
-CREATE DATABASE KPMG_Data_Challenge;
-GO
-
--- Switch to the newly created database
-USE KPMG_Data_Challenge;
-GO
-
--- Create tables
 CREATE TABLE [employees] (
   [personnel_no] integer PRIMARY KEY,
   [employee_name] nvarchar(255),
   [staff_level] nvarchar(255),
-  [is_external] bit
+  [is_external] bool,
+  [employment_basis] decimal
 )
 GO
 
@@ -34,14 +14,14 @@ CREATE TABLE [clients] (
 GO
 
 CREATE TABLE [engagements] (
-  [eng_no] bigint PRIMARY KEY,
+  [eng_no] integer PRIMARY KEY,
   [eng_description] nvarchar(255),
   [client_no] integer
 )
 GO
 
 CREATE TABLE [phases] (
-  [eng_no] bigint,
+  [eng_no] integer,
   [eng_phase] integer,
   [phase_description] nvarchar(255),
   [budget] decimal,
@@ -50,9 +30,9 @@ CREATE TABLE [phases] (
 GO
 
 CREATE TABLE [staffing] (
-  [id] INT IDENTITY(1,1) PRIMARY KEY,
+  [id] integer PRIMARY KEY,
   [personnel_no] integer,
-  [eng_no] bigint,
+  [eng_no] integer,
   [eng_phase] integer,
   [week_start_date] date,
   [planned_hours] decimal
@@ -60,9 +40,9 @@ CREATE TABLE [staffing] (
 GO
 
 CREATE TABLE [timesheets] (
-  [id] INT IDENTITY(1,1) PRIMARY KEY,
+  [id] integer PRIMARY KEY,
   [personnel_no] integer,
-  [eng_no] bigint,
+  [eng_no] integer,
   [eng_phase] integer,
   [work_date] date,
   [hours] decimal,
@@ -80,7 +60,14 @@ CREATE TABLE [dictionary] (
 )
 GO
 
--- Create indexes
+CREATE TABLE [vacations] (
+  [personnel_no] integer,
+  [start_date] date,
+  [end_date] date,
+  PRIMARY KEY ([personnel_no], [start_date])
+)
+GO
+
 CREATE INDEX [employees_index_0] ON [employees] ("staff_level")
 GO
 
@@ -126,7 +113,20 @@ GO
 CREATE INDEX [timesheets_index_14] ON [timesheets] ("eng_no", "work_date")
 GO
 
--- Add extended property
+CREATE INDEX [vacations_index_15] ON [vacations] ("end_date")
+GO
+
+CREATE INDEX [vacations_index_16] ON [vacations] ("personnel_no")
+GO
+
+EXEC sp_addextendedproperty
+@name = N'Column_Description',
+@value = 'Contracted weekly hours (e.g., 40.0, 37.5)',
+@level0type = N'Schema', @level0name = 'dbo',
+@level1type = N'Table',  @level1name = 'employees',
+@level2type = N'Column', @level2name = 'employment_basis';
+GO
+
 EXEC sp_addextendedproperty
 @name = N'Column_Description',
 @value = 'First Monday of the week, e.g. 2025-01-06',
@@ -135,7 +135,6 @@ EXEC sp_addextendedproperty
 @level2type = N'Column', @level2name = 'week_start_date';
 GO
 
--- Add foreign keys
 ALTER TABLE [engagements] ADD FOREIGN KEY ([client_no]) REFERENCES [clients] ([client_no])
 GO
 
@@ -152,4 +151,7 @@ ALTER TABLE [timesheets] ADD FOREIGN KEY ([personnel_no]) REFERENCES [employees]
 GO
 
 ALTER TABLE [timesheets] ADD FOREIGN KEY ([eng_no], [eng_phase]) REFERENCES [phases] ([eng_no], [eng_phase])
+GO
+
+ALTER TABLE [vacations] ADD FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
 GO

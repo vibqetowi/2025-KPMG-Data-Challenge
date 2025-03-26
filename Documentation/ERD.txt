@@ -6,6 +6,7 @@ Table employees {
   employee_name varchar
   staff_level varchar
   is_external bool
+  employment_basis decimal [note: 'Contracted weekly hours (e.g., 40.0, 37.5)']
   
   indexes {
     staff_level // Index to filter employees by level
@@ -88,6 +89,18 @@ Table dictionary {
   description varchar
 }
 
+Table vacations {
+  personnel_no integer
+  start_date date
+  end_date date
+  
+  indexes {
+    (personnel_no, start_date) [pk] // Composite primary key
+    end_date // For filtering vacations by date range
+    personnel_no // For filtering all vacations for an employee
+  }
+}
+
 // Foreign key references moved to the end
 Ref: engagements.client_no > clients.client_no
 Ref: phases.eng_no > engagements.eng_no
@@ -95,3 +108,4 @@ Ref: staffing.personnel_no > employees.personnel_no
 Ref: staffing.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
 Ref: timesheets.personnel_no > employees.personnel_no
 Ref: timesheets.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
+Ref: vacations.personnel_no > employees.personnel_no
