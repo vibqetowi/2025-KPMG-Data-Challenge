@@ -1,8 +1,10 @@
+USE KPMG_Data_Challenge;
+GO
 CREATE TABLE [employees] (
   [personnel_no] integer PRIMARY KEY,
   [employee_name] nvarchar(255),
   [staff_level] nvarchar(255),
-  [is_external] bool
+  [is_external] bit
 )
 GO
 
@@ -13,14 +15,14 @@ CREATE TABLE [clients] (
 GO
 
 CREATE TABLE [engagements] (
-  [eng_no] integer PRIMARY KEY,
+  [eng_no] bigint PRIMARY KEY,
   [eng_description] nvarchar(255),
   [client_no] integer
 )
 GO
 
 CREATE TABLE [phases] (
-  [eng_no] integer,
+  [eng_no] bigint,
   [eng_phase] integer,
   [phase_description] nvarchar(255),
   [budget] decimal,
@@ -29,9 +31,9 @@ CREATE TABLE [phases] (
 GO
 
 CREATE TABLE [staffing] (
-  [id] integer PRIMARY KEY,
+  [id] INT IDENTITY(1,1) PRIMARY KEY,
   [personnel_no] integer,
-  [eng_no] integer,
+  [eng_no] bigint,
   [eng_phase] integer,
   [week_start_date] date,
   [planned_hours] decimal
@@ -39,9 +41,9 @@ CREATE TABLE [staffing] (
 GO
 
 CREATE TABLE [timesheets] (
-  [id] integer PRIMARY KEY,
+  [id] INT IDENTITY(1,1) PRIMARY KEY,
   [personnel_no] integer,
-  [eng_no] integer,
+  [eng_no] bigint,
   [eng_phase] integer,
   [work_date] date,
   [hours] decimal,
@@ -129,3 +131,6 @@ GO
 
 ALTER TABLE [timesheets] ADD FOREIGN KEY ([eng_no], [eng_phase]) REFERENCES [phases] ([eng_no], [eng_phase])
 GO
+
+
+
