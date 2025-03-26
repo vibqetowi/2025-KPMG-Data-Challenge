@@ -1,3 +1,12 @@
+
+
+
+
+
+
+
+
+
 -- T-SQL DML INSERT statements generated from transformed CSV files
 -- Generation timestamp: 2025-03-25 18:40:38
 
@@ -15,8 +24,8 @@ BEGIN TRY
     -- Batch 1/1
     INSERT INTO [dbo].[clients] ([client_no], [client_name]) VALUES
 (1000017023, N'Company X'),
-(1000017024, N'Company Y'),
-(NULL, NULL);
+(1000017024, N'Company Y');
+--(NULL, NULL);
 
     COMMIT TRANSACTION;
     PRINT 'Committed all records for clients';
@@ -27,20 +36,20 @@ BEGIN TRY
     -- Batch 1/1
     INSERT INTO [dbo].[employees] ([personnel_no], [employee_name], [staff_level], [is_external]) VALUES
 (14523, N'Alice Dupont', N'SPECIALIST/SENIOR CONSULT', 0),
-(14524, N'Bastien LefÃ¨vre', N'SPECIALIST/SENIOR CONSULT', 0),
+(14524, N'Bastien Lefèvre', N'SPECIALIST/SENIOR CONSULT', 0),
 (14525, N'Camille Moreau', N'MANAGER', 0),
 (14526, N'Damien Girard', N'SENIOR MANAGER', 0),
-(14529, N'GaÃ«lle Petit', N'SENIOR MANAGER', 0),
+(14529, N'Gaëlle Petit', N'SENIOR MANAGER', 0),
 (14528, N'Fabien Martin', N'SENIOR MANAGER', 0),
 (14534, N'Mathieu Dubois', N'SENIOR MANAGER', 0),
 (14536, N'Olivier Robert', N'STAFF ACCOUNTANT/CONSULTA', 0),
 (14535, N'Nina Simon', N'SPECIALIST/SENIOR CONSULT', 0),
 (14532, N'Julien Thomas', N'SPECIALIST/SENIOR CONSULT', 0),
-(14533, N'LÃ©a Fournier', N'MANAGER', 0),
-(14527, N'Ã‰lodie Roux', N'SPECIALIST/SENIOR CONSULT', 0),
+(14533, N'Léa Fournier', N'MANAGER', 0),
+(14527, N'Élodie Roux', N'SPECIALIST/SENIOR CONSULT', 0),
 (14537, N'Sophie Garnier', N'SENIOR MANAGER', 0),
 (14530, N'Hugo Lemoine', N'SPECIALIST/SENIOR CONSULT', 0),
-(14531, N'InÃ¨s Bernard', N'SPECIALIST/SENIOR CONSULT', 0);
+(14531, N'Inès Bernard', N'SPECIALIST/SENIOR CONSULT', 0);
 
     COMMIT TRANSACTION;
     PRINT 'Committed all records for employees';
