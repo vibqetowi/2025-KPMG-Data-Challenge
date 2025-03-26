@@ -150,7 +150,7 @@ class DMLWriter:
     def generate_insert_statements(self):
         """
         Generate T-SQL INSERT statements for all tables from loaded DataFrames,
-        using multi-row value syntax for better performance.
+        handling composite primary keys correctly.
         """
         for table_name, df in self.dfs.items():
             statements = []
@@ -163,6 +163,14 @@ class DMLWriter:
                 for col in auto_generated:
                     if col in schema_columns:
                         schema_columns.remove(col)
+            
+            # For tables with composite primary keys like 'phases', ensure all key parts are included
+            if table_name == 'phases':
+                logger.info(f"Table {table_name} has composite primary key (eng_no, eng_phase)")
+                # Ensure these columns are present in the schema and data
+                if all(col in df.columns for col in ['eng_no', 'eng_phase']):
+                    # Filter out rows with NULL in primary key columns
+                    df = df[df['eng_no'].notna() & df['eng_phase'].notna()]
             
             # Check for column mismatch
             missing_columns = [col for col in schema_columns if col not in df.columns]
