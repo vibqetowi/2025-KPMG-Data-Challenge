@@ -90,12 +90,26 @@ class DMLWriter:
         if not os.path.exists(self.csv_dir):
             raise FileNotFoundError(f"Transformed CSV directory not found: {self.csv_dir}")
         
-        # Load all transformed CSVs into DataFrames
+        # Load all transformed CSVs into DataFrames - including any new ones like vacations
         for table_name in self.schemas:
             csv_file = self.csv_dir / f"{table_name}.csv"
             if os.path.exists(csv_file):
                 try:
-                    self.dfs[table_name] = pd.read_csv(csv_file)
+                    self.dfs[table_name] = pd.read_csv(csv_file, na_values=['NULL'])
+                    
+                    # For vacation dates, ensure proper date format
+                    if table_name == 'vacations':
+                        if 'start_date' in self.dfs[table_name].columns:
+                            self.dfs[table_name]['start_date'] = pd.to_datetime(self.dfs[table_name]['start_date'])
+                        if 'end_date' in self.dfs[table_name].columns:
+                            self.dfs[table_name]['end_date'] = pd.to_datetime(self.dfs[table_name]['end_date'])
+                    
+                    # For employees, ensure employment_basis is a float
+                    if table_name == 'employees':
+                        if 'employment_basis' in self.dfs[table_name].columns:
+                            self.dfs[table_name]['employment_basis'] = pd.to_numeric(
+                                self.dfs[table_name]['employment_basis'], errors='coerce')
+                    
                     logger.info(f"Loaded {len(self.dfs[table_name])} rows from {csv_file}")
                 except Exception as e:
                     logger.error(f"Error loading {csv_file}: {e}")
@@ -106,7 +120,7 @@ class DMLWriter:
         """
         Format a value based on its column type for SQL Server (T-SQL) insertion.
         """
-        if value is None or pd.isna(value) or value == '':
+        if value is None or pd.isna(value) or value == '' or value == 'NULL':
             return 'NULL'
         
         value = str(value).strip()
@@ -118,7 +132,9 @@ class DMLWriter:
                 return 'NULL'
         elif column_type == 'decimal':
             try:
-                return str(float(value))
+                float_val = float(value)
+                # Format with 2 decimal places for employment_basis
+                return f"{float_val:.2f}"
             except (ValueError, TypeError):
                 return 'NULL'
         elif column_type == 'date':
@@ -227,7 +243,23 @@ class DMLWriter:
             f.write("-- T-SQL DML INSERT statements generated from transformed CSV files\n")
             f.write("-- Generation timestamp: " + pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S") + "\n\n")
             
-            f.write("-- Use the correct database\n")
+            f.write("-- Use the master database to ensure clean execution environment\n")
+            f.write("USE [master];\n")
+            f.write("GO\n\n")
+            
+            f.write("-- Check if the database exists and drop it if it does\n")
+            f.write("IF DB_ID('KPMG_Data_Challenge') IS NOT NULL\n")
+            f.write("BEGIN\n")
+            f.write("    ALTER DATABASE KPMG_Data_Challenge SET SINGLE_USER WITH ROLLBACK IMMEDIATE;\n")
+            f.write("    DROP DATABASE KPMG_Data_Challenge;\n")
+            f.write("END\n")
+            f.write("GO\n\n")
+            
+            f.write("-- Create a new database\n")
+            f.write("CREATE DATABASE KPMG_Data_Challenge;\n")
+            f.write("GO\n\n")
+            
+            f.write("-- Switch to the newly created database\n")
             f.write("USE [KPMG_Data_Challenge];\n")
             f.write("GO\n\n")
             
@@ -237,6 +269,7 @@ class DMLWriter:
             f.write("BEGIN TRY\n")
             
             # Define insertion order for tables to handle foreign key constraints
+            # Start with tables without dependencies, then tables with dependencies
             table_order = [
                 'clients', 
                 'employees', 
@@ -245,7 +278,7 @@ class DMLWriter:
                 'staffing', 
                 'timesheets',
                 'dictionary',
-                'vacations'  # Added new table
+                'vacations'
             ]
             
             # Write statements for each table in the defined order

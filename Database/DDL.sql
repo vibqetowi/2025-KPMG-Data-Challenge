@@ -1,3 +1,23 @@
+USE master;
+GO
+
+-- Check if the database exists
+IF DB_ID('KPMG_Data_Challenge') IS NOT NULL
+BEGIN
+    -- Database exists, so drop it after setting to single user mode and rolling back immediate transactions
+    ALTER DATABASE KPMG_Data_Challenge SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE KPMG_Data_Challenge;
+END
+GO
+
+-- Create the new database
+CREATE DATABASE KPMG_Data_Challenge;
+GO
+
+-- Switch to the newly created database
+USE KPMG_Data_Challenge;
+GO
+
 CREATE TABLE [employees] (
   [personnel_no] integer PRIMARY KEY,
   [employee_name] nvarchar(255),
