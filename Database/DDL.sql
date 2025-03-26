@@ -1,5 +1,24 @@
+USE master;
+GO
+
+-- Check if the database exists
+IF DB_ID('KPMG_Data_Challenge') IS NOT NULL
+BEGIN
+    -- Database exists, so drop it after setting to single user mode and rolling back immediate transactions
+    ALTER DATABASE KPMG_Data_Challenge SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE KPMG_Data_Challenge;
+END
+GO
+
+-- Create the new database
+CREATE DATABASE KPMG_Data_Challenge;
+GO
+
+-- Switch to the newly created database
 USE KPMG_Data_Challenge;
 GO
+
+-- Create tables
 CREATE TABLE [employees] (
   [personnel_no] integer PRIMARY KEY,
   [employee_name] nvarchar(255),
@@ -61,6 +80,7 @@ CREATE TABLE [dictionary] (
 )
 GO
 
+-- Create indexes
 CREATE INDEX [employees_index_0] ON [employees] ("staff_level")
 GO
 
@@ -106,6 +126,7 @@ GO
 CREATE INDEX [timesheets_index_14] ON [timesheets] ("eng_no", "work_date")
 GO
 
+-- Add extended property
 EXEC sp_addextendedproperty
 @name = N'Column_Description',
 @value = 'First Monday of the week, e.g. 2025-01-06',
@@ -114,6 +135,7 @@ EXEC sp_addextendedproperty
 @level2type = N'Column', @level2name = 'week_start_date';
 GO
 
+-- Add foreign keys
 ALTER TABLE [engagements] ADD FOREIGN KEY ([client_no]) REFERENCES [clients] ([client_no])
 GO
 
@@ -131,6 +153,3 @@ GO
 
 ALTER TABLE [timesheets] ADD FOREIGN KEY ([eng_no], [eng_phase]) REFERENCES [phases] ([eng_no], [eng_phase])
 GO
-
-
-
