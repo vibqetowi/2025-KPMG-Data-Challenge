@@ -16,7 +16,7 @@
 | Minh        | @vibqetowi | Software Engineering, previous experience in software development and project management |
 | Carter      | @carterj-c | Mechanical Engineering, previous experience in aerospace engineering                     |
 | Casey       | @cassius   | Finance & accounting, previous experience in financial modeling and research             |
-| Romero      | @geekpapi  | Economics & Computer Science, previous experience in data analysis                                                                                         |
+| Romero      | @geekpapi  | Economics & Computer Science, previous experience in data analysis                       |
 
 ## 🎯 Project Overview
 
@@ -52,15 +52,19 @@ Our solution focuses on key business metrics that drive profitability and effici
 Consulting firms face a unique challenge: maximizing both budget utilization and maintaining target chargeout rates. Traditional project management metrics don't adequately capture this dual objective. Our Value Extraction Coefficient (VEC) provides executives with a clear measure of financial performance that addresses both dimensions:
 
 $$
-\text{VEC} = \left(\frac{\text{Actual billable amount}}{\text{Total budget}}\right) \times \left(1 - \sum_{i=1}^{n} w_i \times d_i\right)
+\text{VEC} = \left(\frac{\text{Actual billable amount}}{\text{Total budget}}\right) \times \left(1 - \sum_{i=1}^{n} w_i \times (d_i + ea_j + eo_j )\right)
 $$
 
 Where:
 
 - $w_i$ is the financial weight of transaction $i$ (ratio of its standard price to total standard price)
 - $d_i$ is the chargeout discount rate applied to transaction $i$
+- $ea_j$ is the external adjustment factor (assumed 10% discount for external consultant) for consultant $ j$
+- $eo_j$ is the onboarding efficiency factor (20% from kpmg data for new consultants) for consultant $j$ associated with transaction $i$
 
-This metric identifies engagements where discounting is eroding profitability, enabling practice leaders to take corrective action and preserve value.
+This metric identifies engagements where discounting, external consultant usage, and new consultant onboarding are eroding profitability, enabling practice leaders to take corrective action and preserve value. The external adjustment factor specifically accounts for the reduced profitability of external consultants, who we will assume cost the firm approximately 10% more than internal staff with equivalent chargeout rates. The onboarding efficiency factor accounts for the reduced profitability of new consultants in their first year, who according to KPMG data, reduce profitability by 20% due to training and onboarding costs.
+
+Note: While our current dataset primarily consists of senior consultants and cannot showcase the onboarding efficiency factor calculation, the formula is designed to accommodate this important business consideration in production environments.
 
 ### Resource Optimization
 
@@ -75,10 +79,17 @@ Subject to critical business constraints:
 - SPI > 0.85 for all projects (preventing schedule slippage)
 - Consultant benching < 20% (maximizing billable utilization)
 - $\forall c \in C, \sum_{p \in P} \text{Hours}_{c,p,w} \leq 40, \forall w \in \text{Weeks}$ (maintaining work-life balance)
+- $\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,p,w}}{\sum_{c \in C} \text{Hours}_{c,p,w}} = r_{l,pr,p}, \forall p \in P, \forall w \in \text{Weeks}$ (maintaining appropriate staffing ratios)
 
-Where $w_p$ represents the relative importance or priority of project $p$.
+Where:
 
-Consultant Availability Extrapolation:  A consultant's unassigned availability for the upcoming week is projected based on their staffing availability trends over the preceding three weeks, allowing for dynamic resource allocation.
+- $w_p$ represents the relative importance or priority of project $p$
+- $L$ is the set of staff levels
+- $PR$ is the set of practice areas
+- $C_{l,pr}$ is the subset of consultants at level $l$ from practice area $pr$
+- $r_{l,pr,p}$ is the target ratio of hours for level $l$ and practice $pr$ in project $p$
+
+The added constraint ensures that the distribution of hours across different staff levels and practice areas maintains appropriate ratios for each project, reflecting the reality that projects require specific mixes of junior/senior staff and expertise from relevant practice areas.
 
 ### Key Performance Indicators (KPIs)
 
@@ -223,6 +234,10 @@ By replacing synthetic data with actual operational data and implementing these 
 
     - Justification: Analysis of timesheet submission patterns revealed significant delays from some senior managers, with entries submitted up to 55+ days late. This pattern aligns with previous observations that internal consultants (who receive regular salaries regardless of timely reporting) may have fewer immediate incentives for prompt time entry compared to external consultants whose compensation depends directly on reported hours.
     - Impact: For the sake of a demo, statistical analysis was conducted and consultants who wait on average less than 3 days to report their work hours were tagged as external, managers and above were excluded.
+13) External consultants reduce profitability by 10%
+
+    - Justification: This discount rate is arbitrary and should be fixed with production data.
+    - Impact: This adjustment ensures that the VEC calculation accurately reflects the lower profitability of engagements with higher proportions of external consultants, helping practice leaders make more informed decisions about staffing mix.
 
 ### Key Metrics Derivation
 
