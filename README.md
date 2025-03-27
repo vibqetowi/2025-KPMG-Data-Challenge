@@ -4,7 +4,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9%20or%20higher-blue?style=for-the-badge&logo=python)](https://www.python.org/)
 [![PowerBI](https://img.shields.io/badge/Power%20BI-Data%20Visualization-yellow?style=for-the-badge&logo=powerbi)](https://powerbi.microsoft.com/)
-[![SQL](https://img.shields.io/badge/SQL-Database%20Queries-orange?style=for-the-badge&logo=microsoftsqlserver)](https://www.microsoft.com/sql-server)
+[![T-SQL](https://img.shields.io/badge/SQL-Database%20Queries-orange?style=for-the-badge&logo=microsoftsqlserver)](https://www.microsoft.com/sql-server)
 [![Excel](https://img.shields.io/badge/Excel-Data%20Analysis-green?style=for-the-badge&logo=microsoftexcel)](https://www.microsoft.com/excel)
 
 </div>
@@ -16,11 +16,11 @@
 | Minh        | @vibqetowi | Software Engineering, previous experience in software development and project management |
 | Carter      | @carterj-c | Mechanical Engineering, previous experience in aerospace engineering                     |
 | Casey       | @cassius   | Finance & accounting, previous experience in financial modeling and research             |
-| Romero      | @geekpapi  |                                                                                          |
+| Romero      | @geekpapi  | Economics & Computer Science, previous experience in data analysis                       |
 
 ## 🎯 Project Overview
 
-Team 7 is pleased to present its submission for the KPMG case challenge, focusing on **consulting assignment optimization**. While our backgrounds are primarily in engineering, project management, and finance rather than consulting, we've leveraged our technical expertise and project coordination experience to develop a solution that addresses resource allocation challenges common to professional services organizations. Our solution is a production-ready dashboard designed to implement earned value management (EVM) principles to optimize resource allocation across projects.
+Team 7 is pleased to present its submission for the KPMG case challenge, focusing on **consulting assignment optimization**. While our backgrounds are primarily in engineering, economics, project management, and finance rather than consulting, we've leveraged our technical expertise and project coordination experience to develop a solution that addresses resource allocation challenges common to professional services organizations. Our solution is a production-ready dashboard designed to implement earned value management (EVM) principles to optimize resource allocation across projects.
 
 This dashboard is specifically engineered to address critical business needs prevalent in project-based organizations:
 
@@ -52,22 +52,30 @@ Our solution focuses on key business metrics that drive profitability and effici
 Consulting firms face a unique challenge: maximizing both budget utilization and maintaining target chargeout rates. Traditional project management metrics don't adequately capture this dual objective. Our Value Extraction Coefficient (VEC) provides executives with a clear measure of financial performance that addresses both dimensions:
 
 $$
-\text{VEC} = \left(\frac{\text{Actual billable amount}}{\text{Total budget}}\right) \times \left(1 - \sum_{i=1}^{n} w_i \times d_i\right)
+\text{VEC} = \left(\frac{\text{AC}}{\text{BAC}}\right) \times \sum_{i=1}^{n} w_i \times d_i \times ea_j \times eo_j
 $$
 
 Where:
 
-- $w_i$ is the financial weight of transaction $i$ (ratio of its standard price to total standard price)
-- $d_i$ is the chargeout discount rate applied to transaction $i$
+- $w_i$ is the financial weight of transaction $i$ where $w_i = \left(\frac{\text{AC}_i}{\text{AC}}\right)$
+- $d_i$ is the chargeout rate ratio for transaction $i$ where $d_i = \frac{\text{Chargeout}_i}{\text{StandardChargeout}_{j}}$ (≤ 1) *$Chargeout_i$ is the  chargout for transaction i and $StandardChargeout_j$ is the normal chargeout for consultant j on this engagment
+- $ea_j$ is profit adjustment for external consultants (assumed 10% lower) where $ea_j = 0.9 \times \text{isExternal}_j$ ($isExternal$ bwing a boolean with values 1 or 0)
+- $eo_j$ is the profit adjustment for first year consultants (20 lower according to case files) where $eo_j = 0.8 \times \text{isNew}_j$ ($isNew$ bwing a boolean with values 1 or 0)
 
-This metric identifies engagements where discounting is eroding profitability, enabling practice leaders to take corrective action and preserve value.
+This metric identifies engagements where value extraction is impacted by:
+
+1. Discounted chargeout rates ($d_i ≤ 1$)
+2. External consultant inefficiencies ($ea_j = 0.9$ for externals)
+3. New consultant onboarding costs ($eo_j = 0.8$ for new hires)
+
+Each factor represents the percentage of value retained after applying that particular discount or efficiency loss. By multiplying these factors, we calculate the compound effect of multiple efficiency reductions.
 
 ### Resource Optimization
 
 Our solution addresses the core optimization challenge facing consulting organizations:
 
 $$
-\max_{A} \sum_{p \in P} \text{SPI}_p \cdot w_p
+\max_{A} \sum_{p \in P} \text{SPI}_p \cdot w_p - \sum_{j \in J_{ext}} ea_j \cdot \sum_{p \in P} \text{Hours}_{j,p,w}
 $$
 
 Subject to critical business constraints:
@@ -75,8 +83,19 @@ Subject to critical business constraints:
 - SPI > 0.85 for all projects (preventing schedule slippage)
 - Consultant benching < 20% (maximizing billable utilization)
 - $\forall c \in C, \sum_{p \in P} \text{Hours}_{c,p,w} \leq 40, \forall w \in \text{Weeks}$ (maintaining work-life balance)
+- $\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,p,w}}{\sum_{c \in C} \text{Hours}_{c,p,w}} = r_{l,pr,p}, \forall p \in P, \forall w \in \text{Weeks}$ (maintaining appropriate staffing ratios)
 
-Where $w_p$ represents the relative importance or priority of project $p$.
+Where:
+
+- $w_p$ represents the relative importance or priority of project $p$
+- $L$ is the set of staff levels
+- $PR$ is the set of practice areas
+- $C_{l,pr}$ is the subset of consultants at level $l$ from practice area $pr$
+- $r_{l,pr,p}$ is the target ratio of hours for level $l$ and practice $pr$ in project $p$
+- $J_{ext}$ is the subset of consultants who are external
+- $ea_j$ is the external adjustment factor for consultant $j$, representing the preference to staff internally
+
+The added constraint ensures that the distribution of hours across different staff levels and practice areas maintains appropriate ratios for each project, reflecting the reality that projects require specific mixes of junior/senior staff and expertise from relevant practice areas. This optimization approach maximizes project schedule performance while penalizing the use of external consultants, reflecting the organizational preference to prioritize internal staffing when possible. The external adjustment factor ($ea_j$) creates a "cost" for assigning external consultants, which the optimization algorithm will avoid unless necessary for meeting other constraints such as maintaining SPI targets or required expertise levels.
 
 ### Key Performance Indicators (KPIs)
 
@@ -134,7 +153,7 @@ Key aspects of our vacation tracking implementation:
 
 While the current implementation uses synthetic vacation data (as this information wasn't available in the original dataset), the system is designed to integrate with HR systems that track approved time off. This integration helps avoid the common scenario where projects are planned and staffed without accounting for known absences, leading to missed deadlines and last-minute resource scrambling - a challenge we've personally encountered in engineering and project-based work environments.
 
-## Production Deployment and Dashboard Improvements
+## 🛣️ Production Deployment and Dashboard Improvements Suggestions
 
 For this proof-of-concept, several data elements were synthesized or derived to demonstrate the full capabilities of our solution. In a production environment, these would be replaced with actual data from KPMG's systems, significantly enhancing the accuracy and applicability of the dashboard.
 
@@ -147,6 +166,16 @@ For this proof-of-concept, several data elements were synthesized or derived to 
 | **Employment Basis**: Standardized 40-hour work week                  | Actual contracted hours per resource           | More accurate capacity calculations for part-time and flexible arrangements |
 | **Project Timelines**: Inferred from billing data                     | Actual project start/end dates from Salesforce | Precise schedule performance measurement                                    |
 | **Practice Areas**: Set to 'SAP'                                      | Actual department/practice assignments         | Better matching of consultants to appropriate projects                      |
+
+## 📝 Implementation Notes
+
+For production deployment within KPMG, we recommend the following implementation steps based on our experience with similar technical systems in engineering and project environments:
+
+1. **Salesforce System Integration**: Establish robust integration with KPMG's existing Salesforce system using API connectors to ensure seamless data flow and system interoperability.
+2. **Database Schema Deployment**: Implement the defined database schema within KPMG's Azure SQL or MS SQL Server environment to establish the necessary data infrastructure.
+3. **Data Refresh Scheduling**: Establish a regular data refresh schedule, ideally daily, to ensure the dashboard and optimization algorithms operate with up-to-date information.
+4. **User Access Control Implementation**: Implement user access controls that align with KPMG's organizational structure to ensure data security and appropriate system access levels.
+5. **Automated Alert System**: Develop and deploy automated alerts that trigger when project Schedule Performance Index (SPI) falls below predefined thresholds, enabling proactive intervention and project management.
 
 ### Dashboard Enhancement Roadmap
 
@@ -171,80 +200,53 @@ By replacing synthetic data with actual operational data and implementing these 
 
 ### Supporting Assumptions
 
-1) Hours required to complete a phase
+1. Phase duration derived from staff count
 
-   - Justification: The estimated hours needed to complete a project phase are derived from the Budget at Completion (BAC) and the weighted average charge-out rate, factoring in historical staffing distributions to ensure accuracy.
-   - Impact: Deriving hours from BAC and charge-out rate ensures accuracy in estimated hours.
-2) Phase duration derived from staff count
+   - Impact: Phase duration is estimated by considering the required hours and the number of personnel assigned to the phase. This approach allows estimation of project end dates by accounting for resource allocation.
 
-   - Justification: Phase duration is estimated by considering the required hours and the number of personnel assigned to the phase. This approach allows for more accurate estimation of project end dates by accounting for resource allocation.
-   - Impact: Estimating phase duration based on staff count leads to more accurate project end date estimations.
 3) Phase staffing distribution remains consistent
 
-   - Justification: Analysis of 2024-2025 staffing data reveals consistent ratios in staff levels across different engagement phases, enabling reliable predictive capacity planning and resource forecasting.
-   - Impact: Consistent staffing distribution enables reliable predictive capacity planning and resource forecasting.
+   - Justification: Analysis of sample data reveals consistent ratios in staff levels across different engagement phases.
+   - Impact: Consistent staffing distribution enables reliable weighted average chargeout calculations.
 4) Project phases progress linearly
 
-   - Justification:  A linear progression of project phases is assumed over time. This assumption simplifies the calculation of Planned Value (PV) at any given point during the project lifecycle.
    - Impact: Linear phase progression simplifies Planned Value (PV) calculation.
-5) Project starts on first billing date
+5) Project starts on first logged work date.
 
-   - Justification: The project start date is consistently defined as the date of the first billing for the project. This establishes a uniform reference point for all timeline calculations across projects.
-   - Impact: Defining start date by first billing provides a uniform reference for timeline calculations.
+   - Impact: Defining start date this ways allows estimation of timeline in absence of production data.
 6) Client identity determined by client number
 
-   - Justification: Client identity is standardized and determined by the client number. This approach ensures that entities with the same client number are treated as the same client, even if variations exist in client names (e.g., Company X and Company Y with the same client number are considered a single client).
+   - Justification: In database practice, it is resonable to trust keys when in doubt.
    - Impact: Standardizing client identity by number ensures consistent client handling.
-7) The ratio of hours worked by staff tier on a mandate is fairly consistent over time
+7) Employees at the same level and practice are interchangeable without compromising efficiency.
 
-   - Impact: This consistency enables the application of weighted averages for calculations such as charge-out rates, improving the accuracy of financial metrics and projections.
-8) Project phases complete at a linear rate over time
+   - Impact: Simplifies our calculations for cross project assignments, this will not reflect in production but is hard to estimate without more metrics.
+8) Project starts on the date of the first logged working day of the phase
 
-   - Impact: Assuming linear project phase completion allows for straightforward calculation of Planned Value (PV) at any point in time, facilitating schedule performance analysis.
-9) Employees at the same level are interchangeable
+   - Impact: Establishing the mandate start date from the first billing addresses the absence of explicit start dates in the original dataset, providing a consistent basis for project timeline management.
+9) All projects have equal importance
 
-   - Impact: Interchangeability of employees at the same level provides resource assignment flexibility, allowing for optimal allocation based on project needs without compromising efficiency.
-10) Project starts on the date of the first logged working day of the phase
-
-    - Impact: Establishing the mandate start date from the first billing addresses the absence of explicit start dates in the original dataset, providing a consistent basis for project timeline management.
-11) All projects have equal importance
-
-    - Justification: In the absence of specific prioritization criteria, all projects are assumed to be of equal importance for optimization purposes.
-    - Impact: With no differentiated project priorities, the optimization process focuses on maximizing overall resource assignment and utilization across the project portfolio.
-12) Due to discrepancies between staffing and timesheets, staffing data will be prioritized
+   - Justification: In the absence of specific prioritization criteria, all projects are assumed to be of equal importance for optimization purposes.
+   - Impact: With no differentiated project priorities, the optimization process focuses on maximizing overall resource assignment and utilization across the project portfolio.
+10) Due to discrepancies between staffing and timesheets, staffing data will be prioritized
 
     - Justification: Staffing data contains a client ID number that is absent in the 'TIME' dataset, which appears to be specific to Company Y.
     - Impact: To maintain data integrity and consistency, client ID numbers in the 'TIME' dataset for Client Y are assumed to be erroneous and will be replaced with the corresponding values from the staffing data.
-13) Negative hours logged offset hours on other projects for the same client
+11) Negative hours logged offset hours on other projects for the same client
 
-    - Justification: Data analysis indicates a pattern where negative hour entries for a consultant are associated with work on other mandates for the same client.
+    - Justification: Data analysis indicates a pattern where negative hour entries for a consultant are associated with work on other mandates for the same client. This is also standard project management practice to respect budgets
     - Impact: While this assumption is made based on observed data patterns, the validity and full implications remain uncertain and require further investigation.
-14) Client identity is determined by client number rather than name
+12) Differential Time Reporting Behaviors Between Internal and External Consultants
 
-    - Justification: In database design, client numbers serve as primary keys, providing a more reliable and consistent identifier than client names, which can be subject to variation.
-    - Impact: Standardizing client identity based on client numbers allows for consistent client handling across the system. For example, Company X and Company Y with the same client number are treated as a single client entity.
-15) Differential Time Reporting Behaviors Between Internal and External Consultants
-
-    - Justification: Analysis of timesheet submission patterns revealed significant delays from some senior managers, with entries submitted up to 55+ days late. This pattern aligns with observations that internal consultants (who receive regular salaries regardless of timely reporting) may have fewer immediate incentives for prompt time entry compared to external consultants whose compensation depends directly on reported hours.
+    - Justification: Analysis of timesheet submission patterns revealed significant delays from some senior managers, with entries submitted up to 55+ days late. This pattern aligns with previous observations that internal consultants (who receive regular salaries regardless of timely reporting) may have fewer immediate incentives for prompt time entry compared to external consultants whose compensation depends directly on reported hours.
     - Impact: For the sake of a demo, statistical analysis was conducted and consultants who wait on average less than 3 days to report their work hours were tagged as external, managers and above were excluded.
+13) External consultants reduce profitability by 10%
 
-## Optimization Challenge
-
-Given the constraints and assumptions outlined, the optimization problem we address is formally defined as:
-
-$$
-\max_{A} \sum_{p \in P} \text{SPI}_p \cdot w_p
-$$
-
-Subject to the following constraints:
-
-- SPI > 0.8 for all projects (maintaining acceptable schedule performance)
-- Consultant benching < 20% (ensuring efficient utilization of consultant time)
-- $\forall c \in C, \sum_{p \in P} \text{Hours}_{c,p,w} \leq 40, \forall w \in \text{Weeks}$ (adhering to weekly consultant capacity limits)
-
-Where $w_p$ represents the relative importance or priority of project $p$.
-
-- Consultant Availability Extrapolation:  A consultant's availability for the upcoming week is projected based on their staffing availability trends over the preceding three weeks, allowing for dynamic resource allocation.
+    - Justification: This discount rate is arbitrary and should be fixed with production data.
+    - Impact: This adjustment ensures that the VEC calculation accurately reflects the lower profitability of engagements with higher proportions of external consultants, helping practice leaders make more informed decisions about staffing mix.
+14) Chargeout rates are negotiated per engagment
+   - Justification: analysis on the current dataset reveals that chargeout rates per sconsultant are consistent across one assignment but not accross all assignments. Considering the limited timeframe, it is unlikely this is because of a promotion.
+   - Impact: we need a standard chargeout rate table.
 
 ### Key Metrics Derivation
 
@@ -255,7 +257,7 @@ Where $w_p$ represents the relative importance or priority of project $p$.
 
 #### Weighted Average Chargeout Rate
 
-- **Formula**: $\text{Weighted Chargeout Rate} = \sum_{i=1}^{n} \text{Chargeout}_{i} \times \frac{\text{Hours}_{i}}{\sum_{j=1}^{n} \text{Hours}_{j}}$
+- **Formula**: $`\text{Weighted Chargeout Rate} = \sum_{i=1}^{n} \text{Chargeout}_{i} \times \frac{\text{Hours}_{i}}{\sum_{j=1}^{n} \text{Hours}_{j}}`$
 - **Purpose**: Calculates a realistic average chargeout rate for a project phase by weighting individual chargeout rates by the proportion of hours worked by each employee, thereby accurately reflecting the staffing mix.
 - **Note**: This rate is used to convert budget amounts into estimated hours and to calculate overall project duration.
 - **Variables**:  $i$ represents each individual employee assigned to the project phase.
@@ -267,7 +269,7 @@ Where $w_p$ represents the relative importance or priority of project $p$.
 
 #### Total Estimated Duration
 
-- **Formula**: $\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required}}}{\text{Number of employees assigned} \times \text{hours per workday}}$
+- **Formula**: $`\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required}}}{\text{Number of employees assigned} \times \text{hours per workday}}`$
 - **Note**: This calculation incorporates the number of employees assigned and standard workday hours to provide a realistic estimate of project timelines.
 - **Purpose**: Establishes a baseline for measuring schedule performance and for project planning purposes.
 
@@ -278,12 +280,12 @@ Where $w_p$ represents the relative importance or priority of project $p$.
 
 #### Percentage Schedule Elapsed
 
-- **Formula**: $\text{Schedule%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}$
+- **Formula**: $`\text{Schedule%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}`$
 - **Purpose**: Standardizes the measurement of schedule progress, allowing for comparison across projects regardless of their duration.
 
 #### Actual Cost (AC)
 
-- **Formula**: $\text{AC} = \sum_{i=1}^{n} \text{StandardPrice}_i + \sum_{i=1}^{n} \text{AdminFees}_i$
+- **Formula**: $`\text{AC} = \sum_{i=1}^{n} \text{StandardPrice}_i + \sum_{i=1}^{n} \text{AdminFees}_i`$
 - **Purpose**: Calculates the total actual expenditure incurred to date, derived from timesheet entries including standard prices and administrative fees.
 - **Note**: Calculated on a weekly basis to align with staffing allocation and performance review cycles.
 
@@ -321,18 +323,6 @@ Where $w_p$ represents the relative importance or priority of project $p$.
 - **Description**: This metric compares actual billable hours logged against the hours initially assigned to a consultant for specific projects. It reflects the effectiveness with which consultants convert assigned project workload into billable time.
 - **Purpose**: To track the efficiency of converting assigned project hours into actual billable hours. A lower rate may indicate inefficiencies, over-assignment, or time spent on non-billable tasks within assigned projects, while a higher rate suggests efficient execution of assigned tasks. This metric is distinct from overall capacity utilization and focuses on project-specific workload realization.
 
-## Dashboard Improvement Opportunities
-
-The current dashboard is presented as a proof-of-concept, developed based on the constraints of the available data. To enhance its functionality and practical applicability, the following key improvements are recommended:
-
-1. **Integration of Actual Project Timelines**: Our database schema has been updated to store explicit start and end dates for both engagements and phases. When these fields are populated with accurate timeline data, the model's accuracy will significantly improve, shifting the optimization from theoretical to practical application.
-2. **Historical Performance Data Incorporation**: Including historical consultant performance data, categorized by project type and complexity, would enable more nuanced and effective resource allocation based on individual expertise and past performance.
-3. **Skills Taxonomy Implementation**: The development and integration of a structured skills database would allow for precise matching of consultant skills to project requirements, optimizing project staffing and improving project outcomes.
-4. **Client Priorities Integration**: Incorporating client significance and strategic priorities into the optimization model would allow for weighted optimization, ensuring that strategic client relationships and high-priority projects are given appropriate resource allocation.
-5. **Real-time System Integration**: Establishing real-time data integration with KPMG's timesheet and project management systems would enable dynamic resource reallocation in response to real-time project status changes and resource availability, making the system more responsive and adaptive.
-
-It is important to note that without accurate timeline data, the current solution serves primarily as a demonstration of the proposed methodology rather than a fully operational system. However, the underlying principles and methodological approach remain robust and applicable for future development.
-
 ## 🚀 Getting Started
 
 ```bash
@@ -348,16 +338,6 @@ pip install -r requirements.txt
 open ./dashboards/project_performance.pbix
 ```
 
-## Implementation Notes
-
-For production deployment within KPMG, we recommend the following implementation steps based on our experience with similar technical systems in engineering and project environments:
-
-1. **Salesforce System Integration**: Establish robust integration with KPMG's existing Salesforce system using API connectors to ensure seamless data flow and system interoperability.
-2. **Database Schema Deployment**: Implement the defined database schema within KPMG's Azure SQL or MS SQL Server environment to establish the necessary data infrastructure.
-3. **Data Refresh Scheduling**: Establish a regular data refresh schedule, ideally daily, to ensure the dashboard and optimization algorithms operate with up-to-date information.
-4. **User Access Control Implementation**: Implement user access controls that align with KPMG's organizational structure to ensure data security and appropriate system access levels.
-5. **Automated Alert System**: Develop and deploy automated alerts that trigger when project Schedule Performance Index (SPI) falls below predefined thresholds, enabling proactive intervention and project management.
-
 ## 📈 Performance Metrics
 
 For a sample project with code ending 365, phase 000010, the following performance metrics are observed:
@@ -366,19 +346,8 @@ For a sample project with code ending 365, phase 000010, the following performan
 - SPI: \[Value calculated]
 - Estimated completion date: \[Date calculated]
 
-## 🛣️ Future Developments
-
-### Roadmap Overview
-
-- Implement more sophisticated resource allocation algorithms to enhance optimization accuracy and efficiency.
-- Enhance data collection methodologies to ensure more accurate and granular project progress tracking and data inputs.
-- Develop automated reporting capabilities to streamline performance monitoring and stakeholder communication.
-- Integrate real-time project monitoring features to enable dynamic adjustments and proactive project management.
-
  *Built for the KPMG Data Challenge 2025*
 
 ## Appendix 1: AI Usage
 
 For the development of this project, ChatGPT (free version) and GitHub Copilot were utilized as valuable tools for research assistance, content generation, and code development support. These tools helped our team bridge knowledge gaps between our engineering/technical backgrounds and the consulting domain-specific requirements of this challenge.
-
-## Appendix 2: Questions to Organisers

@@ -222,6 +222,18 @@ BEGIN
 END
 GO
 
+-- Create or modify charge_out_rates table
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'charge_out_rates')
+BEGIN
+    CREATE TABLE [charge_out_rates] (
+      [eng_no] bigint,
+      [personnel_no] int,
+      [standard_chargeout_rate] decimal(10,2),
+      PRIMARY KEY ([eng_no], [personnel_no])
+    );
+END
+GO
+
 -- Add or update column descriptions
 IF EXISTS (SELECT 1 FROM fn_listextendedproperty('Column_Description', 'SCHEMA', 'dbo', 'TABLE', 'employees', 'COLUMN', 'employment_basis'))
     EXEC sp_updateextendedproperty
@@ -302,5 +314,14 @@ ALTER TABLE [timesheets] ADD CONSTRAINT [FK_timesheets_phases]
 GO
 
 ALTER TABLE [vacations] ADD CONSTRAINT [FK_vacations_employees]
+    FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
+GO
+
+-- Add foreign key constraints for charge_out_rates
+ALTER TABLE [charge_out_rates] ADD CONSTRAINT [FK_charge_out_rates_engagements]
+    FOREIGN KEY ([eng_no]) REFERENCES [engagements] ([eng_no])
+GO
+
+ALTER TABLE [charge_out_rates] ADD CONSTRAINT [FK_charge_out_rates_employees]
     FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
 GO

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import StandardScaler
 from datetime import datetime
 import os
 import sys
@@ -25,7 +26,7 @@ df_time['Time Entry Delay'] = (df_time['Time Entry Date'] - df_time['Work Date']
 # Function to perform anomaly detection for hours for a single employee
 def detect_hours_anomalies(employee_data):
     # Select relevant columns for anomaly detection
-    anomaly_columns = ['Hours', 'Charge-Out Rate', 'Std. Price']
+    anomaly_columns = ['Hours', 'Std. Price']
     
     # Check if employee has enough data points
     if len(employee_data) < 5:  # Minimum data points for meaningful detection
@@ -34,9 +35,13 @@ def detect_hours_anomalies(employee_data):
     # Prepare data for anomaly detection
     df_anomaly = employee_data[anomaly_columns].dropna()
     
+    # Standardize the features to ensure equal weight
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(df_anomaly)
+    
     # Fit Isolation Forest model
     iso_forest = IsolationForest(contamination=0.1, random_state=42)  # 10% anomalies
-    anomalies = iso_forest.fit_predict(df_anomaly)
+    anomalies = iso_forest.fit_predict(scaled_data)
     
     # Create a series of anomalies with the same index as the input data
     anomaly_series = pd.Series([-1] * len(employee_data), index=employee_data.index)
@@ -110,13 +115,13 @@ def plot_employee_anomalies(employee_name):
     sns.scatterplot(
         data=employee_data, 
         x='Hours', 
-        y='Charge-Out Rate', 
+        y='Std. Price', 
         hue='Hours Anomaly', 
         palette={1: "blue", -1: "red"}
     )
     plt.title(f"Hours Anomalies for {employee_name}")
     plt.xlabel("Hours Logged")
-    plt.ylabel("Charge-Out Rate")
+    plt.ylabel("Standard Price")
     plt.legend(title="Anomaly", labels=["Normal", "Anomalous"])
     
     # Time Entry Delay Anomalies Plot
@@ -161,8 +166,8 @@ significant_hours_anomaly_employees = hours_anomaly_summary[
 ]
 
 significant_delay_employees = time_entry_delay_summary[
-    (time_entry_delay_summary['Delay Anomaly Percentage'] > 20) | 
-    (time_entry_delay_summary['Max Time Entry Delay (Days)'] > 7)
+    (time_entry_delay_summary['Delay Anomaly Percentage'] > 10) | # More than 10% of the entries must be anomalous
+    (time_entry_delay_summary['Max Time Entry Delay (Days)'] > 14) # Delay for time entry must be greater than 2 weeks
 ]
 
 print("\nEmployees with Significant Hours Anomaly Issues:")

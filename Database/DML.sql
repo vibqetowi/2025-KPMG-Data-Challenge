@@ -1,5 +1,5 @@
 -- T-SQL DML MERGE statements (upsert) generated from transformed CSV files
--- Generation timestamp: 2025-03-26 23:07:11
+-- Generation timestamp: 2025-03-27 17:16:10
 
 -- Use the database created by the DDL script
 USE [KPMG_Data_Challenge];
@@ -1336,10 +1336,10 @@ BEGIN TRY
     MERGE [dbo].[vacations] AS target
     USING (
         VALUES
-        (14526, CONVERT(DATE, '2025-03-10', 120), CONVERT(DATE, '2025-03-17', 120)),
-        (14532, CONVERT(DATE, '2025-07-01', 120), CONVERT(DATE, '2025-07-15', 120)),
-        (14523, CONVERT(DATE, '2025-08-03', 120), CONVERT(DATE, '2025-08-17', 120)),
-        (14530, CONVERT(DATE, '2025-10-20', 120), CONVERT(DATE, '2025-10-27', 120)),
+        (14524, CONVERT(DATE, '2025-03-10', 120), CONVERT(DATE, '2025-03-17', 120)),
+        (14536, CONVERT(DATE, '2025-07-01', 120), CONVERT(DATE, '2025-07-15', 120)),
+        (14532, CONVERT(DATE, '2025-08-03', 120), CONVERT(DATE, '2025-08-17', 120)),
+        (14534, CONVERT(DATE, '2025-10-20', 120), CONVERT(DATE, '2025-10-27', 120)),
         (14535, CONVERT(DATE, '2025-12-22', 120), CONVERT(DATE, '2025-12-31', 120))
     ) AS source (personnel_no, start_date, end_date)
     ON target.[personnel_no] = source.[personnel_no] AND target.[start_date] = source.[start_date]
@@ -1358,6 +1358,62 @@ BEGIN CATCH
     DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
     DECLARE @ErrorState INT = ERROR_STATE();
     PRINT 'Error upserting data into vacations: ' + @ErrorMessage;
+    RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+END CATCH;
+GO
+
+-- MERGE/INSERT statements for charge_out_rates table
+PRINT 'Upserting data into charge_out_rates table...';
+BEGIN TRY
+    BEGIN TRANSACTION;
+    -- Batch 1/1
+    MERGE [dbo].[charge_out_rates] AS target
+    USING (
+        VALUES
+        (2001920365, 14523, 210.00),
+        (2001920365, 14524, 196.00),
+        (2001920365, 14525, 274.00),
+        (2001920365, 14526, 388.00),
+        (2001920365, 14528, 318.00),
+        (2001920365, 14529, 388.00),
+        (2001920365, 14534, 478.00),
+        (2001920365, 14536, 148.00),
+        (2002040046, 14525, 274.00),
+        (2002040046, 14532, 196.00),
+        (2002040046, 14533, 288.00),
+        (2002040046, 14534, 478.00),
+        (2002040046, 14535, 210.00),
+        (2002040046, 14536, 148.00),
+        (2002055111, 14525, 256.00),
+        (2002055111, 14530, 196.00),
+        (2002055111, 14531, 210.00),
+        (2002055111, 14537, 388.00),
+        (2002059395, 14534, 478.00),
+        (2002059395, 14535, 210.00),
+        (2002059395, 14536, 148.00),
+        (2002059395, 14537, 388.00),
+        (3000512342, 14523, 210.00),
+        (3000512342, 14525, 256.00),
+        (3000512342, 14527, 210.00),
+        (3000512342, 14533, 288.00),
+        (3000512342, 14534, 478.00)
+    ) AS source (eng_no, personnel_no, standard_chargeout_rate)
+    ON target.[eng_no] = source.[eng_no] AND target.[personnel_no] = source.[personnel_no]
+    WHEN MATCHED THEN
+        UPDATE SET target.[standard_chargeout_rate] = source.[standard_chargeout_rate]
+    WHEN NOT MATCHED THEN
+        INSERT ([eng_no], [personnel_no], [standard_chargeout_rate])
+        VALUES (source.[eng_no], source.[personnel_no], source.[standard_chargeout_rate]);
+    COMMIT TRANSACTION;
+    PRINT 'Completed upsert for charge_out_rates';
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0
+        ROLLBACK TRANSACTION;
+    DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+    DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+    DECLARE @ErrorState INT = ERROR_STATE();
+    PRINT 'Error upserting data into charge_out_rates: ' + @ErrorMessage;
     RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
 END CATCH;
 GO
