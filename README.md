@@ -16,7 +16,7 @@
 | Minh        | @vibqetowi | Software Engineering, previous experience in software development and project management |
 | Carter      | @carterj-c | Mechanical Engineering, previous experience in aerospace engineering                     |
 | Casey       | @cassius   | Finance & accounting, previous experience in financial modeling and research             |
-| Romero      | @geekpapi  |                                                                                          |
+| Romero      | @geekpapi  | Economics & Computer Science, previous experience in data analysis                                                                                         |
 
 ## 🎯 Project Overview
 
