@@ -20,7 +20,7 @@
 
 ## 🎯 Project Overview
 
-Team 7 is pleased to present its submission for the KPMG case challenge, focusing on **consulting assignment optimization**. While our backgrounds are primarily in engineering, project management, and finance rather than consulting, we've leveraged our technical expertise and project coordination experience to develop a solution that addresses resource allocation challenges common to professional services organizations. Our solution is a production-ready dashboard designed to implement earned value management (EVM) principles to optimize resource allocation across projects.
+Team 7 is pleased to present its submission for the KPMG case challenge, focusing on **consulting assignment optimization**. While our backgrounds are primarily in engineering, economics, project management, and finance rather than consulting, we've leveraged our technical expertise and project coordination experience to develop a solution that addresses resource allocation challenges common to professional services organizations. Our solution is a production-ready dashboard designed to implement earned value management (EVM) principles to optimize resource allocation across projects.
 
 This dashboard is specifically engineered to address critical business needs prevalent in project-based organizations:
 
@@ -257,7 +257,7 @@ By replacing synthetic data with actual operational data and implementing these 
 
 #### Weighted Average Chargeout Rate
 
-- **Formula**: $\text{Weighted Chargeout Rate} = \sum_{i=1}^{n} \text{Chargeout}_{i} \times \frac{\text{Hours}_{i}}{\sum_{j=1}^{n} \text{Hours}_{j}}$
+- **Formula**: $`\text{Weighted Chargeout Rate} = \sum_{i=1}^{n} \text{Chargeout}_{i} \times \frac{\text{Hours}_{i}}{\sum_{j=1}^{n} \text{Hours}_{j}}`$
 - **Purpose**: Calculates a realistic average chargeout rate for a project phase by weighting individual chargeout rates by the proportion of hours worked by each employee, thereby accurately reflecting the staffing mix.
 - **Note**: This rate is used to convert budget amounts into estimated hours and to calculate overall project duration.
 - **Variables**:  $i$ represents each individual employee assigned to the project phase.
@@ -269,7 +269,7 @@ By replacing synthetic data with actual operational data and implementing these 
 
 #### Total Estimated Duration
 
-- **Formula**: $\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required}}}{\text{Number of employees assigned} \times \text{hours per workday}}$
+- **Formula**: $`\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required}}}{\text{Number of employees assigned} \times \text{hours per workday}}`$
 - **Note**: This calculation incorporates the number of employees assigned and standard workday hours to provide a realistic estimate of project timelines.
 - **Purpose**: Establishes a baseline for measuring schedule performance and for project planning purposes.
 
@@ -280,12 +280,12 @@ By replacing synthetic data with actual operational data and implementing these 
 
 #### Percentage Schedule Elapsed
 
-- **Formula**: $\text{Schedule%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}$
+- **Formula**: $`\text{Schedule%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}`$
 - **Purpose**: Standardizes the measurement of schedule progress, allowing for comparison across projects regardless of their duration.
 
 #### Actual Cost (AC)
 
-- **Formula**: $\text{AC} = \sum_{i=1}^{n} \text{StandardPrice}_i + \sum_{i=1}^{n} \text{AdminFees}_i$
+- **Formula**: $`\text{AC} = \sum_{i=1}^{n} \text{StandardPrice}_i + \sum_{i=1}^{n} \text{AdminFees}_i`$
 - **Purpose**: Calculates the total actual expenditure incurred to date, derived from timesheet entries including standard prices and administrative fees.
 - **Note**: Calculated on a weekly basis to align with staffing allocation and performance review cycles.
 
