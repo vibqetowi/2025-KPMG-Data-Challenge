@@ -1,17 +1,29 @@
-id,category,key,value,description
-1,Engagement,Eng. No.,Eng. No.,Mandate key
-2,Engagement,Eng. Description,Eng. Description,Mandate description
-3,Engagement,Eng. Phase,Eng. Phase,Mandate phase
-4,General,Phase Description,Phase Description,Mandate phase description
-5,Client,Client No.,Client No.,Client key
-6,Client,Client Name,Client Name,Client name
-7,Employee,Personnel No.,Personnel No.,Employee key
-8,Employee,Employee Name,Employee Name,Employenomn
-9,General,Staff Level,Staff Level,Employee title
-10,Date,Work Date,Work Date,Work day
-11,Date,Time Entry Date,Time Entry Date,Day when the employee entered the details of their timesheet
-12,Date,Posting Date,Posting Date,Day when the employee sent the details of their timesheet
-13,General,Hours,Hours,Number of hours entered in the timesheet
-14,General,Charge+AC0-Out Rate,Charge+AC0-Out Rate,Hourly wage of the employee which is charged to the client
-15,General,Std. Price,Std. Price,Hourly wage +ACo- Number of hours worked
-16,General,Adm. Surcharge,Adm. Surcharge,Administrative fees
+key,description
+Eng. No.,Mandate key
+Eng. Description,Mandate description
+Eng. Phase,Mandate phase
+Phase Description,Mandate phase description
+Client No.,Client key
+Client Name,Client name
+Personnel No.,Employee key
+Employee Name,Employenomn
+Staff Level,Employee title
+Work Date,Work day
+Time Entry Date,Day when the employee entered the details of their timesheet
+Posting Date,Day when the employee sent the details of their timesheet
+Hours,Number of hours entered in the timesheet
+Charge+AC0-Out Rate,Hourly wage of the employee which is charged to the client
+Std. Price,Hourly wage +ACo- Number of hours worked
+Adm. Surcharge,Administrative fees
+PV,Planned Value - The authorized budget assigned to scheduled work
+EV,Earned Value - The measure of work performed expressed in terms of the budget authorized for that work
+AC,Actual Cost - The realized cost incurred for the work performed
+SV,Schedule Variance - Indicates whether the project is ahead or behind schedule (EV-PV)
+CV,Cost Variance - Indicates whether the project is under or over budget (EV-AC)
+SPI,Schedule Performance Index - Measure of schedule efficiency (EV/PV)
+CPI,Cost Performance Index - Measure of cost efficiency (EV/AC)
+BAC,Budget At Completion - The total authorized budget for the project
+EAC,Estimate At Completion - The expected total cost of the project when completed
+ETC,Estimate To Complete - The expected cost to finish all remaining project work
+VAC,Variance At Completion - Projection of the amount of budget deficit or surplus (BAC-EAC)
+TCPI,To Complete Performance Index - The cost performance that must be achieved to complete remaining work within budget

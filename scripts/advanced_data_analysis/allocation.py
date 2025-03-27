@@ -1,12 +1,17 @@
 import pandas as pd
 from datetime import datetime
+import os
+import sys
+from fetcher import DataFetcher
 
-# 1. Load your CSV data
-csv_path = r"C:\Users\carte\OneDrive\Documents\Coding Projects\2025-KPMG-Data-Challenge\csv-dump\KPMG Case Data_TIME.csv"
-df_time = pd.read_csv(csv_path, encoding="latin-1")
+# Create a DataFetcher instance (defaults to trying DB first then CSV)
+fetcher = DataFetcher()
 
-# 2. Convert relevant columns to datetime
-#    (adjust names if they differ; these match your column headers)
+# Fetch timesheet data using the modular approach
+data = fetcher.fetch_data(['timesheet_data'])
+df_time = data['timesheet_data']
+
+# Convert relevant columns to datetime
 if 'Posting Date' in df_time.columns:
     df_time['Posting Date'] = pd.to_datetime(df_time['Posting Date'], errors='coerce')
 if 'Time Entry Date' in df_time.columns:

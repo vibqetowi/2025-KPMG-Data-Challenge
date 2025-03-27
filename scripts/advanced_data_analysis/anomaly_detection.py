@@ -5,9 +5,16 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from datetime import datetime
+import os
+import sys
+from fetcher import DataFetcher
 
-csv_path = r"C:\Users\carte\OneDrive\Documents\Coding Projects\2025-KPMG-Data-Challenge\csv-dump\KPMG Case Data_TIME.csv"
-df_time = pd.read_csv(csv_path, encoding="latin-1")
+# Create a DataFetcher instance (defaults to trying DB first then CSV)
+fetcher = DataFetcher()
+
+# Fetch data from database or CSV - using the new modular approach
+data = fetcher.fetch_data(['timesheets_employees'])
+df_time = data['timesheets_employees']
 
 # Convert date columns to datetime
 df_time['Work Date'] = pd.to_datetime(df_time['Work Date'])
