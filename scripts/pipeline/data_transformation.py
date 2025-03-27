@@ -25,22 +25,32 @@ class DataTransformer:
         
         # Define table schemas based on DDL with proper types
         self.schemas = {
+            'practices': {
+                'columns': ['practice_id', 'practice_name', 'description'],
+                'dtypes': {'practice_id': 'int', 'practice_name': 'str', 'description': 'str'}
+            },
             'employees': {
-                'columns': ['personnel_no', 'employee_name', 'staff_level', 'is_external', 'employment_basis'],
+                'columns': ['personnel_no', 'employee_name', 'staff_level', 'is_external', 'employment_basis', 'practice_id'],
                 'dtypes': {'personnel_no': 'int', 'employee_name': 'str', 'staff_level': 'str', 
-                          'is_external': 'bool', 'employment_basis': 'float'}
+                          'is_external': 'bool', 'employment_basis': 'float', 'practice_id': 'int'}
             },
             'clients': {
                 'columns': ['client_no', 'client_name'],
                 'dtypes': {'client_no': 'int', 'client_name': 'str'}
             },
             'engagements': {
-                'columns': ['eng_no', 'eng_description', 'client_no'],
-                'dtypes': {'eng_no': 'int64', 'eng_description': 'str', 'client_no': 'int'}
+                'columns': ['eng_no', 'eng_description', 'client_no', 'start_date', 'end_date', 
+                           'actual_end_date', 'primary_practice_id'],
+                'dtypes': {'eng_no': 'int64', 'eng_description': 'str', 'client_no': 'int',
+                          'start_date': 'datetime64[ns]', 'end_date': 'datetime64[ns]', 
+                          'actual_end_date': 'datetime64[ns]', 'primary_practice_id': 'int'}
             },
             'phases': {
-                'columns': ['eng_no', 'eng_phase', 'phase_description', 'budget'],
-                'dtypes': {'eng_no': 'int64', 'eng_phase': 'int', 'phase_description': 'str', 'budget': 'float'}
+                'columns': ['eng_no', 'eng_phase', 'phase_description', 'budget', 
+                           'start_date', 'end_date', 'actual_end_date'],
+                'dtypes': {'eng_no': 'int64', 'eng_phase': 'int', 'phase_description': 'str', 'budget': 'float',
+                          'start_date': 'datetime64[ns]', 'end_date': 'datetime64[ns]', 
+                          'actual_end_date': 'datetime64[ns]'}
             },
             'staffing': {
                 'columns': ['id', 'personnel_no', 'eng_no', 'eng_phase', 'week_start_date', 'planned_hours'],
@@ -67,6 +77,7 @@ class DataTransformer:
         
         # Define primary keys for each table as per DDL
         self.primary_keys = {
+            'practices': ['practice_id'],
             'employees': ['personnel_no'],
             'clients': ['client_no'],
             'engagements': ['eng_no'],
@@ -79,7 +90,11 @@ class DataTransformer:
         
         # Define foreign key relationships as per DDL
         self.foreign_keys = {
-            'engagements': [('client_no', 'clients', 'client_no')],
+            'employees': [('practice_id', 'practices', 'practice_id')],
+            'engagements': [
+                ('client_no', 'clients', 'client_no'),
+                ('primary_practice_id', 'practices', 'practice_id')
+            ],
             'phases': [('eng_no', 'engagements', 'eng_no')],
             'staffing': [
                 ('personnel_no', 'employees', 'personnel_no'),
@@ -102,6 +117,62 @@ class DataTransformer:
         self.dfs = {}
         for table, schema in self.schemas.items():
             self.dfs[table] = pd.DataFrame(columns=schema['columns'])
+        
+        # Create default practice
+        self._create_default_practice()
+    
+    def _create_default_practice(self):
+        """
+        Create KPMG-specific practices, with SAP as practice ID 1
+        """
+        practices = [
+            {
+                'practice_id': 1,
+                'practice_name': 'SAP',
+                'description': 'SAP Implementation and Advisory Services'
+            },
+            {
+                'practice_id': 2,
+                'practice_name': 'Audit & Assurance',
+                'description': 'Financial Statement Audits and Assurance Services'
+            },
+            {
+                'practice_id': 3,
+                'practice_name': 'Cloud Services',
+                'description': 'AWS, Azure, and GCP Implementation Advisory'
+            },
+            {
+                'practice_id': 4, 
+                'practice_name': 'Management Consulting',
+                'description': 'Strategy and Operations Consulting'
+            },
+            {
+                'practice_id': 5,
+                'practice_name': 'Deal Advisory',
+                'description': 'Mergers & Acquisitions and Transaction Services'
+            },
+            {
+                'practice_id': 6,
+                'practice_name': 'Risk Consulting',
+                'description': 'Risk Management, Compliance, and Governance'
+            },
+            {
+                'practice_id': 7,
+                'practice_name': 'Technology Consulting',
+                'description': 'Digital Transformation and Enterprise Technologies'
+            },
+            {
+                'practice_id': 8,
+                'practice_name': 'ESG Advisory',
+                'description': 'Environmental, Social, and Governance Services'
+            }
+        ]
+        
+        self.dfs['practices'] = pd.DataFrame(practices)
+        print(f"Created {len(practices)} KPMG practice records (SAP is default with ID 1)")
+        print("Available KPMG practices:")
+        for _, practice in enumerate(practices):
+            print(f"  - {practice['practice_id']}: {practice['practice_name']}")
     
     def _clean_dataframe(self, df, table_name):
         """
@@ -142,6 +213,36 @@ class DataTransformer:
         
         return df
     
+    def _drop_null_columns(self, df, table_name, exclude_columns=None):
+        """
+        Drop columns that are entirely NULL, except those in exclude_columns
+        Returns the DataFrame with NULL columns removed
+        """
+        if exclude_columns is None:
+            exclude_columns = []
+        
+        # Ensure exclude_columns is a list
+        if not isinstance(exclude_columns, list):
+            exclude_columns = [exclude_columns]
+        
+        # Add primary key columns to exclude_columns
+        pk_columns = self.primary_keys.get(table_name, [])
+        if not isinstance(pk_columns, list):
+            pk_columns = [pk_columns]
+        exclude_columns.extend(pk_columns)
+        
+        # Find columns that are all NULL and not in exclude_columns
+        null_columns = []
+        for col in df.columns:
+            if col not in exclude_columns and df[col].isna().all():
+                null_columns.append(col)
+        
+        if null_columns:
+            print(f"Dropping all-NULL columns from {table_name} before generating values: {null_columns}")
+            df = df.drop(columns=null_columns)
+        
+        return df
+
     def process_budget_data(self):
         """
         Process budget data to populate engagements and phases tables.
@@ -155,7 +256,7 @@ class DataTransformer:
             print(f"Processing budget file: {BUDGET_CSV}")
             df_budget = pd.read_csv(BUDGET_CSV, encoding='utf-8-sig')
             
-            # Process engagements
+            # Process engagements - only include non-NULL fields and required keys
             engagements = []
             phases = []
             
@@ -164,27 +265,43 @@ class DataTransformer:
                 eng_no = row['Code projet']
                 eng_description = row['Nom de projet']
                 
-                # Add to engagements
-                engagements.append({
+                # Basic engagement record with only required fields
+                engagement = {
                     'eng_no': eng_no,
                     'eng_description': eng_description,
-                    'client_no': None  # Will be updated from staffing data
-                })
+                    'primary_practice_id': 1  # Default to SAP practice - needed for foreign key
+                }
                 
-                # Extract phase data - make sure to include both parts of the composite primary key
-                phases.append({
+                # Add client_no only if it will be available
+                if 'Client No.' in row and pd.notna(row['Client No.']):
+                    engagement['client_no'] = row['Client No.']
+                
+                engagements.append(engagement)
+                
+                # Basic phase record with only required fields
+                phase = {
                     'eng_no': eng_no,  # First part of composite PK
                     'eng_phase': int(row['Code phase']),  # Second part of composite PK
-                    'phase_description': row['Phase Projet'],
-                    'budget': float(row['Budget']) if pd.notna(row['Budget']) else None
-                })
+                    'phase_description': row['Phase Projet']
+                }
+                
+                # Add budget only if it's not NULL
+                if pd.notna(row['Budget']):
+                    phase['budget'] = float(row['Budget'])
+                
+                phases.append(phase)
             
             # Convert to DataFrames
             if engagements:
                 df_engagements = pd.DataFrame(engagements)
                 df_engagements = df_engagements.drop_duplicates(subset=['eng_no'])
-                self.dfs['engagements'] = pd.concat([self.dfs['engagements'], df_engagements])
-                self.dfs['engagements'] = self.dfs['engagements'].drop_duplicates(subset=['eng_no'], keep='last')
+                
+                # If we already have engagements, merge with the existing ones
+                if not self.dfs['engagements'].empty:
+                    self.dfs['engagements'] = pd.concat([self.dfs['engagements'], df_engagements])
+                    self.dfs['engagements'] = self.dfs['engagements'].drop_duplicates(subset=['eng_no'], keep='last')
+                else:
+                    self.dfs['engagements'] = df_engagements
                 
             if phases:
                 df_phases = pd.DataFrame(phases)
@@ -194,10 +311,14 @@ class DataTransformer:
                 
                 # Ensure both parts of the composite key are present and not null
                 df_phases = df_phases[df_phases['eng_no'].notna() & df_phases['eng_phase'].notna()]
-                
                 df_phases = df_phases.drop_duplicates(subset=['eng_no', 'eng_phase'])
-                self.dfs['phases'] = pd.concat([self.dfs['phases'], df_phases])
-                self.dfs['phases'] = self.dfs['phases'].drop_duplicates(subset=['eng_no', 'eng_phase'], keep='last')
+                
+                # If we already have phases, merge with the existing ones
+                if not self.dfs['phases'].empty:
+                    self.dfs['phases'] = pd.concat([self.dfs['phases'], df_phases])
+                    self.dfs['phases'] = self.dfs['phases'].drop_duplicates(subset=['eng_no', 'eng_phase'], keep='last')
+                else:
+                    self.dfs['phases'] = df_phases
             
             print(f"Processed budget data: {len(engagements)} engagements, {len(phases)} phases")
             
@@ -227,48 +348,57 @@ class DataTransformer:
                 # Extract employees
                 for _, row in df_staff.iterrows():
                     personnel_no = row['Personnel No.']
+                    employee_name = row['Employee Name']
                     
-                    # Extract employee data
-                    employees.append({
-                        'personnel_no': personnel_no,
-                        'employee_name': row['Employee Name'],
-                        'staff_level': row['Staff Level'],
-                        'is_external': False,  # Default to internal
-                        'employment_basis': 40.0  # Set 40 hours weekly basis for everyone
-                    })
-                    
-                    # Extract client data
-                    client_no = row['Client No.']
-                    clients.append({
-                        'client_no': client_no,
-                        'client_name': row['Client Name']
-                    })
-                    
-                    # Map engagement to client
-                    eng_no = row['Eng. No.']
-                    engagement_client_map[eng_no] = client_no
-                    
-                    # Process staffing data - columns after 'Staff Level' are week dates
-                    date_columns = [col for col in df_staff.columns[9:] if 'Unnamed' not in col]
-                    
-                    for date_col in date_columns:
-                        hours = row[date_col]
-                        if pd.notna(hours) and hours > 0:
-                            # Convert string date to datetime
-                            try:
-                                # Handle different date formats
-                                week_date = pd.to_datetime(date_col.replace(' 00:00:00', ''))
-                                
-                                staffing_records.append({
-                                    'id': None,  # DB will generate
-                                    'personnel_no': personnel_no,
-                                    'eng_no': eng_no,
-                                    'eng_phase': row['Eng. Phase'],
-                                    'week_start_date': week_date,
-                                    'planned_hours': float(hours)
-                                })
-                            except:
-                                print(f"Warning: Could not parse date {date_col}")
+                    # Only process valid employees (non-NULL key fields)
+                    if pd.notna(personnel_no) and pd.notna(employee_name):
+                        # Extract employee data
+                        employees.append({
+                            'personnel_no': personnel_no,
+                            'employee_name': employee_name,
+                            'staff_level': row['Staff Level'],
+                            'is_external': False,  # Default to internal
+                            'employment_basis': 40.0,  # Set 40 hours weekly basis for everyone
+                            'practice_id': 1  # Default to SAP practice
+                        })
+                        
+                        # Extract client data - only if both client_no and client_name are not NULL
+                        client_no = row['Client No.']
+                        client_name = row['Client Name']
+                        
+                        if pd.notna(client_no) and pd.notna(client_name):
+                            clients.append({
+                                'client_no': client_no,
+                                'client_name': client_name
+                            })
+                            
+                            # Map engagement to client only for valid clients
+                            eng_no = row['Eng. No.']
+                            engagement_client_map[eng_no] = client_no
+                        
+                        # Process staffing data - columns after 'Staff Level' are week dates
+                        date_columns = [col for col in df_staff.columns[9:] if 'Unnamed' not in col]
+                        
+                        for date_col in date_columns:
+                            hours = row[date_col]
+                            if pd.notna(hours) and hours > 0:
+                                # Convert string date to datetime
+                                try:
+                                    # Handle different date formats
+                                    week_date = pd.to_datetime(date_col.replace(' 00:00:00', ''))
+                                    
+                                    staffing_records.append({
+                                        'id': None,  # DB will generate
+                                        'personnel_no': personnel_no,
+                                        'eng_no': eng_no,
+                                        'eng_phase': row['Eng. Phase'],
+                                        'week_start_date': week_date,
+                                        'planned_hours': float(hours)
+                                    })
+                                except:
+                                    print(f"Warning: Could not parse date {date_col}")
+                    else:
+                        print(f"Skipping invalid employee record with NULL key fields: {row['Personnel No.']}, {row['Employee Name']}")
                 
             except Exception as e:
                 print(f"Error processing staffing file {staffing_file}: {str(e)}")
@@ -276,13 +406,25 @@ class DataTransformer:
         # Convert to DataFrames and deduplicate
         if employees:
             df_employees = pd.DataFrame(employees).drop_duplicates(subset=['personnel_no'])
+            
+            # Extra check to remove any rows with NULL values in key fields
+            df_employees = df_employees.dropna(subset=['personnel_no', 'employee_name'])
+            
             self.dfs['employees'] = pd.concat([self.dfs['employees'], df_employees])
             self.dfs['employees'] = self.dfs['employees'].drop_duplicates(subset=['personnel_no'], keep='last')
+            
+            print(f"Processed {len(df_employees)} unique employees (after removing NULL values)")
         
         if clients:
             df_clients = pd.DataFrame(clients).drop_duplicates(subset=['client_no'])
+            
+            # Extra check to remove any rows with NULL values that might have slipped through
+            df_clients = df_clients.dropna(subset=['client_no', 'client_name'])
+            
             self.dfs['clients'] = pd.concat([self.dfs['clients'], df_clients])
             self.dfs['clients'] = self.dfs['clients'].drop_duplicates(subset=['client_no'], keep='last')
+            
+            print(f"Processed {len(df_clients)} unique clients (after removing NULL values)")
         
         if staffing_records:
             df_staffing = pd.DataFrame(staffing_records)
@@ -446,6 +588,9 @@ class DataTransformer:
             # Clean the DataFrame according to its schema
             df = self._clean_dataframe(df, table)
             
+            # We've already dropped NULL columns during processing
+            # so we just need to handle primary keys and set auto-generated columns
+            
             # Make sure composite primary keys are present
             pk_columns = self.primary_keys.get(table, [])
             if len(pk_columns) > 1:  # Composite primary key
@@ -499,7 +644,7 @@ class DataTransformer:
 
     def generate_placeholder_vacation_data(self):
         """
-        Generate 5 sample vacation periods in 2025 for real employees.
+        Generate exactly 5 vacation records, with 1 vacation per employee.
         """
         if 'employees' not in self.dfs or self.dfs['employees'].empty:
             print("No employee data available to generate vacation placeholders")
@@ -518,47 +663,35 @@ class DataTransformer:
             ('2025-12-22', '2025-12-31')
         ]
         
-        vacations = []
         # Get all personnel numbers from employees DataFrame
         personnel_nos = self.dfs['employees']['personnel_no'].dropna().unique().tolist()
         
-        if personnel_nos:
-            print(f"Generating vacations for {len(personnel_nos)} employees")
-            
-            # Distribute vacations among employees
-            # Each employee gets at least one vacation period
-            for i, personnel_no in enumerate(personnel_nos):
-                # Determine which vacation period to assign (cycling through the 5 periods)
-                vac_index = i % len(vacation_periods)
-                start_date, end_date = vacation_periods[vac_index]
-                
-                vacations.append({
-                    'personnel_no': personnel_no,
-                    'start_date': pd.Timestamp(start_date),
-                    'end_date': pd.Timestamp(end_date)
-                })
-                
-                # Add a second vacation for some employees
-                if i % 3 == 0:  # Every third employee gets a second vacation
-                    second_vac_index = (vac_index + 2) % len(vacation_periods)
-                    second_start, second_end = vacation_periods[second_vac_index]
-                    
-                    vacations.append({
-                        'personnel_no': personnel_no,
-                        'start_date': pd.Timestamp(second_start),
-                        'end_date': pd.Timestamp(second_end)
-                    })
+        if not personnel_nos or len(personnel_nos) < 5:
+            print(f"Not enough employees ({len(personnel_nos)}) to generate 5 vacations")
+            return
         
-        if vacations:
-            df_vacations = pd.DataFrame(vacations)
-            df_vacations = df_vacations.drop_duplicates(subset=['personnel_no', 'start_date'])
-            self.dfs['vacations'] = pd.concat([self.dfs.get('vacations', pd.DataFrame()), df_vacations])
-            self.dfs['vacations'] = self.dfs['vacations'].drop_duplicates(subset=['personnel_no', 'start_date'], keep='last')
+        # Select exactly 5 random employees for vacations
+        import random
+        selected_employees = random.sample(personnel_nos, 5)
+        
+        # Create exactly 5 vacations, one per selected employee
+        vacations = []
+        for i, personnel_no in enumerate(selected_employees):
+            # Assign each employee one vacation period
+            start_date, end_date = vacation_periods[i]  # Use one period per employee
             
-            print(f"Generated {len(vacations)} vacation records for {len(personnel_nos)} employees")
-            # Preview the first few vacation records
-            print("Sample vacation entries:")
-            print(self.dfs['vacations'].head())
+            vacations.append({
+                'personnel_no': personnel_no,
+                'start_date': pd.Timestamp(start_date),
+                'end_date': pd.Timestamp(end_date)
+            })
+        
+        # Create DataFrame from the 5 vacation records
+        self.dfs['vacations'] = pd.DataFrame(vacations)
+        
+        print(f"Generated exactly 5 vacation records, 1 per employee")
+        print("Vacation entries:")
+        print(self.dfs['vacations'])
 
     def transform_all_data(self):
         """
@@ -577,10 +710,37 @@ class DataTransformer:
         print("Setting 40-hour employment basis for all employees")
         self.generate_placeholder_vacation_data()
         
+        # Update foreign keys to make sure practice IDs are properly set
+        print("Setting practice IDs for all employees to SAP practice (ID 1)")
+        if 'employees' in self.dfs and not self.dfs['employees'].empty:
+            # Make sure ALL employees are assigned to SAP practice (ID 1)
+            self.dfs['employees']['practice_id'] = 1
+            
+        if 'engagements' in self.dfs and not self.dfs['engagements'].empty:
+            # Add some variety in engagements primary practice 
+            # but ensure most are SAP (ID 1)
+            self.dfs['engagements']['primary_practice_id'] = 1
+            
+            # For demonstration purposes, assign a few engagements to other KPMG practices
+            # But keep the vast majority in SAP
+            if len(self.dfs['engagements']) > 10:
+                # Get some random indices, but keeping 80% in SAP
+                num_to_change = min(int(len(self.dfs['engagements']) * 0.2), 7)
+                if num_to_change > 0:
+                    import random
+                    indices = random.sample(range(len(self.dfs['engagements'])), num_to_change)
+                    for i, idx in enumerate(indices):
+                        # Assign to KPMG practices 2-8 (not SAP)
+                        practice_id = (i % 7) + 2  # This gives practice IDs 2-8
+                        self.dfs['engagements'].iloc[idx, self.dfs['engagements'].columns.get_loc('primary_practice_id')] = practice_id
+            
+            print(f"Assigned {num_to_change if 'num_to_change' in locals() else 0} engagements to non-SAP KPMG practices for demonstration")
+        
         # Validate foreign key relationships
         self.validate_foreign_keys()
         
-        # Save transformed data
+        # Still call save_transformed_data but it won't need to drop columns
+        # since we've already handled that during processing
         self.save_transformed_data()
         
         print(f"Data transformation completed at {datetime.now()}")

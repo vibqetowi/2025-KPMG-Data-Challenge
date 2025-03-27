@@ -38,6 +38,18 @@ class DMLWriter:
             'vacations': ['personnel_no', 'start_date', 'end_date']
         }
         
+        # Define primary keys for each table to use in MERGE statements
+        self.primary_keys = {
+            'employees': ['personnel_no'],
+            'clients': ['client_no'],
+            'engagements': ['eng_no'],
+            'phases': ['eng_no', 'eng_phase'],
+            'staffing': ['id'],
+            'timesheets': ['id'],
+            'dictionary': ['key'],
+            'vacations': ['personnel_no', 'start_date']
+        }
+        
         # Define column data types for proper SQL Server (T-SQL) formatting
         self.column_types = {
             'personnel_no': 'int',
@@ -167,10 +179,9 @@ class DMLWriter:
             escaped_value = str(value).replace("'", "''")
             return f"'{escaped_value}'"
     
-    def generate_insert_statements(self):
+    def generate_merge_statements(self):
         """
-        Generate T-SQL INSERT statements for all tables from loaded DataFrames,
-        handling composite primary keys correctly.
+        Generate T-SQL MERGE statements for all tables to handle upsert operations.
         """
         for table_name, df in self.dfs.items():
             statements = []
@@ -179,19 +190,18 @@ class DMLWriter:
             # Remove auto-generated columns from INSERT statements
             auto_generated = self.auto_generated_columns.get(table_name, [])
             if auto_generated:
-                logger.info(f"Excluding auto-generated columns from {table_name} INSERT statements: {auto_generated}")
+                logger.info(f"Excluding auto-generated columns from {table_name} MERGE statements: {auto_generated}")
                 for col in auto_generated:
                     if col in schema_columns:
                         schema_columns.remove(col)
             
-            # For tables with composite primary keys like 'phases', ensure all key parts are included
-            if table_name == 'phases':
-                logger.info(f"Table {table_name} has composite primary key (eng_no, eng_phase)")
-                # Ensure these columns are present in the schema and data
-                if all(col in df.columns for col in ['eng_no', 'eng_phase']):
-                    # Filter out rows with NULL in primary key columns
-                    df = df[df['eng_no'].notna() & df['eng_phase'].notna()]
-            
+            # Get primary keys for this table
+            pk_columns = self.primary_keys.get(table_name, [])
+            if not pk_columns:
+                logger.warning(f"No primary key defined for {table_name}, using basic INSERT instead of MERGE")
+                self.generate_insert_statements_for_table(table_name, df)
+                continue
+                
             # Check for column mismatch
             missing_columns = [col for col in schema_columns if col not in df.columns]
             if missing_columns:
@@ -200,18 +210,20 @@ class DMLWriter:
                     df[col] = None  # Add missing columns as NULL
             
             # For large datasets, break into chunks to avoid too large SQL statements
-            chunk_size = 500  # Number of rows per INSERT statement
+            chunk_size = 200  # Smaller chunk size for MERGE statements as they're more complex
             total_rows = len(df)
             
             for start_idx in range(0, total_rows, chunk_size):
                 end_idx = min(start_idx + chunk_size, total_rows)
                 chunk = df.iloc[start_idx:end_idx]
                 
-                # Start the multi-row INSERT statement
                 if not chunk.empty:
-                    values_list = []
+                    # Start the MERGE statement
+                    merge_statement = f"MERGE [dbo].[{table_name}] AS target\n"
+                    merge_statement += "USING (\n    VALUES\n"
                     
                     # Generate values for each row
+                    values_rows = []
                     for _, row in chunk.iterrows():
                         row_values = []
                         for column in schema_columns:
@@ -219,29 +231,93 @@ class DMLWriter:
                             column_type = self.column_types.get(column, 'nvarchar')
                             row_values.append(self.format_value(value, column_type))
                         
-                        # Add the row's values as a tuple
-                        values_list.append(f"({', '.join(row_values)})")
+                        values_rows.append(f"    ({', '.join(row_values)})")
                     
-                    # Create the multi-row INSERT statement
-                    multi_insert = f"INSERT INTO [dbo].[{table_name}] ({', '.join([f'[{col}]' for col in schema_columns])}) VALUES\n"
-                    multi_insert += ",\n".join(values_list) + ";"
+                    merge_statement += ",\n".join(values_rows) + "\n"
+                    merge_statement += f") AS source ({', '.join(schema_columns)})\n"
                     
-                    statements.append(multi_insert)
+                    # Create ON clause for match condition using primary key
+                    if len(pk_columns) == 1:
+                        # Single column primary key
+                        pk = pk_columns[0]
+                        merge_statement += f"ON target.[{pk}] = source.[{pk}]\n"
+                    else:
+                        # Composite primary key
+                        match_conditions = [f"target.[{pk}] = source.[{pk}]" for pk in pk_columns]
+                        merge_statement += f"ON {' AND '.join(match_conditions)}\n"
+                    
+                    # Add WHEN MATCHED clause for updates
+                    update_columns = [col for col in schema_columns if col not in pk_columns]
+                    if update_columns:
+                        merge_statement += "WHEN MATCHED THEN\n"
+                        updates = [f"target.[{col}] = source.[{col}]" for col in update_columns]
+                        merge_statement += f"    UPDATE SET {', '.join(updates)}\n"
+                    
+                    # Add WHEN NOT MATCHED clause for inserts
+                    merge_statement += "WHEN NOT MATCHED THEN\n"
+                    merge_statement += f"    INSERT ([{'], ['.join(schema_columns)}])\n"
+                    merge_statement += f"    VALUES ({', '.join(['source.[' + col + ']' for col in schema_columns])});"
+                    
+                    statements.append(merge_statement)
             
             self.sql_statements[table_name] = statements
-            logger.info(f"Generated {len(statements)} multi-row T-SQL INSERT statements for {table_name} ({total_rows} total records)")
+            logger.info(f"Generated {len(statements)} MERGE statements for {table_name} ({total_rows} total records)")
+    
+    def generate_insert_statements_for_table(self, table_name, df):
+        """
+        Generate basic INSERT statements for tables without primary keys.
+        """
+        statements = []
+        schema_columns = self.schemas[table_name].copy()
+        
+        # Remove auto-generated columns from INSERT statements
+        auto_generated = self.auto_generated_columns.get(table_name, [])
+        if auto_generated:
+            for col in auto_generated:
+                if col in schema_columns:
+                    schema_columns.remove(col)
+        
+        # For large datasets, break into chunks
+        chunk_size = 500
+        total_rows = len(df)
+        
+        for start_idx in range(0, total_rows, chunk_size):
+            end_idx = min(start_idx + chunk_size, total_rows)
+            chunk = df.iloc[start_idx:end_idx]
+            
+            # Start the multi-row INSERT statement
+            if not chunk.empty:
+                values_list = []
+                
+                # Generate values for each row
+                for _, row in chunk.iterrows():
+                    row_values = []
+                    for column in schema_columns:
+                        value = row.get(column)
+                        column_type = self.column_types.get(column, 'nvarchar')
+                        row_values.append(self.format_value(value, column_type))
+                    
+                    values_list.append(f"({', '.join(row_values)})")
+                
+                # Create the multi-row INSERT statement
+                multi_insert = f"INSERT INTO [dbo].[{table_name}] ({', '.join([f'[{col}]' for col in schema_columns])}) VALUES\n"
+                multi_insert += ",\n".join(values_list) + ";"
+                
+                statements.append(multi_insert)
+        
+        self.sql_statements[table_name] = statements
+        logger.info(f"Generated {len(statements)} basic INSERT statements for {table_name} ({total_rows} total records)")
 
     def write_dml_file(self):
         """
-        Write all INSERT statements to a single DML file using T-SQL syntax with batched transactions.
-        Assuming database has already been created by DDL script.
+        Write all MERGE and INSERT statements to a single DML file using T-SQL syntax with batched transactions.
         """
-        # Generate statements for all tables
-        self.generate_insert_statements()
+        # Generate MERGE statements for all tables
+        self.generate_merge_statements()
         
         # Write statements to file
         with open(self.output_file, 'w', encoding='utf-8') as f:
-            f.write("-- T-SQL DML INSERT statements generated from transformed CSV files\n")
+            f.write("-- T-SQL DML MERGE statements (upsert) generated from transformed CSV files\n")
             f.write("-- Generation timestamp: " + pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S") + "\n\n")
             
             f.write("-- Use the database created by the DDL script\n")
@@ -253,7 +329,7 @@ class DMLWriter:
             f.write("GO\n\n")
             
             f.write("-- Enable identity insert where needed\n")
-            f.write("PRINT 'Starting data insertion...';\n")
+            f.write("PRINT 'Starting data upsert operations...';\n")
             f.write("GO\n\n")
             
             # Define insertion order for tables to handle foreign key constraints
@@ -275,10 +351,9 @@ class DMLWriter:
                     continue
                     
                 statement_count = len(statements)
-                total_rows = sum(stmt.count('VALUES') for stmt in statements)
                 
-                f.write(f"-- INSERT statements for {table} table ({total_rows} records)\n")
-                f.write(f"PRINT 'Inserting data into {table} table ({total_rows} records)...';\n")
+                f.write(f"-- MERGE/INSERT statements for {table} table\n")
+                f.write(f"PRINT 'Upserting data into {table} table...';\n")
                 f.write("BEGIN TRY\n")
                 f.write("    BEGIN TRANSACTION;\n")
                 
@@ -288,14 +363,14 @@ class DMLWriter:
                 
                 for i, stmt in enumerate(statements):
                     f.write(f"    -- Batch {i+1}/{statement_count}\n")
-                    f.write("    " + stmt + "\n")
+                    f.write("    " + stmt.replace("\n", "\n    ") + "\n")
                 
                 # Turn off identity insert if it was turned on
                 if table in ('staffing', 'timesheets') and any('id' in stmt for stmt in statements):
                     f.write(f"    SET IDENTITY_INSERT [dbo].[{table}] OFF;\n")
                 
                 f.write("    COMMIT TRANSACTION;\n")
-                f.write(f"    PRINT 'Committed {total_rows} records for {table}';\n")
+                f.write(f"    PRINT 'Completed upsert for {table}';\n")
                 f.write("END TRY\n")
                 f.write("BEGIN CATCH\n")
                 f.write("    IF @@TRANCOUNT > 0\n")
@@ -303,7 +378,7 @@ class DMLWriter:
                 f.write("    DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();\n")
                 f.write("    DECLARE @ErrorSeverity INT = ERROR_SEVERITY();\n")
                 f.write("    DECLARE @ErrorState INT = ERROR_STATE();\n")
-                f.write(f"    PRINT 'Error inserting data into {table}: ' + @ErrorMessage;\n")
+                f.write(f"    PRINT 'Error upserting data into {table}: ' + @ErrorMessage;\n")
                 f.write("    RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);\n")
                 f.write("END CATCH;\n")
                 f.write("GO\n\n")
@@ -311,12 +386,12 @@ class DMLWriter:
             f.write("-- Turn count of rows affected back on\n")
             f.write("SET NOCOUNT OFF;\n")
             f.write("GO\n\n")
-            f.write("PRINT 'Data insertion completed successfully.';\n")
+            f.write("PRINT 'Data upsert operations completed successfully.';\n")
             f.write("GO\n")
         
         # Print summary
         total_statements = sum(len(stmts) for stmts in self.sql_statements.values())
-        logger.info(f"Generated {total_statements} T-SQL DML statements written to {self.output_file}")
+        logger.info(f"Generated {total_statements} T-SQL DML statements (upsert) written to {self.output_file}")
     
     def process_data(self):
         """
@@ -325,18 +400,18 @@ class DMLWriter:
         # Fetch transformed data
         self.fetch_data()
         
-        # Write DML file
+        # Write DML file with MERGE statements
         self.write_dml_file()
 
 def main():
     """
     Main function to run the DML writer with hardcoded directories.
     """
-    logger.info("Starting DML generation...")
+    logger.info("Starting DML generation with upsert approach...")
     try:
         writer = DMLWriter()
         writer.process_data()
-        logger.info("T-SQL DML generation complete!")
+        logger.info("T-SQL DML generation with upsert complete!")
     except Exception as e:
         logger.error(f"Error in DML generation: {e}", exc_info=True)
         raise
