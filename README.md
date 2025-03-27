@@ -71,7 +71,7 @@ Note: While our current dataset primarily consists of senior consultants and can
 Our solution addresses the core optimization challenge facing consulting organizations:
 
 $$
-\max_{A} \sum_{p \in P} \text{SPI}_p \cdot w_p
+\max_{A} \sum_{p \in P} \text{SPI}_p \cdot w_p - \sum_{j \in J_{ext}} ea_j \cdot \sum_{p \in P} \text{Hours}_{j,p,w}
 $$
 
 Subject to critical business constraints:
@@ -88,8 +88,10 @@ Where:
 - $PR$ is the set of practice areas
 - $C_{l,pr}$ is the subset of consultants at level $l$ from practice area $pr$
 - $r_{l,pr,p}$ is the target ratio of hours for level $l$ and practice $pr$ in project $p$
+- $J_{ext}$ is the subset of consultants who are external
+- $ea_j$ is the external adjustment factor for consultant $j$, representing the preference to staff internally
 
-The added constraint ensures that the distribution of hours across different staff levels and practice areas maintains appropriate ratios for each project, reflecting the reality that projects require specific mixes of junior/senior staff and expertise from relevant practice areas.
+The added constraint ensures that the distribution of hours across different staff levels and practice areas maintains appropriate ratios for each project, reflecting the reality that projects require specific mixes of junior/senior staff and expertise from relevant practice areas. This optimization approach maximizes project schedule performance while penalizing the use of external consultants, reflecting the organizational preference to prioritize internal staffing when possible. The external adjustment factor ($ea_j$) creates a "cost" for assigning external consultants, which the optimization algorithm will avoid unless necessary for meeting other constraints such as maintaining SPI targets or required expertise levels.
 
 ### Key Performance Indicators (KPIs)
 
