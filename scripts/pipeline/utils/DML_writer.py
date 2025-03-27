@@ -36,7 +36,8 @@ class DMLWriter:
             'timesheets': ['id', 'personnel_no', 'eng_no', 'eng_phase', 'work_date', 'hours', 
                           'time_entry_date', 'posting_date', 'charge_out_rate', 'std_price', 'adm_surcharge'],
             'dictionary': ['key', 'description'],
-            'vacations': ['personnel_no', 'start_date', 'end_date']
+            'vacations': ['personnel_no', 'start_date', 'end_date'],
+            'charge_out_rates': ['eng_no', 'personnel_no', 'standard_chargeout_rate']
         }
         
         # Define primary keys for each table to use in MERGE statements
@@ -49,7 +50,8 @@ class DMLWriter:
             'staffing': ['id'],
             'timesheets': ['id'],
             'dictionary': ['key'],
-            'vacations': ['personnel_no', 'start_date']
+            'vacations': ['personnel_no', 'start_date'],
+            'charge_out_rates': ['eng_no', 'personnel_no']
         }
         
         # Define column data types for proper SQL Server (T-SQL) formatting
@@ -82,7 +84,8 @@ class DMLWriter:
             'key': 'nvarchar',
             'primary_practice_id': 'int',
             'start_date': 'date',
-            'end_date': 'date'
+            'end_date': 'date',
+            'standard_chargeout_rate': 'decimal'
         }
         
         # Define auto-generated columns that should be excluded from INSERT statements
@@ -348,7 +351,8 @@ class DMLWriter:
                 'dictionary',
                 'staffing', 
                 'timesheets',
-                'vacations'
+                'vacations',
+                'charge_out_rates'  # Make sure it's included in the table order
             ]
             
             # Write statements for each table in the defined order

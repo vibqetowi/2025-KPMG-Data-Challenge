@@ -52,19 +52,23 @@ Our solution focuses on key business metrics that drive profitability and effici
 Consulting firms face a unique challenge: maximizing both budget utilization and maintaining target chargeout rates. Traditional project management metrics don't adequately capture this dual objective. Our Value Extraction Coefficient (VEC) provides executives with a clear measure of financial performance that addresses both dimensions:
 
 $$
-\text{VEC} = \left(\frac{\text{Actual billable amount}}{\text{Total budget}}\right) \times \left(1 - \sum_{i=1}^{n} w_i \times (d_i + ea_j + eo_j )\right)
+\text{VEC} = \left(\frac{\text{AC}}{\text{BAC}}\right) \times \sum_{i=1}^{n} w_i \times d_i \times ea_j \times eo_j
 $$
 
 Where:
 
-- $w_i$ is the financial weight of transaction $i$ (ratio of its standard price to total standard price)
-- $d_i$ is the chargeout discount rate applied to transaction $i$
-- $ea_j$ is the external adjustment factor (assumed 10% discount for external consultant) for consultant $ j$
-- $eo_j$ is the onboarding efficiency factor (20% from kpmg data for new consultants) for consultant $j$ associated with transaction $i$
+- $w_i$ is the financial weight of transaction $i$ where $w_i = \left(\frac{\text{AC}_i}{\text{AC}}\right)$
+- $d_i$ is the chargeout rate ratio for transaction $i$ where $d_i = \frac{\text{Chargeout}_i}{\text{StandardChargeout}_{j}}$ (≤ 1) *$Chargeout_i$ is the  chargout for transaction i and $StandardChargeout_j$ is the normal chargeout for consultant j on this engagment
+- $ea_j$ is profit adjustment for external consultants (assumed 10% lower) where $ea_j = 0.9 \times \text{isExternal}_j$ ($isExternal$ bwing a boolean with values 1 or 0)
+- $eo_j$ is the profit adjustment for first year consultants (20 lower according to case files) where $eo_j = 0.8 \times \text{isNew}_j$ ($isNew$ bwing a boolean with values 1 or 0)
 
-This metric identifies engagements where discounting, external consultant usage, and new consultant onboarding are eroding profitability, enabling practice leaders to take corrective action and preserve value. The external adjustment factor specifically accounts for the reduced profitability of external consultants, who we will assume cost the firm approximately 10% more than internal staff with equivalent chargeout rates. The onboarding efficiency factor accounts for the reduced profitability of new consultants in their first year, who according to KPMG data, reduce profitability by 20% due to training and onboarding costs.
+This metric identifies engagements where value extraction is impacted by:
 
-Note: While our current dataset primarily consists of senior consultants and cannot showcase the onboarding efficiency factor calculation, the formula is designed to accommodate this important business consideration in production environments.
+1. Discounted chargeout rates ($d_i ≤ 1$)
+2. External consultant inefficiencies ($ea_j = 0.9$ for externals)
+3. New consultant onboarding costs ($eo_j = 0.8$ for new hires)
+
+Each factor represents the percentage of value retained after applying that particular discount or efficiency loss. By multiplying these factors, we calculate the compound effect of multiple efficiency reductions.
 
 ### Resource Optimization
 
@@ -240,6 +244,9 @@ By replacing synthetic data with actual operational data and implementing these 
 
     - Justification: This discount rate is arbitrary and should be fixed with production data.
     - Impact: This adjustment ensures that the VEC calculation accurately reflects the lower profitability of engagements with higher proportions of external consultants, helping practice leaders make more informed decisions about staffing mix.
+14) Chargeout rates are negotiated per engagment
+   - Justification: analysis on the current dataset reveals that chargeout rates per sconsultant are consistent across one assignment but not accross all assignments. Considering the limited timeframe, it is unlikely this is because of a promotion.
+   - Impact: we need a standard chargeout rate table.
 
 ### Key Metrics Derivation
 

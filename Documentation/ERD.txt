@@ -53,6 +53,16 @@ Table engagements {
   }
 }
 
+Table charge_out_rates{
+  eng_no integer
+  personnel_no integer
+  standard_chargeout_rate decimal
+  
+  indexes{
+    (eng_no, personnel_no) [primary key]
+  }
+}
+
 Table phases {
   eng_no integer
   eng_phase integer
@@ -135,3 +145,5 @@ Ref: staffing.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
 Ref: timesheets.personnel_no > employees.personnel_no
 Ref: timesheets.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
 Ref: vacations.personnel_no > employees.personnel_no
+Ref: charge_out_rates.eng_no > engagements.eng_no
+Ref: charge_out_rates.personnel_no > employees.personnel_no
