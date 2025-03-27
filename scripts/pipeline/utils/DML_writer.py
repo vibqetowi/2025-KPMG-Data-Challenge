@@ -27,9 +27,10 @@ class DMLWriter:
         
         # Define table schemas based on DDL (match exactly with database structure)
         self.schemas = {
-            'employees': ['personnel_no', 'employee_name', 'staff_level', 'is_external', 'employment_basis'],
+            'practices': ['practice_id', 'practice_name', 'description'],
+            'employees': ['personnel_no', 'employee_name', 'staff_level', 'is_external', 'employment_basis', 'practice_id'],
             'clients': ['client_no', 'client_name'],
-            'engagements': ['eng_no', 'eng_description', 'client_no'],
+            'engagements': ['eng_no', 'eng_description', 'client_no', 'primary_practice_id'],
             'phases': ['eng_no', 'eng_phase', 'phase_description', 'budget'],
             'staffing': ['id', 'personnel_no', 'eng_no', 'eng_phase', 'week_start_date', 'planned_hours'],
             'timesheets': ['id', 'personnel_no', 'eng_no', 'eng_phase', 'work_date', 'hours', 
@@ -40,6 +41,7 @@ class DMLWriter:
         
         # Define primary keys for each table to use in MERGE statements
         self.primary_keys = {
+            'practices': ['practice_id'],
             'employees': ['personnel_no'],
             'clients': ['client_no'],
             'engagements': ['eng_no'],
@@ -52,6 +54,9 @@ class DMLWriter:
         
         # Define column data types for proper SQL Server (T-SQL) formatting
         self.column_types = {
+            'practice_id': 'int',
+            'practice_name': 'nvarchar',
+            'description': 'nvarchar',
             'personnel_no': 'int',
             'employee_name': 'nvarchar',
             'staff_level': 'nvarchar',
@@ -75,7 +80,7 @@ class DMLWriter:
             'std_price': 'decimal',
             'adm_surcharge': 'decimal',
             'key': 'nvarchar',
-            'description': 'nvarchar',
+            'primary_practice_id': 'int',
             'start_date': 'date',
             'end_date': 'date'
         }
@@ -333,7 +338,9 @@ class DMLWriter:
             f.write("GO\n\n")
             
             # Define insertion order for tables to handle foreign key constraints
+            # Load practices first since it's referenced by employees and engagements
             table_order = [
+                'practices',
                 'clients', 
                 'employees', 
                 'engagements', 
