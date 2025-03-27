@@ -58,7 +58,7 @@ $$
 Where:
 
 - $w_i$ is the financial weight of transaction $i$ where $w_i = \left(\frac{\text{AC}_i}{\text{AC}}\right)$
-- $d_i$ is the chargeout rate ratio for transaction $i$ where $d_i = \frac{\text{Chargeout}_i}{\text{StandardChargeout}_{j}}$ (≤ 1) *$Chargeout_i$ is the  chargout for transaction i and $StandardChargeout_j$ is the normal chargeout for consultant j on this engagment
+- $d_i$ is the chargeout rate ratio for transaction $i$ where $`d_i = \frac{\text{Chargeout}_i}{\text{StandardChargeout}_{j}}`$ (≤ 1) *$Chargeout_i$ is the  chargout for transaction i and $StandardChargeout_j$ is the normal chargeout for consultant j on this engagment
 - $ea_j$ is profit adjustment for external consultants (assumed 10% lower) where $ea_j = 0.9 \times \text{isExternal}_j$ ($isExternal$ bwing a boolean with values 1 or 0)
 - $eo_j$ is the profit adjustment for first year consultants (20 lower according to case files) where $eo_j = 0.8 \times \text{isNew}_j$ ($isNew$ bwing a boolean with values 1 or 0)
 
