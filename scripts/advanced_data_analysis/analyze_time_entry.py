@@ -2,10 +2,7 @@ import pandas as pd
 import os
 import sys
 from datetime import datetime
-
-# Add the parent directory to path so we can import the fetcher
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from pipeline.fetcher import DataFetcher
+from fetcher import DataFetcher
 
 # Create a DataFetcher instance (defaults to trying DB first then CSV)
 fetcher = DataFetcher()
