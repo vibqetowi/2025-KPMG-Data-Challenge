@@ -1,12 +1,18 @@
 import pandas as pd
 import os
+import sys
 from datetime import datetime
 
-# Define path to the timesheet CSV file
-csv_file_path = os.path.join('csv-dump', 'transformed', 'timesheets.csv')
+# Add the parent directory to path so we can import the fetcher
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from pipeline.fetcher import DataFetcher
 
-# Read the CSV file
-df = pd.read_csv(csv_file_path)
+# Create a DataFetcher instance (defaults to trying DB first then CSV)
+fetcher = DataFetcher()
+
+# Fetch data using the modular approach
+data = fetcher.fetch_data(['employee_timesheet_data'])
+df = data['employee_timesheet_data']
 
 # Convert date columns to datetime objects
 df['work_date'] = pd.to_datetime(df['work_date'])
