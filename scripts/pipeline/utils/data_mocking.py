@@ -139,6 +139,8 @@ class DataMocker:
         print(f"Generated exactly 5 vacation records, 1 per employee")
         
         return df_vacations
+    
+    
 
     def get_engagement_dates(self, eng_no):
         """
@@ -153,3 +155,57 @@ class DataMocker:
         For now returns NULL values but will be used for proper date generation later.
         """
         return None, None  # start_date, end_date
+    
+    def get_phase_dates(self, eng_no, eng_phase):
+        """
+        Returns mock start and end dates for a specific engagement phase.
+        """
+
+        from fetcher import DataFetcher
+        fetcher = DataFetcher(source='csv')
+        data = fetcher.fetch_data(['phases', 'staffing'])
+
+        phases_df = data['phases']
+        staffing_df = data['staffing']
+
+        # Generate all phase dates
+        phases_with_dates = self.generate_phase_dates_from_budget(phases_df, staffing_df)
+
+        # Extract the matching row
+        row = phases_with_dates[
+        (phases_with_dates['eng_no'] == eng_no) &
+        (phases_with_dates['eng_phase'] == eng_phase)
+         ]
+
+        if not row.empty:
+           return row.iloc[0]['start_date'], row.iloc[0]['end_date']
+        else:
+             return None, None
+    
+    def get_engagement_dates(self, eng_no):
+        """
+        Returns mock start and end date for an engagement, based on its phases.
+        """
+
+        from fetcher import DataFetcher
+        fetcher = DataFetcher(source='csv')
+        data = fetcher.fetch_data(['phases', 'staffing'])
+
+        phases_df = data['phases']
+        staffing_df = data['staffing']
+
+        # Generate dates for all phases
+        phases_with_dates = self.generate_phase_dates_from_budget(phases_df, staffing_df)
+
+        # Filter only phases for this engagement
+        rows = phases_with_dates[phases_with_dates['eng_no'] == eng_no]
+
+        if rows.empty:
+           return None, None
+
+        start_date = rows['start_date'].min()
+        end_date = rows['end_date'].max()
+
+        return start_date, end_date
+
+
