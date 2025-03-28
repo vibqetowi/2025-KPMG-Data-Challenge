@@ -1,5 +1,5 @@
 from advanced_data_analysis.fetcher import DataFetcher
-from scripts.pipeline.utils.data_mock import DataMocker
+from pipeline.utils.data_mock import DataMocker
 
 # ✅ First, define your custom fetcher with the correct CSV path
 fetcher = DataFetcher(source="csv", csv_base_path="C:\\Users\\elrom\\Documents\\2025-KPMG-Data-Challenge\\csv-dump")
