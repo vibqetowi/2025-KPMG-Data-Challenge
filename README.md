@@ -59,8 +59,8 @@ Where:
 
 - $w_i$ is the financial weight of transaction $i$ where $w_i = \left(\frac{\text{AC}_i}{\text{AC}}\right)$
 - $d_i$ is the chargeout rate ratio for transaction $i$ where $`d_i = \frac{\text{Chargeout}_i}{\text{StandardChargeout}_{j}}`$ (≤ 1) * $`Chargeout_i`$ is the  chargout for transaction i and $StandardChargeout_j$ is the normal chargeout for consultant j on this engagment
-- $ea_j$ is profit adjustment for external consultants (assumed 10% lower) where $ea_j = 0.9 \times \text{isExternal}_j$ ($isExternal$ bwing a boolean with values 1 or 0)
-- $eo_j$ is the profit adjustment for first year consultants (20 lower according to case files) where $eo_j = 0.8 \times \text{isNew}_j$ ($isNew$ bwing a boolean with values 1 or 0)
+- $ea_j$ is profit adjustment for external consultants (assumed 10% lower) where $ea_j = 0.9 \times \text{isExternal}_j$ ($isExternal$ being a boolean with values 1 or 0)
+- $eo_j$ is the profit adjustment for first year consultants (20 lower according to case files) where $eo_j = 0.8 \times \text{isNew}_j$ ($isNew$ being a boolean with values 1 or 0)
 
 This metric identifies engagements where value extraction is impacted by:
 
@@ -74,9 +74,11 @@ Each factor represents the percentage of value retained after applying that part
 
 Our solution addresses the core optimization challenge facing consulting organizations:
 
-$$`
+$$
+`
 \max_{A} \sum_{p \in P} \text{SPI}_p \cdot w_p - \sum_{j \in J_{ext}} ea_j \cdot \sum_{p \in P} \text{Hours}_{j,p,w}
-`$$
+`
+$$
 
 Subject to critical business constraints:
 
@@ -248,6 +250,7 @@ By replacing synthetic data with actual operational data and implementing these 
 
 - Justification: analysis on the current dataset reveals that chargeout rates per consultant are consistent across one assignment but not across all assignments. Considering the limited timeframe, it is unlikely this is because of a promotion.
 - Impact: This allows us to track the negotiatied chargeout rate and run the VEC calculations.
+
 ### Key Metrics Derivation
 
 #### Budget at Completion (BAC)
