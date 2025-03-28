@@ -16,11 +16,11 @@
 | Minh        | @vibqetowi | Software Engineering, previous experience in software development and project management |
 | Carter      | @carterj-c | Mechanical Engineering, previous experience in aerospace engineering                     |
 | Casey       | @cassius   | Finance & accounting, previous experience in financial modeling and research             |
-| Romero      | @geekpapi  | Economics & Computer Science, previous experience in data analysis                                                                                         |
+| Romero      | @geekpapi  | Economics & Computer Science, previous experience in data analysis                       |
 
 ## 🎯 Project Overview
 
-Team 7 is pleased to present its submission for the KPMG case challenge, focusing on **consulting assignment optimization**. While our backgrounds are primarily in engineering, project management, and finance rather than consulting, we've leveraged our technical expertise and project coordination experience to develop a solution that addresses resource allocation challenges common to professional services organizations. Our solution is a production-ready dashboard designed to implement earned value management (EVM) principles to optimize resource allocation across projects.
+Team 7 is pleased to present its submission for the KPMG case challenge, focusing on **consulting assignment optimization**. While our backgrounds are primarily in engineering, economics, project management, and finance rather than consulting, we've leveraged our technical expertise and project coordination experience to develop a solution that addresses resource allocation challenges common to professional services organizations. Our solution is a production-ready dashboard designed to implement earned value management (EVM) principles to optimize resource allocation across projects.
 
 This dashboard is specifically engineered to address critical business needs prevalent in project-based organizations:
 
@@ -52,22 +52,32 @@ Our solution focuses on key business metrics that drive profitability and effici
 Consulting firms face a unique challenge: maximizing both budget utilization and maintaining target chargeout rates. Traditional project management metrics don't adequately capture this dual objective. Our Value Extraction Coefficient (VEC) provides executives with a clear measure of financial performance that addresses both dimensions:
 
 $$
-\text{VEC} = \left(\frac{\text{Actual billable amount}}{\text{Total budget}}\right) \times \left(1 - \sum_{i=1}^{n} w_i \times d_i\right)
+\text{VEC} = \left(\frac{\text{AC}}{\text{BAC}}\right) \times \sum_{i=1}^{n} w_i \times d_i \times ea_j \times eo_j
 $$
 
 Where:
 
-- $w_i$ is the financial weight of transaction $i$ (ratio of its standard price to total standard price)
-- $d_i$ is the chargeout discount rate applied to transaction $i$
+- $w_i$ is the financial weight of transaction $i$ where $w_i = \left(\frac{\text{AC}_i}{\text{AC}}\right)$
+- $d_i$ is the chargeout rate ratio for transaction $i$ where $`d_i = \frac{\text{Chargeout}_i}{\text{StandardChargeout}_{j}}`$ (≤ 1) * $`Chargeout_i`$ is the  chargout for transaction i and $StandardChargeout_j$ is the normal chargeout for consultant j on this engagment
+- $ea_j$ is profit adjustment for external consultants (assumed 10% lower) where $ea_j = 0.9 \times \text{isExternal}_j$ ($isExternal$ being a boolean with values 1 or 0)
+- $eo_j$ is the profit adjustment for first year consultants (20 lower according to case files) where $eo_j = 0.8 \times \text{isNew}_j$ ($isNew$ being a boolean with values 1 or 0)
 
-This metric identifies engagements where discounting is eroding profitability, enabling practice leaders to take corrective action and preserve value.
+This metric identifies engagements where value extraction is impacted by:
+
+1. Discounted chargeout rates ($d_i ≤ 1$)
+2. External consultant inefficiencies ($ea_j = 0.9$ for externals)
+3. New consultant onboarding costs ($eo_j = 0.8$ for new hires)
+
+Each factor represents the percentage of value retained after applying that particular discount or efficiency loss. By multiplying these factors, we calculate the compound effect of multiple efficiency reductions.
 
 ### Resource Optimization
 
 Our solution addresses the core optimization challenge facing consulting organizations:
 
 $$
-\max_{A} \sum_{p \in P} \text{SPI}_p \cdot w_p
+`
+\max_{A} \sum_{p \in P} \text{SPI}_p \cdot w_p - \sum_{j \in J_{ext}} ea_j \cdot \sum_{p \in P} \text{Hours}_{j,p,w}
+`
 $$
 
 Subject to critical business constraints:
@@ -75,10 +85,19 @@ Subject to critical business constraints:
 - SPI > 0.85 for all projects (preventing schedule slippage)
 - Consultant benching < 20% (maximizing billable utilization)
 - $\forall c \in C, \sum_{p \in P} \text{Hours}_{c,p,w} \leq 40, \forall w \in \text{Weeks}$ (maintaining work-life balance)
+- $`\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,p,w}}{\sum_{c \in C} \text{Hours}_{c,p,w}} = r_{l,pr,p}, \forall p \in P, \forall w \in \text{Weeks}`$ (maintaining appropriate staffing ratios)
 
-Where $w_p$ represents the relative importance or priority of project $p$.
+Where:
 
-Consultant Availability Extrapolation:  A consultant's unassigned availability for the upcoming week is projected based on their staffing availability trends over the preceding three weeks, allowing for dynamic resource allocation.
+- $w_p$ represents the relative importance or priority of project $p$
+- $L$ is the set of staff levels
+- $PR$ is the set of practice areas
+- $C_{l,pr}$ is the subset of consultants at level $l$ from practice area $pr$
+- $r_{l,pr,p}$ is the target ratio of hours for level $l$ and practice $pr$ in project $p$
+- $J_{ext}$ is the subset of consultants who are external
+- $ea_j$ is the external adjustment factor for consultant $j$, representing the preference to staff internally
+
+The added constraint ensures that the distribution of hours across different staff levels and practice areas maintains appropriate ratios for each project, reflecting the reality that projects require specific mixes of junior/senior staff and expertise from relevant practice areas. This optimization approach maximizes project schedule performance while penalizing the use of external consultants, reflecting the organizational preference to prioritize internal staffing when possible. The external adjustment factor ($ea_j$) creates a "cost" for assigning external consultants, which the optimization algorithm will avoid unless necessary for meeting other constraints such as maintaining SPI targets or required expertise levels.
 
 ### Key Performance Indicators (KPIs)
 
@@ -223,6 +242,14 @@ By replacing synthetic data with actual operational data and implementing these 
 
     - Justification: Analysis of timesheet submission patterns revealed significant delays from some senior managers, with entries submitted up to 55+ days late. This pattern aligns with previous observations that internal consultants (who receive regular salaries regardless of timely reporting) may have fewer immediate incentives for prompt time entry compared to external consultants whose compensation depends directly on reported hours.
     - Impact: For the sake of a demo, statistical analysis was conducted and consultants who wait on average less than 3 days to report their work hours were tagged as external, managers and above were excluded.
+13) External consultants reduce profitability by 10%
+
+    - Justification: This discount rate is arbitrary and should be fixed with production data.
+    - Impact: This adjustment ensures that the VEC calculation accurately reflects the lower profitability of engagements with higher proportions of external consultants, helping practice leaders make more informed decisions about staffing mix.
+14) Chargeout rates are negotiated per engagement
+
+- Justification: analysis on the current dataset reveals that chargeout rates per consultant are consistent across one assignment but not across all assignments. Considering the limited timeframe, it is unlikely this is because of a promotion.
+- Impact: This allows us to track the negotiatied chargeout rate and run the VEC calculations.
 
 ### Key Metrics Derivation
 
@@ -233,7 +260,7 @@ By replacing synthetic data with actual operational data and implementing these 
 
 #### Weighted Average Chargeout Rate
 
-- **Formula**: $\text{Weighted Chargeout Rate} = \sum_{i=1}^{n} \text{Chargeout}_{i} \times \frac{\text{Hours}_{i}}{\sum_{j=1}^{n} \text{Hours}_{j}}$
+- **Formula**: $`\text{Weighted Chargeout Rate} = \sum_{i=1}^{n} \text{Chargeout}_{i} \times \frac{\text{Hours}_{i}}{\sum_{j=1}^{n} \text{Hours}_{j}}`$
 - **Purpose**: Calculates a realistic average chargeout rate for a project phase by weighting individual chargeout rates by the proportion of hours worked by each employee, thereby accurately reflecting the staffing mix.
 - **Note**: This rate is used to convert budget amounts into estimated hours and to calculate overall project duration.
 - **Variables**:  $i$ represents each individual employee assigned to the project phase.
@@ -245,7 +272,7 @@ By replacing synthetic data with actual operational data and implementing these 
 
 #### Total Estimated Duration
 
-- **Formula**: $\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required}}}{\text{Number of employees assigned} \times \text{hours per workday}}$
+- **Formula**: $`\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required}}}{\text{Number of employees assigned} \times \text{hours per workday}}`$
 - **Note**: This calculation incorporates the number of employees assigned and standard workday hours to provide a realistic estimate of project timelines.
 - **Purpose**: Establishes a baseline for measuring schedule performance and for project planning purposes.
 
@@ -256,18 +283,18 @@ By replacing synthetic data with actual operational data and implementing these 
 
 #### Percentage Schedule Elapsed
 
-- **Formula**: $\text{Schedule%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}$
+- **Formula**: $`\text{Schedule%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}`$
 - **Purpose**: Standardizes the measurement of schedule progress, allowing for comparison across projects regardless of their duration.
 
 #### Actual Cost (AC)
 
-- **Formula**: $\text{AC} = \sum_{i=1}^{n} \text{StandardPrice}_i + \sum_{i=1}^{n} \text{AdminFees}_i$
+- **Formula**: $`\text{AC} = \sum_{i=1}^{n} \text{StandardPrice}_i + \sum_{i=1}^{n} \text{AdminFees}_i`$
 - **Purpose**: Calculates the total actual expenditure incurred to date, derived from timesheet entries including standard prices and administrative fees.
 - **Note**: Calculated on a weekly basis to align with staffing allocation and performance review cycles.
 
 #### Planned Value (PV)
 
-- **Formula**: $\text{PV} = \text{BAC} \times \frac{\text{Weeks elapsed}}{\text{Total estimated duration in weeks}}$
+- **Formula**: $\text{PV} = \text{BAC} \times \frac{\text{Days elapsed}}{\text{Total estimated duration in days}}$
 - **Purpose**: Measures the expected value of work that should have been completed by a specific point in time, based on the project budget and schedule.
 
 #### Earned Value (EV)

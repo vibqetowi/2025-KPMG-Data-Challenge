@@ -63,46 +63,54 @@ GO
 -- Create or modify engagements table
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'engagements')
 BEGIN
-    CREATE TABLE [engagements] (
-      [eng_no] bigint PRIMARY KEY,
-      [eng_description] nvarchar(255),
-      [client_no] int,
-      [start_date] date,
-      [end_date] date,
-      [actual_end_date] date,
-      [primary_practice_id] int
-    );
-    
-    CREATE INDEX [engagements_index_0] ON [engagements] ([client_no]);
-    CREATE INDEX [engagements_index_1] ON [engagements] ([eng_description]);
-    CREATE INDEX [engagements_index_2] ON [engagements] ([start_date]);
-    CREATE INDEX [engagements_index_3] ON [engagements] ([end_date]);
-    CREATE INDEX [engagements_index_4] ON [engagements] ([primary_practice_id]);
+CREATE TABLE [engagements] (
+[eng_no] bigint PRIMARY KEY,
+[eng_description] nvarchar(255),
+[client_no] int,
+[start_date] date,
+[end_date] date,
+[actual_end_date] date,
+[primary_practice_id] int
+);
+
+
+CREATE INDEX [engagements_index_0] ON [engagements] ([client_no]);
+CREATE INDEX [engagements_index_1] ON [engagements] ([eng_description]);
+CREATE INDEX [engagements_index_2] ON [engagements] ([start_date]);
+CREATE INDEX [engagements_index_3] ON [engagements] ([end_date]);
+CREATE INDEX [engagements_index_4] ON [engagements] ([primary_practice_id]);
 END
 ELSE
 BEGIN
-    -- Add missing columns to engagements table if they don't exist
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'start_date')
-        ALTER TABLE [engagements] ADD [start_date] date;
-    
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'end_date')
-        ALTER TABLE [engagements] ADD [end_date] date;
-    
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'actual_end_date')
-        ALTER TABLE [engagements] ADD [actual_end_date] date;
-    
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'primary_practice_id')
-    BEGIN
-        ALTER TABLE [engagements] ADD [primary_practice_id] int;
-        CREATE INDEX [engagements_index_4] ON [engagements] ([primary_practice_id]);
-    END
-    
-    -- Create missing indexes if they don't exist
-    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'engagements_index_2' AND object_id = OBJECT_ID('engagements'))
-        CREATE INDEX [engagements_index_2] ON [engagements] ([start_date]);
-    
-    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'engagements_index_3' AND object_id = OBJECT_ID('engagements'))
-        CREATE INDEX [engagements_index_3] ON [engagements] ([end_date]);
+-- Add missing columns to engagements table if they don't exist
+
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'start_date')
+    ALTER TABLE [engagements] ADD [start_date] date;
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'end_date')
+    ALTER TABLE [engagements] ADD [end_date] date;
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'actual_end_date')
+    ALTER TABLE [engagements] ADD [actual_end_date] date;
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'primary_practice_id')
+BEGIN
+    ALTER TABLE [engagements] ADD [primary_practice_id] int;
+END
+
+-- Create the primary_practice_id index if it does not exist
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'engagements_index_4' AND object_id = OBJECT_ID('engagements'))
+BEGIN
+     CREATE INDEX [engagements_index_4] ON [engagements] ([primary_practice_id]);
+END
+
+-- Create missing indexes if they don't exist
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'engagements_index_2' AND object_id = OBJECT_ID('engagements'))
+    CREATE INDEX [engagements_index_2] ON [engagements] ([start_date]);
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'engagements_index_3' AND object_id = OBJECT_ID('engagements'))
+    CREATE INDEX [engagements_index_3] ON [engagements] ([end_date]);
 END
 GO
 
@@ -214,6 +222,18 @@ BEGIN
 END
 GO
 
+-- Create or modify charge_out_rates table
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'charge_out_rates')
+BEGIN
+    CREATE TABLE [charge_out_rates] (
+      [eng_no] bigint,
+      [personnel_no] int,
+      [standard_chargeout_rate] decimal(10,2),
+      PRIMARY KEY ([eng_no], [personnel_no])
+    );
+END
+GO
+
 -- Add or update column descriptions
 IF EXISTS (SELECT 1 FROM fn_listextendedproperty('Column_Description', 'SCHEMA', 'dbo', 'TABLE', 'employees', 'COLUMN', 'employment_basis'))
     EXEC sp_updateextendedproperty
@@ -294,5 +314,14 @@ ALTER TABLE [timesheets] ADD CONSTRAINT [FK_timesheets_phases]
 GO
 
 ALTER TABLE [vacations] ADD CONSTRAINT [FK_vacations_employees]
+    FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
+GO
+
+-- Add foreign key constraints for charge_out_rates
+ALTER TABLE [charge_out_rates] ADD CONSTRAINT [FK_charge_out_rates_engagements]
+    FOREIGN KEY ([eng_no]) REFERENCES [engagements] ([eng_no])
+GO
+
+ALTER TABLE [charge_out_rates] ADD CONSTRAINT [FK_charge_out_rates_employees]
     FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
 GO
