@@ -23,6 +23,10 @@ IF EXISTS (SELECT * FROM sys.tables WHERE name = 'vacations')
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'timesheets')
     DROP TABLE [timesheets];
 
+-- Drop staffing_prediction before staffing as it will have the same foreign key dependencies
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'staffing_prediction')
+    DROP TABLE [staffing_prediction];
+
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'staffing')
     DROP TABLE [staffing];
 
@@ -127,6 +131,21 @@ CREATE TABLE [staffing] (
 CREATE INDEX [staffing_index_1] ON [staffing] ([eng_no], [eng_phase], [week_start_date]);
 CREATE INDEX [staffing_index_2] ON [staffing] ([week_start_date]);
 CREATE INDEX [staffing_index_3] ON [staffing] ([eng_no], [week_start_date]);
+GO
+
+-- Create staffing_prediction table with the same structure as staffing
+CREATE TABLE [staffing_prediction] (
+  [personnel_no] int,
+  [eng_no] bigint,
+  [eng_phase] int,
+  [week_start_date] date,
+  [planned_hours] decimal(8,2),
+  PRIMARY KEY ([personnel_no], [eng_no], [eng_phase], [week_start_date])
+);
+
+CREATE INDEX [staffing_prediction_index_1] ON [staffing_prediction] ([eng_no], [eng_phase], [week_start_date]);
+CREATE INDEX [staffing_prediction_index_2] ON [staffing_prediction] ([week_start_date]);
+CREATE INDEX [staffing_prediction_index_3] ON [staffing_prediction] ([eng_no], [week_start_date]);
 GO
 
 -- Create timesheets table
@@ -234,6 +253,15 @@ ALTER TABLE [staffing] ADD CONSTRAINT [FK_staffing_employees]
 GO
 
 ALTER TABLE [staffing] ADD CONSTRAINT [FK_staffing_phases]
+    FOREIGN KEY ([eng_no], [eng_phase]) REFERENCES [phases] ([eng_no], [eng_phase])
+GO
+
+-- Add foreign key constraints for staffing_prediction (same as staffing)
+ALTER TABLE [staffing_prediction] ADD CONSTRAINT [FK_staffing_prediction_employees]
+    FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
+GO
+
+ALTER TABLE [staffing_prediction] ADD CONSTRAINT [FK_staffing_prediction_phases]
     FOREIGN KEY ([eng_no], [eng_phase]) REFERENCES [phases] ([eng_no], [eng_phase])
 GO
 
