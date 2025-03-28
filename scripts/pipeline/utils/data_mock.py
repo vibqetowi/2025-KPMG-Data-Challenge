@@ -199,11 +199,24 @@ class DataMocker:
     def generate_phase_dates_from_budget(self, phases_df, staffing_df, start_reference="2025-01-01", default_rate=100):
         import pandas as pd
         from datetime import timedelta
-        
-
+        from pandas.tseries.offsets import BDay
 
         # Merge phase and staffing
         merged = pd.merge(phases_df, staffing_df, on=["eng_no", "eng_phase"], how="left")
+        
+        # 📥 Load timesheet data to determine actual start dates
+        timesheets_df = self.fetcher.fetch_data("timesheets")["timesheets"]
+
+        # 🗓 Get the first work_date per phase
+        first_dates = (
+            timesheets_df
+            .dropna(subset=["eng_no", "eng_phase", "work_date"])
+            .groupby(["eng_no", "eng_phase"])["work_date"]
+            .min()
+            .reset_index()
+            .rename(columns={"work_date": "start_date"})
+          )
+
 
         # Fill missing charge rates if needed
         if "charge_out_rate" not in merged.columns:
@@ -227,21 +240,35 @@ class DataMocker:
 
         # Avoid division by zero
         merged["headcount"] = merged["headcount"].replace(0, 1)
-    
+
         # Duration in days = effort ÷ (headcount × 8)
-        merged["end_date"] = merged.apply(
-            lambda row: row["start_date"] + BDay(int(row["duration_days"])), axis=1
+        merged["duration_days"] = (
+            (merged["effort_hours"] / (merged["headcount"] * 8)).round().astype(int)
         )
 
+        # ⬇️ NEW LOGIC: Fetch timesheet data and compute first work date
+        timesheets = self.fetcher.fetch_data("timesheets")["timesheets"]
+        if "work_date" in timesheets.columns:
+            timesheets["work_date"] = pd.to_datetime(timesheets["work_date"])
+            first_work_dates = (
+                timesheets.groupby(["eng_no", "eng_phase"])["work_date"]
+                .min()
+                .reset_index()
+                .rename(columns={"work_date": "start_date"})
+            )
+            merged = pd.merge(merged, first_work_dates, on=["eng_no", "eng_phase"], how="left")
+        else:
+            merged["start_date"] = pd.NaT
 
-        # Mock start date from reference
-        merged["start_date"] = pd.to_datetime(start_reference)
-        merged["end_date"] = merged["start_date"] + merged["duration_days"].astype("int") * BDay()
+        # ⬇️ Fill missing start_date with fallback reference date
+        merged["start_date"] = pd.to_datetime(merged["start_date"].fillna(start_reference))
 
+        # Compute end_date using business days (8 hours/day)
+        merged["end_date"] = merged["start_date"] + merged["duration_days"].astype(int) * BDay()
 
         # Return grouped result
         return merged[["eng_no", "eng_phase", "start_date", "end_date"]].drop_duplicates()
-    
+
     
     def __init__(self, fetcher=None):
         from advanced_data_analysis.fetcher import DataFetcher

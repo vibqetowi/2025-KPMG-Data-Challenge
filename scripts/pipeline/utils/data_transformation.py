@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from datetime import datetime
-from data_mocking import DataMocker
+from scripts.pipeline.utils.data_mock import DataMocker
 
 # File paths
 BUDGET_CSV = Path('/Users/notAdmin/Dev/2025 KPMG Data Challenge/csv-dump/KPMG Case Data_Budget.csv')
