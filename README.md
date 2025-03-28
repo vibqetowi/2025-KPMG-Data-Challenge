@@ -244,10 +244,10 @@ By replacing synthetic data with actual operational data and implementing these 
 
     - Justification: This discount rate is arbitrary and should be fixed with production data.
     - Impact: This adjustment ensures that the VEC calculation accurately reflects the lower profitability of engagements with higher proportions of external consultants, helping practice leaders make more informed decisions about staffing mix.
-14) Chargeout rates are negotiated per engagment
-   - Justification: analysis on the current dataset reveals that chargeout rates per sconsultant are consistent across one assignment but not accross all assignments. Considering the limited timeframe, it is unlikely this is because of a promotion.
-   - Impact: we need a standard chargeout rate table.
+14) Chargeout rates are negotiated per engagement
 
+- Justification: analysis on the current dataset reveals that chargeout rates per consultant are consistent across one assignment but not across all assignments. Considering the limited timeframe, it is unlikely this is because of a promotion.
+- Impact: This allows us to track the negotiatied chargeout rate and run the VEC calculations.
 ### Key Metrics Derivation
 
 #### Budget at Completion (BAC)
@@ -291,7 +291,7 @@ By replacing synthetic data with actual operational data and implementing these 
 
 #### Planned Value (PV)
 
-- **Formula**: $\text{PV} = \text{BAC} \times \frac{\text{Weeks elapsed}}{\text{Total estimated duration in weeks}}$
+- **Formula**: $\text{PV} = \text{BAC} \times \frac{\text{Days elapsed}}{\text{Total estimated duration in days}}$
 - **Purpose**: Measures the expected value of work that should have been completed by a specific point in time, based on the project budget and schedule.
 
 #### Earned Value (EV)
