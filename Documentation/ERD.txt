@@ -58,8 +58,8 @@ Table charge_out_rates{
   personnel_no integer
   standard_chargeout_rate decimal
   
-  indexes{
-    (eng_no, personnel_no) [primary key]
+  indexes {
+    (eng_no, personnel_no) [pk]
   }
 }
 
@@ -81,7 +81,6 @@ Table phases {
 }
 
 Table staffing {
-  id integer [pk]
   personnel_no integer
   eng_no integer
   eng_phase integer
@@ -89,7 +88,22 @@ Table staffing {
   planned_hours decimal
   
   indexes {
-    (personnel_no, week_start_date) // Efficient lookup for employee schedule
+    (personnel_no, eng_no, eng_phase, week_start_date) [pk] // Composite primary key
+    (eng_no, eng_phase, week_start_date) // Project phase planning by time period
+    week_start_date // For time-based reporting
+    (eng_no, week_start_date) // Project timeline queries
+  }
+}
+
+Table staffing_prediction {
+  personnel_no integer
+  eng_no integer
+  eng_phase integer
+  week_start_date date [note: 'First Monday of the week, e.g. 2025-01-06']
+  planned_hours decimal
+  
+  indexes {
+    (personnel_no, eng_no, eng_phase, week_start_date) [pk] // Composite primary key
     (eng_no, eng_phase, week_start_date) // Project phase planning by time period
     week_start_date // For time-based reporting
     (eng_no, week_start_date) // Project timeline queries
@@ -142,6 +156,8 @@ Ref: engagements.client_no > clients.client_no
 Ref: phases.eng_no > engagements.eng_no
 Ref: staffing.personnel_no > employees.personnel_no
 Ref: staffing.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
+Ref: staffing_prediction.personnel_no > employees.personnel_no
+Ref: staffing_prediction.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
 Ref: timesheets.personnel_no > employees.personnel_no
 Ref: timesheets.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
 Ref: vacations.personnel_no > employees.personnel_no
