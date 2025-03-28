@@ -283,7 +283,7 @@ By replacing synthetic data with actual operational data and implementing these 
 
 #### Percentage Schedule Elapsed
 
-- **Formula**: $`\text{Schedule%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}`$
+- **Formula**: $\text{Schedule\%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}$
 - **Purpose**: Standardizes the measurement of schedule progress, allowing for comparison across projects regardless of their duration.
 
 #### Actual Cost (AC)

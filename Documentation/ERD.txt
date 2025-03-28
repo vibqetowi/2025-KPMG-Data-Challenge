@@ -81,7 +81,6 @@ Table phases {
 }
 
 Table staffing {
-  id integer [pk]
   personnel_no integer
   eng_no integer
   eng_phase integer
@@ -89,7 +88,7 @@ Table staffing {
   planned_hours decimal
   
   indexes {
-    (personnel_no, week_start_date) // Efficient lookup for employee schedule
+    (personnel_no, eng_no, eng_phase, week_start_date) [pk] // Composite primary key
     (eng_no, eng_phase, week_start_date) // Project phase planning by time period
     week_start_date // For time-based reporting
     (eng_no, week_start_date) // Project timeline queries
