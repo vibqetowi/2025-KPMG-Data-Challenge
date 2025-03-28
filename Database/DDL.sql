@@ -63,46 +63,54 @@ GO
 -- Create or modify engagements table
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'engagements')
 BEGIN
-    CREATE TABLE [engagements] (
-      [eng_no] bigint PRIMARY KEY,
-      [eng_description] nvarchar(255),
-      [client_no] int,
-      [start_date] date,
-      [end_date] date,
-      [actual_end_date] date,
-      [primary_practice_id] int
-    );
-    
-    CREATE INDEX [engagements_index_0] ON [engagements] ([client_no]);
-    CREATE INDEX [engagements_index_1] ON [engagements] ([eng_description]);
-    CREATE INDEX [engagements_index_2] ON [engagements] ([start_date]);
-    CREATE INDEX [engagements_index_3] ON [engagements] ([end_date]);
-    CREATE INDEX [engagements_index_4] ON [engagements] ([primary_practice_id]);
+CREATE TABLE [engagements] (
+[eng_no] bigint PRIMARY KEY,
+[eng_description] nvarchar(255),
+[client_no] int,
+[start_date] date,
+[end_date] date,
+[actual_end_date] date,
+[primary_practice_id] int
+);
+
+
+CREATE INDEX [engagements_index_0] ON [engagements] ([client_no]);
+CREATE INDEX [engagements_index_1] ON [engagements] ([eng_description]);
+CREATE INDEX [engagements_index_2] ON [engagements] ([start_date]);
+CREATE INDEX [engagements_index_3] ON [engagements] ([end_date]);
+CREATE INDEX [engagements_index_4] ON [engagements] ([primary_practice_id]);
 END
 ELSE
 BEGIN
-    -- Add missing columns to engagements table if they don't exist
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'start_date')
-        ALTER TABLE [engagements] ADD [start_date] date;
-    
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'end_date')
-        ALTER TABLE [engagements] ADD [end_date] date;
-    
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'actual_end_date')
-        ALTER TABLE [engagements] ADD [actual_end_date] date;
-    
-    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'primary_practice_id')
-    BEGIN
-        ALTER TABLE [engagements] ADD [primary_practice_id] int;
-        CREATE INDEX [engagements_index_4] ON [engagements] ([primary_practice_id]);
-    END
-    
-    -- Create missing indexes if they don't exist
-    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'engagements_index_2' AND object_id = OBJECT_ID('engagements'))
-        CREATE INDEX [engagements_index_2] ON [engagements] ([start_date]);
-    
-    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'engagements_index_3' AND object_id = OBJECT_ID('engagements'))
-        CREATE INDEX [engagements_index_3] ON [engagements] ([end_date]);
+-- Add missing columns to engagements table if they don't exist
+
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'start_date')
+    ALTER TABLE [engagements] ADD [start_date] date;
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'end_date')
+    ALTER TABLE [engagements] ADD [end_date] date;
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'actual_end_date')
+    ALTER TABLE [engagements] ADD [actual_end_date] date;
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('engagements') AND name = 'primary_practice_id')
+BEGIN
+    ALTER TABLE [engagements] ADD [primary_practice_id] int;
+END
+
+-- Create the primary_practice_id index if it does not exist
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'engagements_index_4' AND object_id = OBJECT_ID('engagements'))
+BEGIN
+     CREATE INDEX [engagements_index_4] ON [engagements] ([primary_practice_id]);
+END
+
+-- Create missing indexes if they don't exist
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'engagements_index_2' AND object_id = OBJECT_ID('engagements'))
+    CREATE INDEX [engagements_index_2] ON [engagements] ([start_date]);
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'engagements_index_3' AND object_id = OBJECT_ID('engagements'))
+    CREATE INDEX [engagements_index_3] ON [engagements] ([end_date]);
 END
 GO
 

@@ -13,43 +13,6 @@ GO
 PRINT 'Starting data upsert operations...';
 GO
 
--- MERGE/INSERT statements for practices table
-PRINT 'Upserting data into practices table...';
-BEGIN TRY
-    BEGIN TRANSACTION;
-    -- Batch 1/1
-    MERGE [dbo].[practices] AS target
-    USING (
-        VALUES
-        (1, N'SAP', N'SAP Implementation and Advisory Services'),
-        (2, N'Audit & Assurance', N'Financial Statement Audits and Assurance Services'),
-        (3, N'Cloud Services', N'AWS, Azure, and GCP Implementation Advisory'),
-        (4, N'Management Consulting', N'Strategy and Operations Consulting'),
-        (5, N'Deal Advisory', N'Mergers & Acquisitions and Transaction Services'),
-        (6, N'Risk Consulting', N'Risk Management, Compliance, and Governance'),
-        (7, N'Technology Consulting', N'Digital Transformation and Enterprise Technologies'),
-        (8, N'ESG Advisory', N'Environmental, Social, and Governance Services')
-    ) AS source (practice_id, practice_name, description)
-    ON target.[practice_id] = source.[practice_id]
-    WHEN MATCHED THEN
-        UPDATE SET target.[practice_name] = source.[practice_name], target.[description] = source.[description]
-    WHEN NOT MATCHED THEN
-        INSERT ([practice_id], [practice_name], [description])
-        VALUES (source.[practice_id], source.[practice_name], source.[description]);
-    COMMIT TRANSACTION;
-    PRINT 'Completed upsert for practices';
-END TRY
-BEGIN CATCH
-    IF @@TRANCOUNT > 0
-        ROLLBACK TRANSACTION;
-    DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
-    DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
-    DECLARE @ErrorState INT = ERROR_STATE();
-    PRINT 'Error upserting data into practices: ' + @ErrorMessage;
-    RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
-END CATCH;
-GO
-
 -- MERGE/INSERT statements for clients table
 PRINT 'Upserting data into clients table...';
 BEGIN TRY
@@ -89,28 +52,28 @@ BEGIN TRY
     MERGE [dbo].[employees] AS target
     USING (
         VALUES
-        (14523, N'Alice Dupont', N'SPECIALIST/SENIOR CONSULT', 0, 40.00, 1),
-        (14524, N'Bastien Lefèvre', N'SPECIALIST/SENIOR CONSULT', 1, 40.00, 1),
-        (14525, N'Camille Moreau', N'MANAGER', 0, 40.00, 1),
-        (14526, N'Damien Girard', N'SENIOR MANAGER', 0, 40.00, 1),
-        (14529, N'Gaëlle Petit', N'SENIOR MANAGER', 0, 40.00, 1),
-        (14528, N'Fabien Martin', N'SENIOR MANAGER', 0, 40.00, 1),
-        (14534, N'Mathieu Dubois', N'SENIOR MANAGER', 0, 40.00, 1),
-        (14536, N'Olivier Robert', N'STAFF ACCOUNTANT/CONSULTA', 1, 40.00, 1),
-        (14535, N'Nina Simon', N'SPECIALIST/SENIOR CONSULT', 0, 40.00, 1),
-        (14532, N'Julien Thomas', N'SPECIALIST/SENIOR CONSULT', 1, 40.00, 1),
-        (14533, N'Léa Fournier', N'MANAGER', 0, 40.00, 1),
-        (14527, N'Élodie Roux', N'SPECIALIST/SENIOR CONSULT', 0, 40.00, 1),
-        (14537, N'Sophie Garnier', N'SENIOR MANAGER', 0, 40.00, 1),
-        (14530, N'Hugo Lemoine', N'SPECIALIST/SENIOR CONSULT', 0, 40.00, 1),
-        (14531, N'Inès Bernard', N'SPECIALIST/SENIOR CONSULT', 1, 40.00, 1)
-    ) AS source (personnel_no, employee_name, staff_level, is_external, employment_basis, practice_id)
+        (14523, N'Alice Dupont', N'SPECIALIST/SENIOR CONSULT', 0, 40.00),
+        (14524, N'Bastien Lefèvre', N'SPECIALIST/SENIOR CONSULT', 1, 40.00),
+        (14525, N'Camille Moreau', N'MANAGER', 0, 40.00),
+        (14526, N'Damien Girard', N'SENIOR MANAGER', 0, 40.00),
+        (14529, N'Gaëlle Petit', N'SENIOR MANAGER', 0, 40.00),
+        (14528, N'Fabien Martin', N'SENIOR MANAGER', 0, 40.00),
+        (14534, N'Mathieu Dubois', N'SENIOR MANAGER', 0, 40.00),
+        (14536, N'Olivier Robert', N'STAFF ACCOUNTANT/CONSULTA', 1, 40.00),
+        (14535, N'Nina Simon', N'SPECIALIST/SENIOR CONSULT', 0, 40.00),
+        (14532, N'Julien Thomas', N'SPECIALIST/SENIOR CONSULT', 1, 40.00),
+        (14533, N'Léa Fournier', N'MANAGER', 0, 40.00),
+        (14527, N'Élodie Roux', N'SPECIALIST/SENIOR CONSULT', 0, 40.00),
+        (14537, N'Sophie Garnier', N'SENIOR MANAGER', 0, 40.00),
+        (14530, N'Hugo Lemoine', N'SPECIALIST/SENIOR CONSULT', 0, 40.00),
+        (14531, N'Inès Bernard', N'SPECIALIST/SENIOR CONSULT', 1, 40.00)
+    ) AS source (personnel_no, employee_name, staff_level, is_external, employment_basis)
     ON target.[personnel_no] = source.[personnel_no]
     WHEN MATCHED THEN
-        UPDATE SET target.[employee_name] = source.[employee_name], target.[staff_level] = source.[staff_level], target.[is_external] = source.[is_external], target.[employment_basis] = source.[employment_basis], target.[practice_id] = source.[practice_id]
+        UPDATE SET target.[employee_name] = source.[employee_name], target.[staff_level] = source.[staff_level], target.[is_external] = source.[is_external], target.[employment_basis] = source.[employment_basis]
     WHEN NOT MATCHED THEN
-        INSERT ([personnel_no], [employee_name], [staff_level], [is_external], [employment_basis], [practice_id])
-        VALUES (source.[personnel_no], source.[employee_name], source.[staff_level], source.[is_external], source.[employment_basis], source.[practice_id]);
+        INSERT ([personnel_no], [employee_name], [staff_level], [is_external], [employment_basis])
+        VALUES (source.[personnel_no], source.[employee_name], source.[staff_level], source.[is_external], source.[employment_basis]);
     COMMIT TRANSACTION;
     PRINT 'Completed upsert for employees';
 END TRY
@@ -133,18 +96,18 @@ BEGIN TRY
     MERGE [dbo].[engagements] AS target
     USING (
         VALUES
-        (2001920365, N'Neptune', 1000017023, 1),
-        (2002040046, N'Terra', 1000017023, 1),
-        (3000512342, N'Flora', 1000017024, 1),
-        (2002059395, N'Ventus', 1000017023, 1),
-        (2002055111, N'Nexus', 1000017024, 1)
-    ) AS source (eng_no, eng_description, client_no, primary_practice_id)
+        (2001920365, N'Neptune', 1000017023),
+        (2002040046, N'Terra', 1000017023),
+        (3000512342, N'Flora', 1000017024),
+        (2002059395, N'Ventus', 1000017023),
+        (2002055111, N'Nexus', 1000017024)
+    ) AS source (eng_no, eng_description, client_no)
     ON target.[eng_no] = source.[eng_no]
     WHEN MATCHED THEN
-        UPDATE SET target.[eng_description] = source.[eng_description], target.[client_no] = source.[client_no], target.[primary_practice_id] = source.[primary_practice_id]
+        UPDATE SET target.[eng_description] = source.[eng_description], target.[client_no] = source.[client_no]
     WHEN NOT MATCHED THEN
-        INSERT ([eng_no], [eng_description], [client_no], [primary_practice_id])
-        VALUES (source.[eng_no], source.[eng_description], source.[client_no], source.[primary_practice_id]);
+        INSERT ([eng_no], [eng_description], [client_no])
+        VALUES (source.[eng_no], source.[eng_description], source.[client_no]);
     COMMIT TRANSACTION;
     PRINT 'Completed upsert for engagements';
 END TRY
@@ -232,7 +195,7 @@ BEGIN TRY
         (N'ETC', N'Estimate To Complete - The expected cost to finish all remaining project work'),
         (N'VAC', N'Variance At Completion - Projection of the amount of budget deficit or surplus (BAC-EAC)'),
         (N'TCPI', N'To Complete Performance Index - The cost performance that must be achieved to complete remaining work within budget')
-    ) AS source (key, description)
+    ) AS source ([key], [description])
     ON target.[key] = source.[key]
     WHEN MATCHED THEN
         UPDATE SET target.[description] = source.[description]
