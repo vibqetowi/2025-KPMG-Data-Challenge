@@ -58,9 +58,9 @@ $$
 Where:
 
 - $w_i$ is the financial weight of transaction $i$ where $w_i = \left(\frac{\text{AC}_i}{\text{AC}}\right)$
-- $d_i$ is the chargeout rate ratio for transaction $i$ where $d_i = \frac{\text{Chargeout}_i}{\text{StandardChargeout}_{j}}$ (≤ 1) *$Chargeout_i$ is the  chargout for transaction i and $StandardChargeout_j$ is the normal chargeout for consultant j on this engagment
-- $ea_j$ is profit adjustment for external consultants (assumed 10% lower) where $ea_j = 0.9 \times \text{isExternal}_j$ ($isExternal$ bwing a boolean with values 1 or 0)
-- $eo_j$ is the profit adjustment for first year consultants (20 lower according to case files) where $eo_j = 0.8 \times \text{isNew}_j$ ($isNew$ bwing a boolean with values 1 or 0)
+- $d_i$ is the chargeout rate ratio for transaction $i$ where $`d_i = \frac{\text{Chargeout}_i}{\text{StandardChargeout}_{j}}`$ (≤ 1) * $`Chargeout_i`$ is the  chargout for transaction i and $StandardChargeout_j$ is the normal chargeout for consultant j on this engagment
+- $ea_j$ is profit adjustment for external consultants (assumed 10% lower) where $ea_j = 0.9 \times \text{isExternal}_j$ ($isExternal$ being a boolean with values 1 or 0)
+- $eo_j$ is the profit adjustment for first year consultants (20 lower according to case files) where $eo_j = 0.8 \times \text{isNew}_j$ ($isNew$ being a boolean with values 1 or 0)
 
 This metric identifies engagements where value extraction is impacted by:
 
@@ -75,7 +75,9 @@ Each factor represents the percentage of value retained after applying that part
 Our solution addresses the core optimization challenge facing consulting organizations:
 
 $$
+`
 \max_{A} \sum_{p \in P} \text{SPI}_p \cdot w_p - \sum_{j \in J_{ext}} ea_j \cdot \sum_{p \in P} \text{Hours}_{j,p,w}
+`
 $$
 
 Subject to critical business constraints:
@@ -83,7 +85,7 @@ Subject to critical business constraints:
 - SPI > 0.85 for all projects (preventing schedule slippage)
 - Consultant benching < 20% (maximizing billable utilization)
 - $\forall c \in C, \sum_{p \in P} \text{Hours}_{c,p,w} \leq 40, \forall w \in \text{Weeks}$ (maintaining work-life balance)
-- $\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,p,w}}{\sum_{c \in C} \text{Hours}_{c,p,w}} = r_{l,pr,p}, \forall p \in P, \forall w \in \text{Weeks}$ (maintaining appropriate staffing ratios)
+- $`\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,p,w}}{\sum_{c \in C} \text{Hours}_{c,p,w}} = r_{l,pr,p}, \forall p \in P, \forall w \in \text{Weeks}`$ (maintaining appropriate staffing ratios)
 
 Where:
 
@@ -244,9 +246,10 @@ By replacing synthetic data with actual operational data and implementing these 
 
     - Justification: This discount rate is arbitrary and should be fixed with production data.
     - Impact: This adjustment ensures that the VEC calculation accurately reflects the lower profitability of engagements with higher proportions of external consultants, helping practice leaders make more informed decisions about staffing mix.
-14) Chargeout rates are negotiated per engagment
-   - Justification: analysis on the current dataset reveals that chargeout rates per sconsultant are consistent across one assignment but not accross all assignments. Considering the limited timeframe, it is unlikely this is because of a promotion.
-   - Impact: we need a standard chargeout rate table.
+14) Chargeout rates are negotiated per engagement
+
+- Justification: analysis on the current dataset reveals that chargeout rates per consultant are consistent across one assignment but not across all assignments. Considering the limited timeframe, it is unlikely this is because of a promotion.
+- Impact: This allows us to track the negotiatied chargeout rate and run the VEC calculations.
 
 ### Key Metrics Derivation
 
@@ -291,7 +294,7 @@ By replacing synthetic data with actual operational data and implementing these 
 
 #### Planned Value (PV)
 
-- **Formula**: $\text{PV} = \text{BAC} \times \frac{\text{Weeks elapsed}}{\text{Total estimated duration in weeks}}$
+- **Formula**: $\text{PV} = \text{BAC} \times \frac{\text{Days elapsed}}{\text{Total estimated duration in days}}$
 - **Purpose**: Measures the expected value of work that should have been completed by a specific point in time, based on the project budget and schedule.
 
 #### Earned Value (EV)

@@ -190,24 +190,16 @@ class DMLWriter:
     def generate_merge_statements(self):
         """
         Generate T-SQL MERGE statements for all tables to handle upsert operations.
+        Now all tables have proper primary keys, so we always use MERGE.
         """
         for table_name, df in self.dfs.items():
             statements = []
             schema_columns = self.schemas[table_name].copy()
             
-            # Remove auto-generated columns from INSERT statements
-            auto_generated = self.auto_generated_columns.get(table_name, [])
-            if auto_generated:
-                logger.info(f"Excluding auto-generated columns from {table_name} MERGE statements: {auto_generated}")
-                for col in auto_generated:
-                    if col in schema_columns:
-                        schema_columns.remove(col)
-            
             # Get primary keys for this table
             pk_columns = self.primary_keys.get(table_name, [])
             if not pk_columns:
-                logger.warning(f"No primary key defined for {table_name}, using basic INSERT instead of MERGE")
-                self.generate_insert_statements_for_table(table_name, df)
+                logger.warning(f"No primary key defined for {table_name}, but all tables should have primary keys now")
                 continue
                 
             # Check for column mismatch
@@ -270,55 +262,10 @@ class DMLWriter:
             
             self.sql_statements[table_name] = statements
             logger.info(f"Generated {len(statements)} MERGE statements for {table_name} ({total_rows} total records)")
-    
-    def generate_insert_statements_for_table(self, table_name, df):
-        """
-        Generate basic INSERT statements for tables without primary keys.
-        """
-        statements = []
-        schema_columns = self.schemas[table_name].copy()
-        
-        # Remove auto-generated columns from INSERT statements
-        auto_generated = self.auto_generated_columns.get(table_name, [])
-        if auto_generated:
-            for col in auto_generated:
-                if col in schema_columns:
-                    schema_columns.remove(col)
-        
-        # For large datasets, break into chunks
-        chunk_size = 500
-        total_rows = len(df)
-        
-        for start_idx in range(0, total_rows, chunk_size):
-            end_idx = min(start_idx + chunk_size, total_rows)
-            chunk = df.iloc[start_idx:end_idx]
-            
-            # Start the multi-row INSERT statement
-            if not chunk.empty:
-                values_list = []
-                
-                # Generate values for each row
-                for _, row in chunk.iterrows():
-                    row_values = []
-                    for column in schema_columns:
-                        value = row.get(column)
-                        column_type = self.column_types.get(column, 'nvarchar')
-                        row_values.append(self.format_value(value, column_type))
-                    
-                    values_list.append(f"({', '.join(row_values)})")
-                
-                # Create the multi-row INSERT statement
-                multi_insert = f"INSERT INTO [dbo].[{table_name}] ({', '.join([f'[{col}]' for col in schema_columns])}) VALUES\n"
-                multi_insert += ",\n".join(values_list) + ";"
-                
-                statements.append(multi_insert)
-        
-        self.sql_statements[table_name] = statements
-        logger.info(f"Generated {len(statements)} basic INSERT statements for {table_name} ({total_rows} total records)")
 
     def write_dml_file(self):
         """
-        Write all MERGE and INSERT statements to a single DML file using T-SQL syntax with batched transactions.
+        Write all MERGE statements to a single DML file using T-SQL syntax with batched transactions.
         """
         # Generate MERGE statements for all tables
         self.generate_merge_statements()
@@ -336,7 +283,7 @@ class DMLWriter:
             f.write("SET NOCOUNT ON;\n")
             f.write("GO\n\n")
             
-            f.write("-- Enable identity insert where needed\n")
+            f.write("-- Starting data upsert operations with MERGE statements\n")
             f.write("PRINT 'Starting data upsert operations...';\n")
             f.write("GO\n\n")
             
@@ -352,7 +299,7 @@ class DMLWriter:
                 'staffing', 
                 'timesheets',
                 'vacations',
-                'charge_out_rates'  # Make sure it's included in the table order
+                'charge_out_rates'
             ]
             
             # Write statements for each table in the defined order
@@ -363,13 +310,13 @@ class DMLWriter:
                     
                 statement_count = len(statements)
                 
-                f.write(f"-- MERGE/INSERT statements for {table} table\n")
+                f.write(f"-- MERGE statements for {table} table\n")
                 f.write(f"PRINT 'Upserting data into {table} table...';\n")
                 f.write("BEGIN TRY\n")
                 f.write("    BEGIN TRANSACTION;\n")
                 
-                # Handle identity insert for tables with identity columns if needed
-                if table in ('staffing', 'timesheets') and any('id' in stmt for stmt in statements):
+                # Handle identity insert for tables with identity columns
+                if table in ('staffing', 'timesheets'):
                     f.write(f"    SET IDENTITY_INSERT [dbo].[{table}] ON;\n")
                 
                 for i, stmt in enumerate(statements):
@@ -377,7 +324,7 @@ class DMLWriter:
                     f.write("    " + stmt.replace("\n", "\n    ") + "\n")
                 
                 # Turn off identity insert if it was turned on
-                if table in ('staffing', 'timesheets') and any('id' in stmt for stmt in statements):
+                if table in ('staffing', 'timesheets'):
                     f.write(f"    SET IDENTITY_INSERT [dbo].[{table}] OFF;\n")
                 
                 f.write("    COMMIT TRANSACTION;\n")
@@ -402,7 +349,7 @@ class DMLWriter:
         
         # Print summary
         total_statements = sum(len(stmts) for stmts in self.sql_statements.values())
-        logger.info(f"Generated {total_statements} T-SQL DML statements (upsert) written to {self.output_file}")
+        logger.info(f"Generated {total_statements} T-SQL MERGE statements written to {self.output_file}")
     
     def process_data(self):
         """

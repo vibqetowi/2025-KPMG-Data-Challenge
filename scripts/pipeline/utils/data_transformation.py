@@ -153,14 +153,18 @@ class DataTransformer:
             if df[col].dtype == 'object':
                 df[col] = df[col].replace('', None)
         
-        # Set NULL for database-generated columns
-        for col in self.db_generated_columns.get(table_name, []):
-            df[col] = None
+        # DO NOT set NULL for database-generated columns anymore
+        # We're now generating IDs in our processing steps
         
         # Convert data types based on schema
         for col, dtype in dtypes.items():
             if col in df.columns:
                 try:
+                    # Don't convert ID columns if they already contain sequential values
+                    if col == 'id' and table_name in self.db_generated_columns and not df[col].isna().all():
+                        print(f"Preserving generated ID values in {table_name}")
+                        continue
+                        
                     if dtype in ('datetime64[ns]', 'datetime'):
                         df[col] = pd.to_datetime(df[col], errors='coerce')
                     elif dtype == 'int' or dtype == 'int64':
@@ -334,7 +338,7 @@ class DataTransformer:
                                 week_date = pd.to_datetime(date_col.replace(' 00:00:00', ''))
                                 
                                 staffing_records.append({
-                                    'id': None,  # DB will generate
+                                    'id': None,  # Will be assigned sequentially later
                                     'personnel_no': row['Personnel No.'],
                                     'eng_no': eng_no,
                                     'eng_phase': row['Eng. Phase'],
@@ -347,9 +351,18 @@ class DataTransformer:
             except Exception as e:
                 print(f"Error processing staffing file {staffing_file}: {str(e)}")
         
-        # Convert to DataFrames for staffing records
+        # Convert to DataFrames for staffing records and assign sequential IDs
         if staffing_records:
             df_staffing = pd.DataFrame(staffing_records)
+            
+            # IMPORTANT: Add sequential IDs starting from 1
+            # and explicitly convert to integer type
+            df_staffing['id'] = range(1, len(df_staffing) + 1)
+            df_staffing['id'] = df_staffing['id'].astype('int64')
+            
+            print(f"Assigned {len(df_staffing)} sequential IDs to staffing records")
+            print(f"Sample staffing IDs: {df_staffing['id'].head().tolist()}")
+            
             self.dfs['staffing'] = pd.concat([self.dfs['staffing'], df_staffing])
             print(f"Processed {len(staffing_records)} staffing records")
         
@@ -402,9 +415,16 @@ class DataTransformer:
                 print(f"Available columns: {df_time.columns.tolist()}")
                 return
             
-            # Rename columns and set ID to None
+            # Rename columns and add sequential IDs
             df_time = df_time.rename(columns=column_mapping)
-            df_time['id'] = None
+            
+            # IMPORTANT: Add sequential IDs starting from 1
+            # and explicitly convert to integer type
+            df_time['id'] = range(1, len(df_time) + 1)
+            df_time['id'] = df_time['id'].astype('int64')
+            
+            print(f"Assigned {len(df_time)} sequential IDs to timesheet records")
+            print(f"Sample timesheet IDs: {df_time['id'].head().tolist()}")
             
             # Convert date columns
             date_columns = ['work_date', 'time_entry_date', 'posting_date']
@@ -429,7 +449,7 @@ class DataTransformer:
             
         except Exception as e:
             print(f"Error processing timesheet data: {str(e)}")
-    
+
     def process_standard_chargeout_rates(self):
         """
         Generate standard chargeout rates table by analyzing timesheet data.
@@ -539,6 +559,18 @@ class DataTransformer:
             # Clean the DataFrame according to its schema
             df = self._clean_dataframe(df, table)
             
+            # For staffing and timesheets, ensure IDs are present and not null
+            if table in self.db_generated_columns and 'id' in df.columns:
+                # Check if IDs are null
+                if df['id'].isna().any():
+                    print(f"WARNING: Found NULL IDs in {table} table, regenerating sequential IDs...")
+                    df['id'] = range(1, len(df) + 1)
+                    df['id'] = df['id'].astype('int64')
+                
+                # Verify IDs are present
+                print(f"Verifying IDs in {table}: {df['id'].notna().sum()} of {len(df)} records have IDs")
+                print(f"First 5 IDs: {df['id'].head().tolist()}")
+            
             # We've already dropped NULL columns during processing
             # so we just need to handle primary keys and set auto-generated columns
             
@@ -560,10 +592,8 @@ class DataTransformer:
                 print(f"\nComposite primary key columns in {table}:")
                 print(df[pk_columns].head(5))
             
-            # Set auto-generated columns to NULL
-            if table in self.db_generated_columns:
-                for col in self.db_generated_columns[table]:
-                    df[col] = None
+            # No longer setting auto-generated columns to NULL
+            # We now use incremental IDs assigned during processing
             
             # Save to CSV with NULL representation for NaN values
             output_file = OUTPUT_DIR / f"{table}.csv"
