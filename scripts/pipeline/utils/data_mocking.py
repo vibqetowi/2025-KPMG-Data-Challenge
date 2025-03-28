@@ -1,8 +1,14 @@
 import pandas as pd
 from datetime import datetime
 import random
+from pandas.tseries.offsets import BDay
 
 class DataMocker:
+    
+    def __init__(self, fetcher=None):
+        from advanced_data_analysis.fetcher import DataFetcher
+        self.fetcher = fetcher if fetcher else DataFetcher(source="csv")
+        
     def create_default_practices(self):
         """
         Create KPMG-specific practices, with SAP as practice ID 1
@@ -144,9 +150,7 @@ class DataMocker:
         """
         Returns mock start and end date for an engagement, based on its phases.
         """
-        from advanced_data_analysis.fetcher import DataFetcher
-
-        fetcher = DataFetcher(source="csv")
+        fetcher = self.fetcher
         data = fetcher.fetch_data(["phases", "staffing"])
 
         phases_df = data["phases"]
@@ -154,6 +158,8 @@ class DataMocker:
   
         # Generate dates for all phases
         phases_with_dates = self.generate_phase_dates_from_budget(phases_df, staffing_df)
+        
+        print(phases_with_dates[["eng_no", "eng_phase", "start_date", "end_date"]])
 
        # Filter only phases for this engagement
         rows = phases_with_dates[phases_with_dates["eng_no"] == eng_no]
@@ -170,9 +176,7 @@ class DataMocker:
         """
         Returns mock start and end dates for a specific engagement phase.
         """
-        from advanced_data_analysis.fetcher import DataFetcher
-
-        fetcher = DataFetcher(source="csv")
+        fetcher = self.fetcher
         data = fetcher.fetch_data(["phases", "staffing"])
 
         phases_df = data["phases"]
@@ -225,16 +229,22 @@ class DataMocker:
         merged["headcount"] = merged["headcount"].replace(0, 1)
     
         # Duration in days = effort ÷ (headcount × 8)
-        merged["duration_days"] = (
-            (merged["effort_hours"] / (merged["headcount"] * 8)).round().astype(int)
+        merged["end_date"] = merged.apply(
+            lambda row: row["start_date"] + BDay(int(row["duration_days"])), axis=1
         )
+
 
         # Mock start date from reference
         merged["start_date"] = pd.to_datetime(start_reference)
-        merged["end_date"] = merged["start_date"] + merged["duration_days"].apply(
-            lambda d: timedelta(days=d)
-        )
+        merged["end_date"] = merged["start_date"] + merged["duration_days"].astype("int") * BDay()
+
 
         # Return grouped result
         return merged[["eng_no", "eng_phase", "start_date", "end_date"]].drop_duplicates()
+    
+    
+    def __init__(self, fetcher=None):
+        from advanced_data_analysis.fetcher import DataFetcher
+        self.fetcher = fetcher if fetcher else DataFetcher(source="csv")
+
 
