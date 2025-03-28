@@ -142,14 +142,99 @@ class DataMocker:
 
     def get_engagement_dates(self, eng_no):
         """
-        Mock start and end dates for an engagement.
-        For now returns NULL values but will be used for proper date generation later.
+        Returns mock start and end date for an engagement, based on its phases.
         """
-        return None, None  # start_date, end_date
+        from advanced_data_analysis.fetcher import DataFetcher
+
+        fetcher = DataFetcher(source="csv")
+        data = fetcher.fetch_data(["phases", "staffing"])
+
+        phases_df = data["phases"]
+        staffing_df = data["staffing"]
+  
+        # Generate dates for all phases
+        phases_with_dates = self.generate_phase_dates_from_budget(phases_df, staffing_df)
+
+       # Filter only phases for this engagement
+        rows = phases_with_dates[phases_with_dates["eng_no"] == eng_no]
+
+        if rows.empty:
+            return None, None
+    
+        start_date = rows["start_date"].min()
+        end_date = rows["end_date"].max()
+
+        return start_date, end_date
 
     def get_phase_dates(self, eng_no, eng_phase):
         """
-        Mock start and end dates for a phase.
-        For now returns NULL values but will be used for proper date generation later.
+        Returns mock start and end dates for a specific engagement phase.
         """
-        return None, None  # start_date, end_date
+        from advanced_data_analysis.fetcher import DataFetcher
+
+        fetcher = DataFetcher(source="csv")
+        data = fetcher.fetch_data(["phases", "staffing"])
+
+        phases_df = data["phases"]
+        staffing_df = data["staffing"]
+
+        # Generate all phase dates
+        phases_with_dates = self.generate_phase_dates_from_budget(phases_df, staffing_df)
+
+        # Extract the matching row
+        row = phases_with_dates[
+        (phases_with_dates["eng_no"] == eng_no) &
+        (phases_with_dates["eng_phase"] == eng_phase)
+        ]
+
+        if not row.empty:
+            return row.iloc[0]["start_date"], row.iloc[0]["end_date"]
+        else:
+            return None, None
+        
+    def generate_phase_dates_from_budget(self, phases_df, staffing_df, start_reference="2025-01-01", default_rate=100):
+        import pandas as pd
+        from datetime import timedelta
+        
+
+
+        # Merge phase and staffing
+        merged = pd.merge(phases_df, staffing_df, on=["eng_no", "eng_phase"], how="left")
+
+        # Fill missing charge rates if needed
+        if "charge_out_rate" not in merged.columns:
+            merged["charge_out_rate"] = default_rate
+        else:
+            merged["charge_out_rate"] = merged["charge_out_rate"].fillna(default_rate)
+
+        # Estimate effort per person (budget ÷ rate)
+        merged["effort_hours"] = merged["budget"] / merged["charge_out_rate"]
+
+        # Group by phase and count personnel
+        headcounts = (
+            merged.groupby(["eng_no", "eng_phase"])["personnel_no"]
+            .nunique()
+            .reset_index()
+        )
+        headcounts.rename(columns={"personnel_no": "headcount"}, inplace=True)
+
+        # Merge again
+        merged = pd.merge(merged, headcounts, on=["eng_no", "eng_phase"], how="left")
+
+        # Avoid division by zero
+        merged["headcount"] = merged["headcount"].replace(0, 1)
+    
+        # Duration in days = effort ÷ (headcount × 8)
+        merged["duration_days"] = (
+            (merged["effort_hours"] / (merged["headcount"] * 8)).round().astype(int)
+        )
+
+        # Mock start date from reference
+        merged["start_date"] = pd.to_datetime(start_reference)
+        merged["end_date"] = merged["start_date"] + merged["duration_days"].apply(
+            lambda d: timedelta(days=d)
+        )
+
+        # Return grouped result
+        return merged[["eng_no", "eng_phase", "start_date", "end_date"]].drop_duplicates()
+
