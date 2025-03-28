@@ -309,6 +309,23 @@ class DataFetcher:
                 df = df.dropna(subset=["client_no", "client_name"])
 
         # Add more transformations for other tables as needed
+        elif table_name == 'phases':
+           column_mapping = {
+           "Eng. No.": "eng_no",
+           "Eng. Phase": "eng_phase",
+           "Budget": "budget"
+           }
+           df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
+           
+        elif table_name == 'staffing':
+           column_mapping = {
+           "Eng. No.": "eng_no",
+           "Eng. Phase": "eng_phase",
+           "Personnel No.": "personnel_no"
+           }
+           df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
+           
+        # Add more transformations for other tables as needed
 
         return df
 
