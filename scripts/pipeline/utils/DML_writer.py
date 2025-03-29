@@ -1,3 +1,9 @@
+"""
+DML Writer module for KPMG Data Challenge.
+
+This module handles the generation of SQL DML (Data Manipulation Language)
+statements from transformed CSV data.
+"""
 import os
 import pandas as pd
 from pathlib import Path

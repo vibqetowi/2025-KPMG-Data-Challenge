@@ -1,4 +1,4 @@
-# KPMG Case - Team 7: Consulting Assignment Optimization Dashboard
+# Predictive Resource Optimization Platform (PROP) - KPMG Case Challenge Submission
 
 <div align="center">
 
@@ -11,96 +11,86 @@
 
 ## 🏆 Team 7
 
-| Team Member | GitHub     | Linkedin | Background                                                                               |
-| ----------- | ---------- | -------- | ---------------------------------------------------------------------------------------- |
-| Minh        | @vibqetowi | [hminh-software-eng](https://www.linkedin.com/in/hminh-software-eng) | Software Engineering, previous experience in software development and project management |
-| Carter      | @carterj-c | [cartercameronfina](https://www.linkedin.com/in/cartercameronfina)  | Mechanical Engineering, previous experience in aerospace engineering                     |
-| Casey       | @cassius   | [casey-jussaume](https://www.linkedin.com/in/casey-jussaume)          | Finance & accounting, previous experience in financial modeling and research             |
-| Romero      | @geekpapi  |   [romero-p-faustin](https://www.linkedin.com/in/romero-p-faustin-96106a179/)       | Economics & Computer Science, previous experience in data analysis                       |
+| Team Member | GitHub     | Linkedin                                                                 | Background                                                                               |
+| ----------- | ---------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Minh        | @vibqetowi | [hminh-software-eng](https://www.linkedin.com/in/hminh-software-eng)        | Software Engineering, previous experience in software development and project management |
+| Carter      | @carterj-c | [cartercameronfina](https://www.linkedin.com/in/cartercameronfina)          | Mechanical Engineering, previous experience in aerospace engineering                     |
+| Casey       | @cassius   | [casey-jussaume](https://www.linkedin.com/in/casey-jussaume)                | Finance & accounting, previous experience in financial modeling and research             |
+| Romero      | @geekpapi  | [romero-p-faustin](https://www.linkedin.com/in/romero-p-faustin-96106a179/) | Economics & Computer Science, previous experience in data analysis                       |
 
 ## 🎯 Project Overview
 
-Team 7 is pleased to present its submission for the KPMG case challenge, the **Predictive Resource Optimization Plantform (PROP)** focusing on onsulting assignment optimization. While our backgrounds are primarily in engineering, economics, project management, and finance rather than consulting, we've leveraged our technical expertise and project coordination experience to develop a solution that addresses resource allocation challenges common to professional services organizations. Our solution is a production-ready dashboard designed to implement earned value management (EVM) principles to optimize resource allocation across projects.
+Team 7 is pleased to present its submission for the KPMG case challenge: the **Predictive Resource Optimization Platform (PROP)** focusing on consulting assignment optimization. While our backgrounds are primarily in engineering, economics, project management, and finance rather than consulting, we've leveraged our technical expertise and project coordination experience to develop a solution that addresses resource allocation challenges common to professional services organizations. Our solution is a production-ready dashboard designed to implement enhanced earned value management (EVM) principles to optimize resource allocation across engagements.
 
-This dashboard is specifically engineered to address critical business needs prevalent in project-based organizations:
+This dashboard is specifically engineered to address critical business needs prevalent in consulting practices:
 
 - Optimizing consultant utilization
 - Minimizing consultant bench time
-- Maintaining project schedules effectively
+- Maintaining engagement schedules effectively
 - Maximizing profitability through efficient resource allocation
 
 ### Platform Showcase
 
 ![Dashboard Preview](./img/dashboard.png)
+*(A preview of the main dashboard interface)*
 
-## 🌟 Key Features
+## 🌟 Key Capabilities
 
 The key business outcomes from this predictive dashboard solution are:
 
-- True visibility on engaggment profitability
-- instant financial interpretations
+- True visibility on engagement profitability
+- Instant financial interpretations (VEC, Burn, SPI)
 - Enhanced client satisfaction through consistently meeting deadlines
 - Better work-life balance through realistic capacity planning
-- Earned Value Management (EVM) metrics calculation
+- Earned Value Management (EVM) metrics calculation (SPI, EV, PV)
 - Consultant allocation optimization algorithm
-- Project performance visualization for clear insights
-- Resource utilization tracking for efficiency management
-- Schedule and cost variance monitoring to maintain project control
-- Predictive project completion forecasting for proactive planning
+- engagement performance visualization for clear insights
+- Resource utilization tracking (Benching, Capacity Utilization)
+- Schedule and cost variance monitoring to maintain engagement control
+- Predictive engagement completion forecasting
 - Vacation tracking and integration to prevent resource allocation conflicts and ensure realistic capacity planning
 
 ## 💼 Business Objectives and Optimization Targets
 
-Our solution focuses on key business metrics that drive profitability and efficiency in consulting organizations: maximizing both budget utilization and maintaining target chargeout rates while ensuring timely delivery and optimal resource usage.
+Our solution focuses on key business metrics that drive profitability and efficiency in consulting organizations: maximizing both budget utilization and maintaining target chargeout rates (captured by VEC), while ensuring timely delivery (SPI) and optimal resource usage (Benching Rate, Capacity Utilization Rate).
 
 ### Value Extraction Coefficient (VEC)
 
-Traditional project management metrics often fail to capture the dual financial objectives of consulting: delivering on budget while maximizing the value realized from chargeout rates and resource mix. Our Value Extraction Coefficient (VEC) provides executives with a consolidated measure of *financial realization efficiency* relative to the budget.
+Traditional project management metrics often fail to capture the dual financial objectives of consulting: utilizing the budget (not leaving money on the table) while maximizing the value realized from chargeout rates and resource mix. Our Value Extraction Coefficient (VEC) provides executives with a consolidated measure of *financial realization efficiency* relative to the budget for an engagement or phase.
 
-The VEC is calculated as follows:
+The VEC is calculated as follows (shown for a specific phase $ph$):
 
 $$
-\text{VEC} = \frac{1}{\text{BAC}} \times \sum_{i=1}^{n} \left[ \text{AC}_i \times d_i \times ea_j \times eo_j \right]
+\text{VEC}_{ph} = \frac{1}{\text{BAC}_{ph}} \times \sum_{i=1}^{n} \left[ \text{AC}_i \times d_i \times ea_j \times eo_j \right]
 $$
 
 Where:
 
-* $ \text{BAC} $: Budget At Completion - The total planned financial budget for the engagement (or phase). The $ \frac{1}{\text{BAC}} $ term normalizes the extracted value against the overall budget baseline.
-* $ \sum_{i=1}^{n} $: Summation over all individual financial transactions $ i $ (typically timesheet entries) contributing to the project's actual cost up to the point of measurement.
-* $ \text{AC}_i $: Actual Billed Amount for transaction $ i $. This represents the specific financial value recorded for the transaction. It implicitly weights the contribution of each transaction based on its billed value.
-* $ d_i $: Rate Efficiency Factor for transaction $ i $. This measures how the actual chargeout rate used compares to the standard rate for the consultant $ j $ associated with transaction $ i $.
-
+* $ \text{BAC}_{ph} $: Budget At Completion for phase $ph$. The $ \frac{1}{\text{BAC}_{ph}} $ term normalizes the extracted value against the phase budget baseline. (VEC can also be calculated at the engagement level).
+* $ \sum_{i=1}^{n} $: Summation over all individual financial transactions $ i $ (typically timesheet entries) contributing to the phase's actual cost up to the point of measurement.
+* $ \text{AC}_i $: Actual Billed Amount (or Cost equivalent) for transaction $ i $.
+* $ d_i $: Rate Efficiency Factor for transaction $ i $, measuring how the actual chargeout rate used compares to the standard rate for the consultant $ j $ associated with transaction $ i $.
   $$
   d_i = \frac{\text{Chargeout}_i}{\text{StandardChargeout}_j}
   $$
-
-  * If $ \text{Chargeout}_i = \text{StandardChargeout}_j $, then $ d_i = 1 $ (Standard Rate Efficiency).
-  * If $ \text{Chargeout}_i < \text{StandardChargeout}_j $, then $ d_i < 1 $ (Discount impact reflected).
-  * If $ \text{Chargeout}_i > \text{StandardChargeout}_j $, then $ d_i > 1 $ (Premium impact reflected).
-* $ ea_j $: External Adjustment Factor for consultant $ j $. This adjusts for the assumed standard lower margin or efficiency of external consultants.
-
+* $ ea_j $: External Adjustment Factor for consultant $ j $ (e.g., 1.0 for internal, 0.9 for external).
   $$
   ea_j = 1 - 0.1 \times \text{isExternal}_j
   $$
-
-  * $ \text{isExternal}_j $ is a boolean indicator (1 if consultant $ j $ is external, 0 if internal).
-  * Resulting $ ea_j $ is $ 1.0 $ for internal, $ 0.9 $ for external consultants.
-* $ eo_j $: Onboarding/New Hire Adjustment Factor for consultant $ j $. This adjusts for the assumed standard lower efficiency or higher internal cost associated with first-year or new consultants.
-
+* $ eo_j $: Onboarding/New Hire Adjustment Factor for consultant $ j $ (e.g., 1.0 for experienced, 0.8 for new).
   $$
   eo_j = 1 - 0.2 \times \text{isNew}_j
   $$
 
-  * $ \text{isNew}_j $ is a boolean indicator (1 if consultant $ j $ is considered new, 0 if experienced). This status needs to be determined based on hire date or staff level definitions.
-  * Resulting $ eo_j $ is $ 1.0 $ for experienced, $ 0.8 $ for new consultants.
+#### Interpreting Financial Health (using VEC and Burn)
 
-**Interpreting Financial Health (using VEC and Burn)**
+Budget Burn for a phase is calculated as $\text{Burn}_{ph} = \frac{\sum AC_i}{\text{BAC}_{ph}}$. VEC and Burn provide a nuanced view of financial health:
 
-|                            | **Efficiency: VEC > Burn** (Premium Realization) | **Efficiency: VEC ≈ Burn** (Standard Realization) | **Efficiency: VEC < Burn** (Value Dilution) |
-| :------------------------- | :----------------------------------------------------- | :------------------------------------------------------- | :------------------------------------------------ |
-| **Spend: Burn < 1**  | Excellent                                              | On Track                                                 | Warning                                           |
-| **Spend: Burn ≈ 1** | Excellent                                              | On Track                                                 | Warning                                           |
-| **Spend: Burn > 1**  | Ambiguous                                              | Critical                                                 | Critical                                          |
+|                     | **VEC > Burn** (Premium Realization) | **VEC ≈ Burn** (Standard Realization) | **VEC < Burn** (Value Dilution) |
+| :------------------ | :----------------------------------------- | :------------------------------------------- | :------------------------------------ |
+| **Burn < 1**  | Excellent                                  | On Track                                     | Warning                               |
+| **Burn ≈ 1** | Excellent                                  | On Track                                     | Warning                               |
+| **Burn > 1**  | Ambiguous                                  | Critical                                     | Critical                              |
 
 **Interpretation Notes:**
 
@@ -112,56 +102,48 @@ Where:
 
 ### Resource Optimization
 
-Our solution addresses the core optimization challenge facing consulting organizations:
+Our solution addresses the core optimization challenge facing consulting organizations by recommending optimal consultant assignments:
 
 $$
-\max_{A} \sum_{p \in P} w_p \times r_p \times (\alpha \times \text{SPI}_p + \beta \times \text{VEC}_p) - \sum_{c\in C, p \in P, w \in W}\text{pse} \times \text{is\_switch}_{c,p,w}
+\max_{A} \sum_{en \in EN} w_{en} \times r_{en} \times (\alpha \times \text{SPI}_{en} + \beta \times \text{VEC}_{en}) - \sum_{c\in C, en \in EN, w \in W}\text{pse} \times \text{is\_switch}_{c,en,w}
 $$
 
-Where $A$ represents the assignment matrix of consultants to projects (i.e., which consultants work on which projects and for how many hours). The optimization seeks to find the best possible allocation of consultant resources across all projects that maximizes the objective function.
+Where $A$ represents the assignment matrix (consultant $c$, engagement $en$, hours in week $w$). The optimization seeks the assignment $A$ that maximizes this weighted sum of performance indicators across all engagements $EN$, penalized by the cost (`pse`) of switching consultants between engagements.
 
 Subject to critical business constraints:
 
-- SPI ≥ 0.85 for all projects (preventing schedule slippage)
-- $\bigl|\text{VEC} - \text{Burn}\bigr| \le 0.15$ for all projects (ensuring adequate value extraction)
-- Consultant benching < 20% (maximizing billable utilization)
-- $\forall c \in C, \sum_{p \in P} \text{Hours}_{c,p,w} \leq 40, \forall w \in \text{Weeks}$ (maintaining work-life balance)
-- $\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,p,w}}{\sum_{c \in C} \text{Hours}_{c,p,w}} = r_{l,pr,p}, \forall p \in P, \forall w \in \text{Weeks}$ (maintaining appropriate staffing ratios)
-- $\sum_{p \in P} \text{Hours}_{c_{ext},p,w} > 0 \implies \sum_{p \in P} \text{Hours}_{c_{int},p,w} = 40, \forall c_{int} \in C_{int}, \forall c_{ext} \in C_{ext}, \forall w \in \text{Weeks}$ (prioritizing internal consultants before external consultants)
+- $\text{SPI}_{en} \ge 0.85$ for all engagements $en$ (preventing schedule slippage).
+- $\bigl|\text{VEC}_{en} - \text{Burn}_{en}\bigr| \le 0.15$ for all engagements $en$ (ensuring adequate value extraction).
+- Consultant Benching Rate < 20% (maximizing billable utilization).
+- $\forall c \in C, \sum_{en \in EN} \text{Hours}_{c,en,w} \leq 40, \forall w \in \text{Weeks}$ (maintaining work-life balance, respecting capacity).
+- $\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,en,w}}{\sum_{c \in C} \text{Hours}_{c,en,w}} = r_{l,pr,en}, \forall en \in EN, \forall w \in \text{Weeks}$ (maintaining appropriate staffing ratios $r$ for level $l$ and practice $pr$ on engagement $en$).
+- $\sum_{en \in EN} \text{Hours}_{c_{ext},en,w} > 0 \implies \sum_{en \in EN} \text{Hours}_{c_{int},en,w} = 40, \forall c_{int} \in C_{int}, \forall c_{ext} \in C_{ext}, \forall w \in \text{Weeks}$ (prioritizing internal consultants $C_{int}$ before external consultants $C_{ext}$).
 
 Where:
 
-- $w_p$ represents the strategic value weight of project $p$ (higher values for strategically important clients or projects)
-- $r_p$ is the delivery risk coefficient for project $p$, reflecting complexity and criticality
-- $\alpha, \beta$ are weighting coefficients for balancing schedule performance and value extraction
-- $\text{pse}$ is the project switching efficiency factor (≤ 1) that accounts for productivity loss when consultants switch projects
-- $\text{is\_switch}_{c,p,w}$ is a binary variable indicating whether consultant $c$ is newly assigned to project $p$ in week $w$
-- $L$ is the set of staff levels
-- $PR$ is the set of practice areas
-- $C_{l,pr}$ is the subset of consultants at level $l$ from practice area $pr$
-- $C_{int}$ is the subset of internal consultants
-- $C_{ext}$ is the subset of external consultants
-- $r_{l,pr,p}$ is the target ratio of hours for level $l$ and practice $pr$ in project $p$
+- $w_{en}$: Strategic value weight of engagement $en$.
+- $r_{en}$: Delivery risk coefficient for engagement $en$.
+- $\alpha, \beta$: Weighting coefficients balancing schedule (SPI) vs. value (VEC).
+- $\text{pse}$: Phase Switching Efficiency factor (≤ 1) accounting for productivity loss when consultants switch tasks.
+- $\text{is\_switch}_{c,en,w}$: Binary variable: 1 if consultant $c$ is newly assigned to engagement $en$ in week $w$.
+- $EN$: Set of all engagements.
+- $L$: Set of staff levels.
+- $PR$: Set of practice areas.
+- $C_{l,pr}$: Subset of consultants at level $l$ from practice area $pr$.
+- $C_{int}, C_{ext}$: Subsets of internal and external consultants.
+- $r_{l,pr,en}$: Target ratio of hours for level $l$ and practice $pr$ in engagement $en$.
 
-The staffing ratio constraint ensures that each project maintains the required mix of different staff levels and practice areas, which is critical for proper project delivery. This optimization balances:
-
-1. Schedule performance (SPI) to ensure timely project delivery
-2. Value extraction (VEC) to maximize financial performance
-3. Strategic project importance through project-specific weights ($w_p$)
-4. Delivery risk through the risk coefficient ($r_p$)
-5. Efficiency considerations in consultant reassignments through the project switching efficiency factor
-
-While maintaining appropriate staffing ratios by level and practice area for each project and prioritizing the utilization of internal resources before external consultants.
+The staffing ratio constraint ensures that each engagement maintains the required mix. This optimization balances schedule performance (SPI), value extraction (VEC), strategic importance ($w_{en}$), risk ($r_{en}$), and switching efficiency ($\text{pse}$), while respecting constraints.
 
 ### Key Performance Indicators (KPIs)
 
-Due to these business objectives, our solution focuses on key performance indicators that enable managers to proactively monitor and manage resource allocation and engagement profitability:
+Due to these business objectives, our solution focuses on the following core KPIs enabling proactive management:
 
-1. **VEC (rolling)**: Value Extraction Coefficient measured on a rolling basis to track trends in financial realization efficiency (rate integrity, resource mix impact).
-2. **Budget Burn (rolling)**: Ratio of Actual Cost to Budget ($\frac{\text{AC}}{\text{BAC}}$) tracked over time to monitor cost control. *Crucially used alongside VEC to assess overall financial health.*
-3. **SPI (rolling)**: Schedule Performance Index tracked on a rolling basis to monitor project delivery progress against the plan. *(Calculation method for SPI needs careful consideration beyond the scope of this demo)\.*
-4. **Benching Rate (internal/external)**: Weekly rolling ratio of unassigned capacity for internal and external consultants separately.
-5. **Utilisation Rate (internal/external)**: Weekly rolling ratio of billed hours vs planned hours helpiing uncover resource planning deficiencies.
+1. **VEC (rolling)**: Value Extraction Coefficient tracking financial realization efficiency.
+2. **Budget Burn (rolling)**: Ratio of Actual Cost to Budget ($\frac{\sum AC}{\text{BAC}}$) tracking cost control. *Used with VEC for financial health.*
+3. **SPI (rolling)**: Schedule Performance Index tracking delivery progress against plan.
+4. **Benching Rate (internal/external)**: Weekly rolling percentage of available capacity *not assigned* to engagements.
+5. **Capacity Utilization Rate (internal/external)**: Weekly rolling ratio of *actual billable hours logged* versus standard capacity.
 
 ## 🏗️ Architecture
 
@@ -169,76 +151,76 @@ Due to these business objectives, our solution focuses on key performance indica
 
 ### Technology Stack
 
-- **Data Analysis**: Python, chosen for quick prototyping abilities when uncertain about KPMG tech stack.
-- **Data Storage**: SQL Server database, employing TSQL to ensure direct compatibility with KPMG's assumed internal database stack, specifically Azure SQL.
-- **Visualization**: Power BI, selected for compatibility with KPMG tools.
-- **Integration**:  For reference, a sample pipeline script (`/scripts/pipeline/pipeline.py`) demonstrates the process of extracting data from Salesforce, transforming it, and loading it into the SQL database. While this provides a starting framework, we strongly recommend working with your Salesforce integration specialists to adapt this to your specific environment and security requirements.
+- **Data Analysis & Optimization**: Python (Pandas, NumPy, PuLP)
+- **Data Storage**: SQL Server database (T-SQL), targeting Azure SQL compatibility.
+- **Visualization**: Power BI
+- **Integration Reference**: Sample pipeline script (`/scripts/pipeline/pipeline.py`) demonstrates ETL from Salesforce to SQL Server. *Requires adaptation for KPMG's specific environment.*
 
 ### Database Approach
 
-A dedicated database setup is essential and has been implemented to address the following critical requirements:
+A dedicated database setup is essential:
 
-1. **Advanced Analytics**: Power BI's native capabilities are insufficient for the advanced analytical methods required, such as interpolation and regression.
-2. **Complex Optimization**: Consultant allocation optimization necessitates relational data structures to manage the complexity of assignments and project dependencies.
-3. **Historical Tracking**: Persistent data storage is crucial for historical performance tracking and trend analysis over time.
-4. **Scalability**: A well-architected database provides the necessary foundation for future scalability and expansion of the system.
+1. **Advanced Analytics**: Enables calculations beyond Power BI's native capabilities.
+2. **Complex Optimization**: Provides relational structure for the optimization engine.
+3. **Historical Tracking**: Allows persistent storage for trend analysis.
+4. **Scalability**: Supports future expansion.
 
 #### Data Model
 
-An interactive Entity Relationship Diagram (ERD) detailing the database structure is available [here](https://dbdiagram.io/d/67e2d56c75d75cc8446be7ea). A static version is also provided below for convenience:
+Interactive ERD: [here](https://dbdiagram.io/d/67e2d56c75d75cc8446be7ea). Static version:
 ![ERD](./Documentation/ERD.svg)
 
-The defined ERD structure is implemented in our database and serves as the foundational data model for the Power BI reporting layer. Our data model includes explicit timeline tracking with start and end dates for both engagements and phases, enabling accurate project timeline analysis and performance tracking without relying on inferred dates.
+The ERD is implemented in the database, serving the Power BI layer.
 
 #### Vacation Tracking Integration
 
-Our solution incorporates a dedicated vacation tracking system, which addresses a significant pain point in resource management. Through our experience in project management and engineering environments, we've observed that capacity planning often fails when resource managers are unaware of planned time off until it's too late to adjust assignments properly.
+Incorporates a dedicated `vacations` table:
 
-Key aspects of our vacation tracking implementation:
-
-- Dedicated `vacations` table in the database to store employee time-off periods
-- Integration with capacity planning calculations to automatically adjust available hours
-- Visual indicators in the dashboard highlighting vacation conflicts with planned assignments
-- Proactive alerts for resource managers when upcoming vacations affect staffing plans
-
-While the current implementation uses synthetic vacation data (as this information wasn't available in the original dataset), the system is designed to integrate with HR systems that track approved time off. This integration helps avoid the common scenario where projects are planned and staffed without accounting for known absences, leading to missed deadlines and last-minute resource scrambling - a challenge we've personally encountered in engineering and project-based work environments.
+- Stores employee time-off.
+- Integrates with capacity calculations.
+- Provides visual conflict indicators.
+- Designed for integration with HR systems (uses synthetic data in PoC).
+- Helps avoid resource conflicts due to unaccounted absences.
 
 ## 🛣️ Production Deployment and Dashboard Improvements Suggestions
 
-For this proof-of-concept, several data elements were synthesized or derived to demonstrate the full capabilities of our solution. In a production environment, these would be replaced with actual data from KPMG's systems, significantly enhancing the accuracy and applicability of the dashboard.
+PoC uses synthesized data; production requires actual KPMG data.
 
 ### Synthetic Elements and Production Replacements
 
-| Challenge Implementation                                                    | Production Replacement                         | Benefit                                                                     |
-| --------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------- |
-| **Vacation Schedules**: Generated synthetic time-off periods          | Integration with HR/PTO systems                | Accurate capacity planning accounting for approved leave                    |
-| **Internal/External Classification**: Derived from timesheet patterns | Direct data from HR systems                    | Precise resource categorization for costing and availability                |
-| **Employment Basis**: Standardized 40-hour work week                  | Actual contracted hours per resource           | More accurate capacity calculations for part-time and flexible arrangements |
-| **Project Timelines**: Inferred from billing data                     | Actual project start/end dates from Salesforce | Precise schedule performance measurement                                    |
-| **Practice Areas**: Set to 'SAP'                                      | Actual department/practice assignments         | Better matching of consultants to appropriate projects                      |
+| PoC Implementation                                                  | Recommended Production Data Source              | Benefit of Production Data                         |
+| :------------------------------------------------------------------ | :---------------------------------------------- | :------------------------------------------------- |
+| **Vacation Schedules**: Generated synthetic                   | Integration with HR / PTO systems               | Accurate capacity planning                         |
+| **Internal/External Status**: Derived heuristically           | Direct classification from HR / Vendor systems  | Precise resource costing and VEC calculation       |
+| **Employment Basis**: Assumed 40-hour week                    | Actual contracted hours per resource            | Accurate capacity for part-time/flexible staff     |
+| **Engagement/Phase Timelines**: Inferred from billing         | Actual start/end dates from CRM/Project Mgmt    | Precise SPI calculation and forecasting            |
+| **Practice Areas**: Defaulted ('SAP')                         | Actual department/practice assignments (HR/CRM) | Correct staffing mix validation & reporting        |
+| **Standard Chargeout Rates**: Assumed based on level          | Official rate cards per level/practice          | Accurate VEC Rate Efficiency ($d_i$) calculation |
+| **Strategic Weight ($w_{en}$)/Risk ($r_{en}$)**: Constant | Defined via business rules/CRM flags            | Optimization reflects true priorities/risk         |
 
 ## 📝 Implementation Notes
 
-For production deployment within KPMG, we recommend the following implementation steps based on our experience with similar technical systems in engineering and project environments:
+Recommended steps for production deployment:
 
-1. **Salesforce System Integration**: Establish robust integration with KPMG's existing Salesforce system using API connectors to ensure seamless data flow and system interoperability.
-2. **Database Schema Deployment**: Implement the defined database schema within KPMG's Azure SQL or MS SQL Server environment to establish the necessary data infrastructure.
-3. **Data Refresh Scheduling**: Establish a regular data refresh schedule, ideally daily, to ensure the dashboard and optimization algorithms operate with up-to-date information.
-4. **User Access Control Implementation**: Implement user access controls that align with KPMG's organizational structure to ensure data security and appropriate system access levels.
-5. **Automated Alert System**: Develop and deploy automated alerts that trigger when project Schedule Performance Index (SPI) falls below predefined thresholds, enabling proactive intervention and project management.
+1. **System Integration**: Establish robust API integration (e.g., Salesforce, HR).
+2. **Replace Temporary Values:** View above table for reccomendations.
+3. **Database Deployment**: Implement the SQL schema in KPMG's environment.
+4. **Data Refresh Scheduling**: Set up regular (e.g., weekly) data refreshes.
+5. **User Access Control**: Implement role-based security.
+6. **Automated Alert System**: Develop alerts for KPI thresholds (e.g., low SPI).
 
 ### Dashboard Enhancement Roadmap
 
-Building on the proof-of-concept dashboard, we recommend the following enhancements for production deployment:
+Recommended enhancements:
 
-1. **Historical Performance Metrics**: Incorporating historical consultant performance data categorized by project type would enable more nuanced resource allocation based on proven expertise and past results.
-2. **Skills Taxonomy**: Developing a structured skills database would allow precise matching of consultant capabilities to project requirements, optimizing staffing decisions beyond the current level-based approach.
-3. **Client Priority Weighting**: Implementing a client significance factor would enable weighted optimization, ensuring strategic client relationships receive appropriate resourcing priority.
-4. **Value Extraction Analytics**: Implement deeper analytics around the Value Extraction Coefficient (VEC), allowing practice leaders to identify patterns in which types of engagements, clients, or practice areas maintain the highest coefficient. This would provide actionable insights for improving overall firm profitability.
-5. **Chargeout Discount Monitoring**: Add visualization components that track chargeout discounts by client, engagement type, and staff level. This would help identify where rate pressure is occurring and inform pricing strategies and resource allocation decisions.
+1. **Historical Performance Integration**: Factor past consultant performance into optimization.
+2. **Skills Taxonomy**: Implement detailed skills matching.
+3. **Client Priority Weighting ($w_{en}$)**: Allow dynamic setting of strategic weights.
+4. **VEC Deeper Analytics**: Add views to analyze VEC trends by practice, client, etc.
+5. **Chargeout Discount Monitoring**: Visualize rate realization ($d_i$) trends.
+6. **Calibrated Switching Penalty ($\text{pse}$)**: Set realistic $\text{pse}$ based on historical data.
 
-By replacing synthetic data with actual operational data and implementing these enhancements, the system would evolve from a powerful proof-of-concept to an essential operational tool for KPMG's resource management.
-
+These steps evolve the PoC into an essential operational tool.
 
 ## 🚀 Getting Started
 
@@ -246,232 +228,207 @@ By replacing synthetic data with actual operational data and implementing these 
 # Clone repository
 git clone [repository-url]
 
+# Navigate to directory
+cd [repository-directory]
+
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Connect to SQL database using appropriate methods
+# Configure database connection (update connection strings as needed)
+# Ensure SQL Server instance is running and schema is deployed
 
 # Open Power BI dashboard
 open ./dashboards/project_performance.pbix
+# Refresh data within Power BI
 ```
 
-## 📈 Performance Metrics
+## 📈 Performance Metrics Example
 
-For a sample project with code ending 365, phase 000010, the following performance metrics are observed:
+For a sample engagement phase (Code ending 365, Phase 000010), metrics observed:
 
-- Budget at completion (BAC): \$2.3M
+- Budget at completion (BAC - Phase): \$2.3M
 - SPI: \[Value calculated]
-- Estimated completion date: \[Date calculated]
-
- *Built for the KPMG Data Challenge 2025*
+- VEC: \[Value calculated]
+- Burn: \[Value calculated]
+- *Other relevant KPIs like Benching/Capacity Utilization can be shown here.*
 
 ## Appendix 1: AI Usage
 
-For the development of this project, ChatGPT (free version) and GitHub Copilot were utilized as valuable tools for research assistance, content generation, and code development support. These tools helped our team bridge knowledge gaps between our engineering/technical backgrounds and the consulting domain-specific requirements of this challenge.
+ChatGPT (free version) and GitHub Copilot were utilized during development for research assistance, conceptual brainstorming, content generation, and code development support.
 
 ## Appendix 2: Predicting Optimal Allocation of Employee Resources
 
-The optimization formula presented in the Business Objectives section represents a complex resource allocation problem that requires an algorithmic approach to solve efficiently. Here, we outline our implementation strategy for this optimization:
+The optimization formula is solved algorithmically:
 
 ### Implementation Strategy
 
-1. **Data Preparation Phase**
-
-   - Calculate current project statuses (SPI, VEC) from the database
-   - Retrieve consultant availability data, including planned vacations
-   - Calculate staffing ratios for each phase and for the open projects in the practice (essential because ratios may be missing or significantly differ from department averages)
-   - Calculate strategic value weights $(w_p)$ for each project based on client priority, project size, and delivery risk
-   - Determine delivery risk coefficient $(r_p)$ for each project to account for complexity and criticality
+1. **Data Preparation Phase (Scheduled)**
+   * Calculate current engagement statuses (SPI, VEC, Burn).
+   * Retrieve consultant availability (including vacations).
+   * Determine required staffing ratios ($r_{l,pr,en}$) for active **engagements/phases**.
+   * Retrieve strategic weights ($w_{en}$) and risk coefficients ($r_{en}$).
 2. **Optimization Algorithm Selection**
-
-   - We implemented a Mixed Integer Linear Programming (MILP) approach using the PuLP library in Python
-   - The optimization runs weekly to reallocate resources based on updated project performance metrics
-   - The assignment matrix A represents hours allocated per consultant, per project, per week
+   * Implemented using Mixed Integer Linear Programming (MILP) via Python `PuLP`.
+   * Runs weekly to recommend assignments for the upcoming period.
+   * Assignment matrix $A$ (hours per consultant $c$, per engagement $en$, per week $w$).
 3. **Constraint Implementation**
-
-   - Project schedule constraints: SPI > 0.85 is enforced by calculating minimum required consultant hours
-   - Project value constraints: VEC > 0.85 to ensure adequate value extraction across all projects
-   - Staffing ratio constraints: Required percentages of each level and practice are maintained
-   - Consultant capacity constraints: No consultant is assigned more than 40 hours weekly
-   - Vacation awareness: Consultant assignments respect approved time off
-   - Internal priority: Internal consultants must be maximally utilized before external consultants are assigned
-   - Project switching efficiency: A factor (pse ≤ 1) is applied to account for efficiency loss when consultants switch projects (currently set to 1 per our assumptions)
-4. **Enhanced Objective Function**
-
+   * engagement schedule constraints ($\text{SPI}_{en}$).
+   * engagement value constraints ($\text{VEC}_{en}$ vs $\text{Burn}_{en}$).
+   * Staffing ratio constraints ($r_{l,pr,en}$).
+   * Consultant capacity constraints (≤ 40 hours, adjusted for vacation).
+   * Vacation awareness.
+   * Internal priority constraint.
+   * engagement switching efficiency ($\text{pse}$) applied via objective function penalty.
+4. **Enhanced Objective Function (Conceptual)**
    ```python
-   # Pseudocode for the enhanced objective function
+   # Pseudocode structure
    model += pulp.lpSum([
-       project_weights[p] * r_p * (
-           alpha * calculate_projected_SPI(p, assignments) +
-           beta * calculate_projected_VEC(p, assignments)
-       ) - sum(pse_factor * is_project_switch[c, p, w] for c in consultants)
-       for p in projects
+       engagement_weights[en] * risk_coeffs[en] * (
+           alpha * calculate_projected_SPI(en, assignments) +
+           beta * calculate_projected_VEC(en, assignments)
+       ) - sum(pse_factor * is_engagement_switch[c, en, w] for c in consultants for w in weeks) # Penalty term
+       for en in engagements
    ])
 
-   # Internal consultant priority constraint
-   for w in weeks:
-       for c_ext in external_consultants:
-           for p in projects:
-               # External consultants can only be assigned if all eligible internal consultants 
-               # are already at maximum capacity (or on vacation)
-               model += assignments[(c_ext, p, w)] <= M * (
-                   sum(is_at_capacity[c_int, w] for c_int in eligible_internal_consultants[p])
-                   == len(eligible_internal_consultants[p])
-               )
+   # Internal consultant priority constraint logic...
+   # Ensures internal consultants are assigned first up to capacity.
    ```
-5. **Post-Optimization Processing**
-
-   - Results are written back to the staffing_prediction table
-   - Dashboard visualizations update to reflect the optimized allocations
-   - Resource managers receive notifications of significant reassignments
+5. **Post-Optimization Processing & Feedback Loop**
+   * Optimized assignments ($A$) written to a prediction table.
+   * Dashboard visualizes recommendations.
+   * Optional notifications for resource managers.
+   * **Internal Model Tuning:** The deviation measured by the *Assignment Realization Rate* (Actual Billed vs. Assigned Hours, see Appendix 4) from the previous week can be used as an input signal or error metric (part of a loss function) to potentially adjust parameters (like consultant-specific efficiency factors or even $\alpha, \beta$) or constraints in the optimization model for the *next* week's run. This creates a feedback mechanism to improve prediction accuracy over time. The specific algorithm for this adjustment (e.g., simple heuristic, gradient descent on a related metric) requires further development beyond the current PoC.
 6. **Practical Considerations**
+   * Configurable weights $\alpha, \beta$.
+   * Potential two-phase optimization for large scale (pre-filter then optimize).
+   * Future stability constraints to minimize reassignments.
+   * Future skills matching constraints.
+   * Calibrate engagement switching factor ($\text{pse}$) based on data.
 
-   - The weights α and β are configurable parameters (default: α=0.6, β=0.4)
-   - For very large consultant pools, a two-phase approach may be used where:
 
-     - Phase 1: Pre-filter eligible consultants for each project based on skills and availability
-     - Phase 2: Run optimization on the reduced candidate pool
-   - Weekly re-optimization includes "stability constraints" to minimize excessive consultant reassignments
-   - Skills matching (not fully implemented in the current version) would add additional constraints to ensure consultants have the required capabilities for assigned projects
-   - The project switching efficiency factor (pse) could be calibrated in production based on historical performance data to reflect the actual productivity impact of reassignments
+## Appendix 3: Modelling Assumptions
 
-This approach provides a balance between optimizing for both schedule performance and value extraction while maintaining practical constraints essential for consulting operations, prioritizing internal resources, and considering the efficiency impacts of project reassignments.
+This appendix outlines the key assumptions underpinning the analysis presented in this document. These assumptions were necessary due to data limitations or for simplification in the modelling process. They are categorized into critical and supporting assumptions.
 
-## Appendix 3: Internal Assumptions
+### **Critical Assumptions**
 
-### Critical Assumptions
+1.  **Cost Performance Index (CPI) is set at 0.98.**
+    *   **Basis:** This value is derived from standard project management contingency practices (estimated at 10%) and an assumption regarding the operational efficiency of the KPMG workforce.
+    *   **Impact:** Enables preliminary project timeline estimations based on budget utilization. It is recommended that this assumption be replaced with empirically derived CPI values based on actual project performance data and VEC calculations in future operational applications.
 
-1) CPI = 0.98
+### **Supporting Assumptions**
 
-   - Justification: This Cost Performance Index (CPI) value is derived from our knowledge of Project Management practices (contingency of 10%) as well as assumed efficiency of the KPMG workforce.
-   - Impact: A CPI of 0.98 is chosen to allow backwards estimations of project timelines, as stated however, it should be replaced by real project timelie data and VEC calculations in production.
+1.  **Phase Duration is Based on Staff Allocation.**
+    *   **Impact:** Project phase durations are estimated by dividing the total required effort (in hours) for the phase by the number of personnel allocated. This approach facilitates the projection of project completion dates based on planned resource assignments.
 
-### Supporting Assumptions
+2.  **Staffing Distribution is Consistent Across Phases.**
+    *   **Basis:** Analysis of sample engagement data indicates relatively consistent ratios in staff levels (e.g., Consultant, Manager) across different phases.
+    *   **Impact:** Allows for the calculation of reliable weighted average chargeout rates for engagements.
 
-1. Phase duration derived from staff count
+3.  **Project Phases Progress Linearly.**
+    *   **Impact:** Projects are assumed to progress sequentially through defined phases without significant overlap. This simplification facilitates the calculation of Planned Value (PV) and project schedule projections.
 
-   - Impact: Phase duration is estimated by considering the required hours and the number of personnel assigned to the phase. This approach allows estimation of project end dates by accounting for resource allocation.
+4.  **Project/Mandate Start Date is the First Logged Work Date.**
+    *   **Impact:** In the absence of explicitly defined start dates within the dataset, this definition provides a consistent reference point for timeline analysis and management.
 
-3) Phase staffing distribution remains consistent
+5.  **Client Identity is Determined by Client Number.**
+    *   **Basis:** Consistent with standard database management principles, the unique client number is used as the primary identifier for each client.
+    *   **Impact:** Ensures data integrity and enables consistent client tracking and aggregation across different engagements.
 
-   - Justification: Analysis of sample data reveals consistent ratios in staff levels across different engagement phases.
-   - Impact: Consistent staffing distribution enables reliable weighted average chargeout calculations.
-4) Project phases progress linearly
+6.  **Staff at Equivalent Levels are Interchangeable.**
+    *   **Impact:** Personnel within the same practice and at the same designated level are considered functionally interchangeable for resource allocation modelling purposes, assuming equivalent productivity (Productivity Substitution Effect, $pse = 1$). This simplifies calculations for cross-project assignments but represents an idealization; it should be refined with performance metrics where available.
 
-   - Impact: Linear phase progression simplifies Planned Value (PV) calculation.
-5) Project starts on first logged work date.
+7.  **All Projects are Equally Important.**
+    *   **Basis:** Due to the absence of specific prioritization criteria in the available data, all projects within the analyzed dataset are assigned equal importance (project weight, $w_p$ = constant).
+    *   **Impact:** Simplifies initial optimization modelling. Prioritization factors should be incorporated in subsequent analyses if available.
 
-   - Impact: Defining start date this ways allows estimation of timeline in absence of production data.
-6) Client identity determined by client number
+8.  **All Projects Carry Uniform Risk.**
+    *   **Basis:** Project-specific risk data was not available for this analysis. Consequently, all projects are assumed to carry an equal level of risk (project risk, $r_p$ = constant).
+    *   **Impact:** Facilitates simplified preliminary analysis; risk differentiation should be included when data permits.
 
-   - Justification: In database practice, it is resonable to trust keys when in doubt.
-   - Impact: Standardizing client identity by number ensures consistent client handling.
-7) Employees at the same level and practice are interchangeable without compromising efficiency ($pse = 1$).
+9.  **Negative Hour Logs Offset Work on Other Projects for the Same Client.**
+    *   **Basis:** Observed data patterns suggest this correlation, aligning with common project management practices for budget adjustments.
+    *   **Impact:** Negative hours are interpreted as adjustments within the client's project portfolio. Further investigation is warranted to fully validate this interpretation.
 
-   - Impact: Simplifies our calculations for cross project assignments, this will not reflect in production but is hard to estimate without more metrics.
-8) Project starts on the date of the first logged working day of the phase
+10. **Time Reporting Behaviours Differ Between Internal and External Consultants.**
+    *   **Basis:** Analysis revealed significant variations in timesheet submission timeliness, with delays more pronounced among certain senior internal staff.
+    *   **Impact & Application:** A heuristic was applied for modelling: consultants with an average reporting lag < 3 days were provisionally classified as 'external' (excluding managers+). This allows for differential analysis but requires validation with actual employment status data.
 
-   - Impact: Establishing the mandate start date from the first billing addresses the absence of explicit start dates in the original dataset, providing a consistent basis for project timeline management.
-9) All projects inthe dataset are equally important ($w_p$ is constant)
+11. **External Consultants Reduce Profitability by 10%.**
+    *   **Basis:** A preliminary estimate applied due to lack of specific cost data. This rate requires validation.
+    *   **Impact:** Adjusts the VEC calculation to account for potential differences in resource costs, informing staffing mix decisions.
 
-   - Justification: In the absence of specific prioritization criteria, all projects are assumed to be of equal importance for optimization purposes.
-   - Impact: Easier calculation for this demo.
-10) All projects in the dataser are equally risky ($r_p$ is constant)
+12. **Chargeout Rates are Negotiated Per Engagement.**
+    *   **Basis:** Data analysis shows consultant rates are consistent within one engagement but vary across different engagements for the same individual.
+    *   **Impact:** Enables the tracking of engagement-specific chargeout rates, facilitating more accurate VEC calculations reflecting specific financial terms.
 
-    - Justification: No data
-    - Impact: Easier calculation for this demo.
-11) Due to discrepancies between staffing and timesheets, staffing data will be prioritized
-
-    - Justification: Staffing data contains a client ID number that is absent in the 'TIME' dataset, which appears to be specific to Company Y.
-    - Impact: To maintain data integrity and consistency, client ID numbers in the 'TIME' dataset for Client Y are assumed to be erroneous and will be replaced with the corresponding values from the staffing data.
-12) Negative hours logged offset hours on other projects for the same client
-
-    - Justification: Data analysis indicates a pattern where negative hour entries for a consultant are associated with work on other mandates for the same client. This is also standard project management practice to respect budgets
-    - Impact: While this assumption is made based on observed data patterns, the validity and full implications remain uncertain and require further investigation.
-13) Differential Time Reporting Behaviors Between Internal and External Consultants
-
-    - Justification: Analysis of timesheet submission patterns revealed significant delays from some senior managers, with entries submitted up to 55+ days late. This pattern aligns with previous observations that internal consultants (who receive regular salaries regardless of timely reporting) may have fewer immediate incentives for prompt time entry compared to external consultants whose compensation depends directly on reported hours.
-    - Impact: For the sake of a demo, statistical analysis was conducted and consultants who wait on average less than 3 days to report their work hours were tagged as external, managers and above were excluded.
-14) External consultants reduce profitability by 10%
-
-    - Justification: This discount rate is arbitrary and should be fixed with production data.
-    - Impact: This adjustment ensures that the VEC calculation accurately reflects the lower profitability of engagements with higher proportions of external consultants, helping practice leaders make more informed decisions about staffing mix.
-15) Chargeout rates are negotiated per engagement
-
-- Justification: analysis on the current dataset reveals that chargeout rates per consultant are consistent across one assignment but not across all assignments. Considering the limited timeframe, it is unlikely this is because of a promotion.
-- Impact: This allows us to track the negotiatied chargeout rate and run the VEC calculations.
 
 ## Appendix 4: Key Metrics Derivation
 
-#### Budget at Completion (BAC)
+Budget at Completion (BAC)
 
-- **Source**: Directly sourced from the `Budget.csv` dataset, specified for each project phase.
-- **Purpose**: Represents the total authorized budget allocated for a given engagement phase, serving as the financial baseline.
+- **Source**: Budget data, specified per **engagement phase** ($\text{BAC}_{ph}$).
+- **Purpose**: Financial baseline for a phase.
 
-#### Weighted Average Chargeout Rate
+#### Weighted Average Chargeout Rate (Estimation Aid)
 
-- **Formula**: $`\text{Weighted Chargeout Rate} = \sum_{i=1}^{n} \text{Chargeout}_{i} \times \frac{\text{Hours}_{i}}{\sum_{j=1}^{n} \text{Hours}_{j}}`$
-- **Purpose**: Calculates a realistic average chargeout rate for a project phase by weighting individual chargeout rates by the proportion of hours worked by each employee, thereby accurately reflecting the staffing mix.
-- **Note**: This rate is used to convert budget amounts into estimated hours and to calculate overall project duration.
-- **Variables**:  $i$ represents each individual employee assigned to the project phase.
+- **Formula**: $`\text{Weighted Rate} = \sum_{k=1}^{m} (\text{StandardChargeout}_k \times \frac{\sum \text{AssignedHours}_{k}}{\sum \text{TotalAssignedHours}})`$ (Sum over levels/roles $k$)
+- **Purpose**: PoC estimation of average rate for a phase based on planned mix, used for initial duration estimates. Less critical if using actual AC/VEC.
 
-#### Hours Required to Complete Project
+#### Hours Required / Estimated Duration (Estimation Aids)
 
-- **Formula**: $\text{Hours}_{\text{required}} = \frac{\text{BAC}}{\text{Weighted charge-out rate}}$
-- **Purpose**: Determines the total estimated effort, in hours, required to fully deliver the project, based on the budget and the weighted average cost of resources.
-
-#### Total Estimated Duration
-
-- **Formula**: $`\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required}}}{\text{Number of employees assigned} \times \text{hours per workday}}`$
-- **Note**: This calculation incorporates the number of employees assigned and standard workday hours to provide a realistic estimate of project timelines.
-- **Purpose**: Establishes a baseline for measuring schedule performance and for project planning purposes.
+- **Formulae**: $\text{Hours}_{\text{required\_est}} = \frac{\text{BAC}_{ph}}{\text{Weighted Rate}}$; $`\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required\_est}}}{\sum (\text{# Empl}_k \times \text{HrsPerDay})}`$
+- **Purpose**: PoC estimation of total effort/timeline for a phase.
 
 #### Days Elapsed
 
-- **Formula**: $\text{Days}_{\text{elapsed}} = \text{Current date} - \text{Start date}$
-- **Purpose**: Measures the actual progression of the project timeline from the start date to the current date.
+- **Formula**: $\text{Days}_{\text{elapsed}} = \text{Current Date} - \text{Actual Start Date}$ (of phase/engagement)
+- **Purpose**: Measures time progression.
 
 #### Percentage Schedule Elapsed
 
-- **Formula**: $\text{Schedule\%} = \frac{\text{Days elapsed}}{\text{Duration}_{\text{est}}}$
-- **Purpose**: Standardizes the measurement of schedule progress, allowing for comparison across projects regardless of their duration.
+- **Formula**: $\text{Schedule\%} = \frac{\text{Days Elapsed}}{\text{Planned Duration}}$
+- **Purpose**: Standardizes schedule progress measurement for PV calculation.
 
 #### Actual Cost (AC)
 
-- **Formula**: $`\text{AC} = \sum_{i=1}^{n} \text{StandardPrice}_i + \sum_{i=1}^{n} \text{AdminFees}_i`$
-- **Purpose**: Calculates the total actual expenditure incurred to date, derived from timesheet entries including standard prices and administrative fees.
-- **Note**: Calculated on a weekly basis to align with staffing allocation and performance review cycles.
+- **Formula**: $\text{AC}_{\text{to date}} = \sum_{i=1}^{n} \text{TransactionValue}_i$ (Sum over relevant timesheet/cost entries $i$)
+- **Purpose**: Calculates actual expenditure/billed value to date. $\text{AC}_i$ in VEC is individual transaction value. Calculated periodically (e.g., weekly) and cumulatively.
 
 #### Planned Value (PV)
 
-- **Formula**: $\text{PV} = \text{BAC} \times \frac{\text{Days elapsed}}{\text{Total estimated duration in days}}$
-- **Purpose**: Measures the expected value of work that should have been completed by a specific point in time, based on the project budget and schedule.
+- **Formula**: $\text{PV} = \text{BAC} \times \text{Percentage Schedule Elapsed}$ (BAC at phase or engagement level as appropriate)
+- **Purpose**: Budgeted cost of work scheduled.
 
 #### Earned Value (EV)
 
-- **Formula**: $\text{EV} = \text{AC} \times \text{CPI}$
-- **Purpose**: Represents the actual value of work completed, adjusted by the Cost Performance Index (CPI) to reflect efficiency and cost-effectiveness.
-- **Note**: With a fixed CPI assumption of 0.98, Earned Value is effectively Actual Cost discounted by 2%, reflecting an expected level of efficiency. In production environments, this would be further refined using the VEC to account for actual financial performance.
+- **Formula (PoC Method)**: $\text{EV} = \sum \text{AC}_{\text{to date}} \times \text{CPI}_{\text{proxy}}$ (CPI proxy = 0.98)
+- **Purpose (PoC Method)**: Represents value of work completed, estimated via cost adjusted by proxy efficiency. *Needs refinement in production (e.g., link to VEC, physical % complete).*
 
-#### Cost Performance Index (CPI)
+#### Cost Performance Index (CPI - Proxy)
 
-- **Value**: Fixed at 0.98 by assumption.
+- **Value (PoC)**: Fixed at 0.98 by assumption.
+- **Purpose**: Used in PoC EV derivation. *Production may focus more on VEC/Burn.*
 
 #### Schedule Performance Index (SPI)
 
 - **Formula**: $\text{SPI} = \frac{\text{EV}}{\text{PV}}$
-- **Purpose**:  Quantifies schedule efficiency by comparing Earned Value to Planned Value. An SPI greater than 1 indicates the project is ahead of schedule, while values less than 1 suggest delays.
-- **Application**: Used as a key metric for weekly resource reallocation decisions, enabling proactive schedule management.
+- **Purpose**: Quantifies schedule efficiency (ahead/behind). Core KPI and optimization input.
 
-#### Weekly Utilization Rate (Capacity Based)
+#### Weekly Benching Rate
 
-- **Formula**: $\text{Capacity Utilization} = \frac{\text{Actual billable hours}}{\text{Available capacity hours}} \times 100\%$
-- **Description**: Assumes a standard weekly capacity of 40 hours for each employee. Capacity Utilization measures the percentage of this 40-hour capacity that is utilized for billable work, focusing on overall resource usage against potential capacity.
-- **Target**: Set at >80% for optimal resource efficiency, ensuring consultants are effectively engaged in billable activities.
-- **Purpose**: To monitor and optimize the deployment of consultants' available working hours towards billable projects, maximizing capacity utilization.
+- **Formula**: $`\text{Benching Rate}_c = \left( 1 - \frac{\sum_{en \in EN} \text{Assigned Hours}_{c,en,w}}{\text{Standard Weekly Capacity}_c} \right) \times 100\%`$
+- **Definition**: Percentage of consultant $c$'s standard weekly capacity (contracted hours minus vacation hours for week $w$) that is *not assigned* to specific engagements.
+- **Purpose**: Core KPI measuring unallocated 'bench' time. Target for minimization.
 
-#### Assignment Realization Rate (Billed vs. Assigned)
+#### Weekly Capacity Utilization Rate
 
-- **Formula**: $\text{Assignment Realization Rate} = \frac{\text{Actual billable hours}}{\text{Assigned project hours}} \times 100\%$
-- **Description**: This metric compares actual billable hours logged against the hours initially assigned to a consultant for specific projects. It reflects the effectiveness with which consultants convert assigned project workload into billable time.
-- **Purpose**: To track the efficiency of converting assigned project hours into actual billable hours. A lower rate may indicate inefficiencies, over-assignment, or time spent on non-billable tasks within assigned projects, while a higher rate suggests efficient execution of assigned tasks. This metric is distinct from overall capacity utilization and focuses on project-specific workload realization.
+- **Formula**: $`\text{Capacity Utilization}_c = \frac{\sum \text{Actual Billable Hours}_{c,w}}{\text{Standard Weekly Capacity}_c} \times 100\%`$
+- **Definition**: Percentage of consultant $c$'s standard weekly capacity (adjusted for vacation) logged as *actual billable hours* in week $w$.
+- **Purpose**: Core KPI measuring overall productive engagement against potential. Target typically >80%.
+
+#### Weekly Assignment Realization Rate (Internal Metric)
+
+- **Formula**: $`\text{Assignment Realization Rate}_{c,w} = \frac{\sum_{en \in EN} \text{Actual Billable Hours}_{c,en,w}}{\sum_{en \in EN} \text{Assigned Hours}_{c,en,w}}`$
+- **Definition**: Compares actual billable hours logged to assigned hours for specific engagements in week $w$. Target is 1.
+- **Purpose**: **Internal metric** for assessing planning accuracy. Deviation from 1 can be used as a feedback/error signal (loss function component) for tuning the next week's assignment predictions (as noted in Appendix 2).

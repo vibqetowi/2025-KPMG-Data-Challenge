@@ -1,3 +1,9 @@
+"""
+Excel to CSV converter for KPMG Data Challenge.
+
+This module handles the extraction of data from Excel files and
+conversion to CSV format for further processing.
+"""
 import pandas as pd
 import os
 import argparse

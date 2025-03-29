@@ -91,7 +91,9 @@ CREATE TABLE [engagements] (
   [start_date] date,
   [end_date] date,
   [actual_end_date] date,
-  [primary_practice_id] int
+  [primary_practice_id] int,
+  [strategic_weight] decimal(5,2) DEFAULT 1.0 NOT NULL,
+  [risk_coefficient] decimal(5,2) DEFAULT 1.0 NOT NULL
 );
 
 CREATE INDEX [engagements_index_0] ON [engagements] ([client_no]);
@@ -198,6 +200,27 @@ CREATE TABLE [charge_out_rates] (
 );
 GO
 
+-- Create optimization_parameters table
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'optimization_parameters')
+    DROP TABLE [optimization_parameters];
+
+CREATE TABLE [optimization_parameters] (
+  [parameter_key] nvarchar(50) PRIMARY KEY,
+  [parameter_value] decimal(10,4) NOT NULL,
+  [description] nvarchar(255),
+  [last_updated] datetime DEFAULT GETDATE(),
+  [updated_by] int
+);
+GO
+
+-- Insert default optimization parameters (using a valid personnel_no - replace 1001 with an actual personnel_no from your data)
+INSERT INTO [optimization_parameters] ([parameter_key], [parameter_value], [description], [updated_by])
+VALUES 
+  ('alpha', 0.5, 'Weighting coefficient for SPI in optimization objective function', 1001),
+  ('beta', 0.5, 'Weighting coefficient for VEC in optimization objective function', 1001),
+  ('default_pse', 0.9, 'Default Phase Switching Efficiency factor for productivity loss when consultants switch tasks', 1001);
+GO
+
 -- Add or update column descriptions
 IF EXISTS (SELECT 1 FROM fn_listextendedproperty('Column_Description', 'SCHEMA', 'dbo', 'TABLE', 'employees', 'COLUMN', 'employment_basis'))
     EXEC sp_updateextendedproperty
@@ -229,6 +252,22 @@ ELSE
     @level0type = N'Schema', @level0name = 'dbo',
     @level1type = N'Table',  @level1name = 'staffing',
     @level2type = N'Column', @level2name = 'week_start_date';
+GO
+
+EXEC sp_addextendedproperty
+    @name = N'Column_Description',
+    @value = 'Weight of engagement (w_en) for optimization, default 1.0',
+    @level0type = N'Schema', @level0name = 'dbo',
+    @level1type = N'Table',  @level1name = 'engagements',
+    @level2type = N'Column', @level2name = 'strategic_weight';
+GO
+
+EXEC sp_addextendedproperty
+    @name = N'Column_Description',
+    @value = 'Risk factor (r_en) for optimization, default 1.0',
+    @level0type = N'Schema', @level0name = 'dbo',
+    @level1type = N'Table',  @level1name = 'engagements',
+    @level2type = N'Column', @level2name = 'risk_coefficient';
 GO
 
 -- Add foreign key constraints
@@ -283,4 +322,9 @@ GO
 
 ALTER TABLE [charge_out_rates] ADD CONSTRAINT [FK_charge_out_rates_employees]
     FOREIGN KEY ([personnel_no]) REFERENCES [employees] ([personnel_no])
+GO
+
+-- Add foreign key constraint for optimization_parameters.updated_by
+ALTER TABLE [optimization_parameters] ADD CONSTRAINT [FK_optimization_parameters_employees]
+    FOREIGN KEY ([updated_by]) REFERENCES [employees] ([personnel_no]);
 GO

@@ -8,15 +8,28 @@ import pyodbc
 import time
 import signal
 import threading
+import logging
 
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("fetcher")
+
+# Get the absolute path to the current script's directory
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+# Calculate project root using relative path (3 levels up from utils)
+project_root = current_dir.parent.parent.parent
+
+# Load environment variables from .env file in root directory
+load_dotenv(project_root / '.env')
 
 class TimeoutError(Exception):
     pass
 
-
 def timeout_handler(signum, frame):
     raise TimeoutError("Database connection timed out")
-
 
 class DataFetcher:
     """
@@ -36,41 +49,40 @@ class DataFetcher:
         self.timeout = timeout
         self.db_connection_tested = False
 
-        # Default CSV path if not provided
+        # Default CSV path relative to project root if not provided
         if csv_base_path is None:
-            self.csv_base_path = Path(
-                "/Users/notAdmin/Dev/2025 KPMG Data Challenge/csv-dump"
-            )
+            self.csv_base_path = project_root / "csv-dump"
         else:
             self.csv_base_path = Path(csv_base_path)
 
+        logger.info(f"CSV base path set to: {self.csv_base_path}")
+
         # Database connection details
         if self.source == "db":
-            # Load environment variables from .env file
-            load_dotenv()
-
-            # Get database connection parameters from environment variables
+            # Get database connection details from environment variables
             self.server = os.getenv("SQL_SERVER")
             self.database = os.getenv("SQL_DATABASE", "KPMG_Data_Challenge")
             self.username = os.getenv("SQL_USERNAME")
             self.password = os.getenv("SQL_PASSWORD")
-            self.driver = os.getenv("SQL_DRIVER", "ODBC Driver 17 for SQL Server")
+            self.driver = os.getenv("SQL_DRIVER", "{ODBC Driver 17 for SQL Server}")
 
-            # Create connection string
-            self.conn_str = f"DRIVER={{{self.driver}}};SERVER={self.server};DATABASE={self.database};UID={self.username};PWD={self.password}"
-
-            # Create SQLAlchemy engine
-            try:
-                self.engine = create_engine(
-                    f"mssql+pyodbc:///?odbc_connect={self.conn_str}"
-                )
-                print(
-                    "Database connection initialized. Will test actual connection when fetching data."
-                )
-            except Exception as e:
-                print(f"Error initializing database connection: {e}")
-                print("Will fall back to CSV files when fetching data.")
+            # Check if all required environment variables are set
+            if not all([self.server, self.database, self.username, self.password, self.driver]):
+                logger.error("Database connection details missing in .env file")
+                logger.info("Falling back to CSV files")
                 self.source = "csv"
+            else:
+                # Create connection string (same format as in pipeline.py)
+                self.conn_str = f"DRIVER={self.driver};SERVER={self.server};DATABASE={self.database};UID={self.username};PWD={self.password}"
+                
+                # Create SQLAlchemy engine
+                try:
+                    self.engine = create_engine(f"mssql+pyodbc:///?odbc_connect={self.conn_str}")
+                    logger.info("Database connection initialized. Will test actual connection when fetching data.")
+                except Exception as e:
+                    logger.error(f"Error initializing database connection: {e}")
+                    logger.info("Falling back to CSV files")
+                    self.source = "csv"
 
     def _test_db_connection(self):
         """
@@ -85,16 +97,20 @@ class DataFetcher:
         if self.db_connection_tested:
             return True
 
-        print(f"Testing database connection with {self.timeout}s timeout...")
+        logger.info(f"Testing database connection with {self.timeout}s timeout...")
 
         # Define a function to test the connection
         def test_connection():
             try:
-                with self.engine.connect() as conn:
-                    conn.execute(text("SELECT 1"))
+                # Use pyodbc directly as in pipeline.py
+                conn = pyodbc.connect(self.conn_str, timeout=self.timeout)
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.close()
+                conn.close()
                 return True
             except Exception as e:
-                print(f"Database connection test failed: {e}")
+                logger.error(f"Database connection test failed: {e}")
                 return False
 
         # Use threading with a timeout
@@ -109,7 +125,7 @@ class DataFetcher:
 
         # Check if the thread completed within the timeout
         if connection_thread.is_alive():
-            print(f"Database connection timed out after {self.timeout} seconds")
+            logger.error(f"Database connection timed out after {self.timeout} seconds")
             self.source = "csv"
             return False
 
@@ -117,11 +133,11 @@ class DataFetcher:
 
         # Get the result from the thread
         if getattr(self, "_connection_result", False):
-            print(f"Database connection successful in {elapsed:.2f} seconds")
+            logger.info(f"Database connection successful in {elapsed:.2f} seconds")
             self.db_connection_tested = True
             return True
         else:
-            print("Database connection failed, falling back to CSV")
+            logger.error("Database connection failed, falling back to CSV")
             self.source = "csv"
             return False
 
@@ -182,21 +198,19 @@ class DataFetcher:
         Returns:
             pandas.DataFrame: Data from the requested table
         """
-        if self.source == "db":
+        if self.source == "db" and self._test_db_connection():
             try:
                 # Construct a simple SELECT query
                 query = f"SELECT * FROM {table_name}"
 
                 # Read data from database into pandas DataFrame
                 df = pd.read_sql(query, self.engine)
-                print(
-                    f"Successfully loaded {len(df)} records from {table_name} table in database."
-                )
+                logger.info(f"Successfully loaded {len(df)} records from {table_name} table in database.")
                 return df
 
             except Exception as e:
-                print(f"Error fetching {table_name} from database: {e}")
-                print("Falling back to CSV file...")
+                logger.error(f"Error fetching {table_name} from database: {e}")
+                logger.info("Falling back to CSV file...")
                 self.source = "csv"
 
         # Fallback to CSV if database connection fails or source is set to 'csv'
@@ -223,13 +237,16 @@ class DataFetcher:
                     else:
                         raise FileNotFoundError(f"No CSV file mapping for {table_name}")
 
+                # Check if file exists
+                if not os.path.exists(csv_path):
+                    logger.error(f"CSV file not found: {csv_path}")
+                    return pd.DataFrame()
+
                 # Try different encodings
                 for encoding in ["utf-8-sig", "latin1", "cp1252"]:
                     try:
                         df = pd.read_csv(csv_path, encoding=encoding)
-                        print(
-                            f"Successfully loaded {len(df)} records from {table_name} CSV using {encoding} encoding."
-                        )
+                        logger.info(f"Successfully loaded {len(df)} records from {table_name} CSV using {encoding} encoding.")
 
                         # For raw files, we may need to select/transform columns to match table schema
                         if "transformed" not in str(csv_path):
@@ -238,15 +255,13 @@ class DataFetcher:
                         break
                     except Exception as e:
                         if encoding == "cp1252":  # Last encoding to try
-                            print(
-                                f"Error loading {table_name} with encoding {encoding}: {e}"
-                            )
+                            logger.error(f"Error loading {table_name} with encoding {encoding}: {e}")
                         continue
 
                 return df
 
             except Exception as e:
-                print(f"Error loading {table_name} CSV data: {e}")
+                logger.error(f"Error loading {table_name} CSV data: {e}")
                 return pd.DataFrame()  # Return empty DataFrame if all methods fail
 
     def _transform_raw_csv_to_table(self, df, table_name):

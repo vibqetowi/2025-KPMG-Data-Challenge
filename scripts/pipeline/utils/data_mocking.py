@@ -5,10 +5,10 @@ from pandas.tseries.offsets import BDay
 
 class DataMocker:
     
-    def __init__(self, fetcher=None):
-        from advanced_data_analysis.fetcher import DataFetcher
-        self.fetcher = fetcher if fetcher else DataFetcher(source="csv")
-        
+    def __init__(self):
+        """Initialize the DataMocker class for generating synthetic data."""
+        self._phase_dates_cache = None
+
     def create_default_practices(self):
         """
         Create KPMG-specific practices, with SAP as practice ID 1
@@ -147,104 +147,135 @@ class DataMocker:
         return df_vacations
 
     def get_engagement_dates(self, eng_no):
-        """
-        Returns mock start and end date for an engagement, based on its phases.
-        """
-        fetcher = self.fetcher
-        data = fetcher.fetch_data(["phases", "staffing"])
-
-        phases_df = data["phases"]
-        staffing_df = data["staffing"]
-  
-        # Generate dates for all phases
-        phases_with_dates = self.generate_phase_dates_from_budget(phases_df, staffing_df)
-        
-        print(phases_with_dates[["eng_no", "eng_phase", "start_date", "end_date"]])
-
-       # Filter only phases for this engagement
-        rows = phases_with_dates[phases_with_dates["eng_no"] == eng_no]
-
-        if rows.empty:
-            return None, None
-    
-        start_date = rows["start_date"].min()
-        end_date = rows["end_date"].max()
-
-        return start_date, end_date
+        if self._phase_dates_cache is None:
+            data = self.fetch_data(["phases", "staffing"])
+            self._phase_dates_cache = self.generate_phase_dates_from_budget(data["phases"], data["staffing"])
+        rows = self._phase_dates_cache[self._phase_dates_cache["eng_no"] == eng_no]
+        return (rows["start_date"].min(), rows["end_date"].max()) if not rows.empty else (None, None)
 
     def get_phase_dates(self, eng_no, eng_phase):
-        """
-        Returns mock start and end dates for a specific engagement phase.
-        """
-        fetcher = self.fetcher
-        data = fetcher.fetch_data(["phases", "staffing"])
-
-        phases_df = data["phases"]
-        staffing_df = data["staffing"]
-
-        # Generate all phase dates
-        phases_with_dates = self.generate_phase_dates_from_budget(phases_df, staffing_df)
-
-        # Extract the matching row
-        row = phases_with_dates[
-        (phases_with_dates["eng_no"] == eng_no) &
-        (phases_with_dates["eng_phase"] == eng_phase)
+        if self._phase_dates_cache is None:
+            data = self.fetch_data(["phases", "staffing"])
+            self._phase_dates_cache = self.generate_phase_dates_from_budget(data["phases"], data["staffing"])
+        row = self._phase_dates_cache[
+            (self._phase_dates_cache["eng_no"] == eng_no) &
+            (self._phase_dates_cache["eng_phase"] == eng_phase)
         ]
+        return (row.iloc[0]["start_date"], row.iloc[0]["end_date"]) if not row.empty else (None, None)
 
-        if not row.empty:
-            return row.iloc[0]["start_date"], row.iloc[0]["end_date"]
-        else:
-            return None, None
-        
     def generate_phase_dates_from_budget(self, phases_df, staffing_df, start_reference="2025-01-01", default_rate=100):
-        import pandas as pd
-        from datetime import timedelta
+        """
+        Generate phase dates from budget information.
         
-
-
-        # Merge phase and staffing
+        Args:
+            phases_df: DataFrame containing phase information
+            staffing_df: DataFrame containing staffing information
+            start_reference: Default start date string if not found in data
+            default_rate: Default hourly rate to use if not specified
+            
+        Returns:
+            DataFrame with calculated start and end dates for each phase
+        """
+        # Use direct DataFrame operations instead of requiring a fetcher
         merged = pd.merge(phases_df, staffing_df, on=["eng_no", "eng_phase"], how="left")
-
-        # Fill missing charge rates if needed
-        if "charge_out_rate" not in merged.columns:
-            merged["charge_out_rate"] = default_rate
-        else:
-            merged["charge_out_rate"] = merged["charge_out_rate"].fillna(default_rate)
-
-        # Estimate effort per person (budget ÷ rate)
-        merged["effort_hours"] = merged["budget"] / merged["charge_out_rate"]
-
-        # Group by phase and count personnel
+        
+        # Since we don't have access to the fetcher, adapt the method to work with provided data
+        # This is a simplified version; in practice you would need to provide the timesheet data
+        
+        # Create a dummy timesheet DataFrame with minimal structure if needed
+        timesheets = pd.DataFrame(columns=["eng_no", "eng_phase", "work_date"])
+        timesheets["work_date"] = pd.to_datetime(timesheets["work_date"])
+        
+        # Rest of the method continues as is...
+        first_work_dates = (
+            timesheets.dropna(subset=["eng_no", "eng_phase", "work_date"])
+            .groupby(["eng_no", "eng_phase"])["work_date"]
+            .min()
+            .reset_index()
+            .rename(columns={"work_date": "start_date"})
+        )
+        merged = pd.merge(merged, first_work_dates, on=["eng_no", "eng_phase"], how="left")
+        rate_col = "charge_out_rate"
+        merged[rate_col] = merged.get(rate_col, default_rate)
+        merged[rate_col] = merged[rate_col].fillna(default_rate)
+        merged["effort_hours"] = merged["budget"] / merged[rate_col]
         headcounts = (
             merged.groupby(["eng_no", "eng_phase"])["personnel_no"]
             .nunique()
             .reset_index()
+            .rename(columns={"personnel_no": "headcount"})
         )
-        headcounts.rename(columns={"personnel_no": "headcount"}, inplace=True)
-
-        # Merge again
         merged = pd.merge(merged, headcounts, on=["eng_no", "eng_phase"], how="left")
+        merged["headcount"] = merged["headcount"].fillna(1)
+        merged["duration_days"] = (merged["effort_hours"] / (merged["headcount"] * 8)).round().astype(int)
 
-        # Avoid division by zero
-        merged["headcount"] = merged["headcount"].replace(0, 1)
-    
-        # Duration in days = effort ÷ (headcount × 8)
-        merged["end_date"] = merged.apply(
-            lambda row: row["start_date"] + BDay(int(row["duration_days"])), axis=1
+        if "start_date_y" in merged.columns:
+            start_col = "start_date_y"
+        elif "start_date_x" in merged.columns:
+            start_col = "start_date_x"
+        else:
+            start_col = None
+
+        merged["start_date"] = pd.to_datetime(
+            merged[start_col] if start_col else start_reference
+        ).where(
+            merged[start_col].notna() if start_col else False,
+            pd.to_datetime(start_reference)
         )
 
+        merged["end_date"] = pd.to_datetime(merged["start_date"]) + merged["duration_days"].apply(lambda x: BDay(x))
 
-        # Mock start date from reference
-        merged["start_date"] = pd.to_datetime(start_reference)
-        merged["end_date"] = merged["start_date"] + merged["duration_days"].astype("int") * BDay()
+        return merged.drop_duplicates(subset=["eng_no", "eng_phase"])[["eng_no", "eng_phase", "start_date", "end_date"]]
 
+    def create_default_optimization_parameters(self):
+        """
+        Create default optimization parameters used in the resource allocation algorithm.
+        Based on the optimization formula in the README:
+        max_{A} \sum_{en \in EN} w_{en} \times r_{en} \times (\alpha \times \text{SPI}_{en} + \beta \times \text{VEC}_{en})
+              - \sum_{c\in C, en \in EN, w \in W}\text{pse} \times \text{is\_switch}_{c,en,w}
+        """
+        current_time = datetime.now()
+        optimization_parameters = [
+            {
+                'parameter_key': 'alpha',
+                'parameter_value': 0.6,
+                'description': 'Weight coefficient for SPI (Schedule Performance Index) in optimization',
+                'last_updated': current_time,
+                'updated_by': 14526  # Damien Girard (Senior Manager)
+            },
+            {
+                'parameter_key': 'beta',
+                'parameter_value': 0.4,
+                'description': 'Weight coefficient for VEC (Value Extraction Coefficient) in optimization',
+                'last_updated': current_time,
+                'updated_by': 14526  # Damien Girard (Senior Manager)
+            },
+            {
+                'parameter_key': 'default_pse',
+                'parameter_value': 0.85,
+                'description': 'Default Phase Switching Efficiency factor (productivity loss when consultants switch tasks)',
+                'last_updated': current_time,
+                'updated_by': 14526  # Damien Girard (Senior Manager)
+            },
+            {
+                'parameter_key': 'default_strategic_weight',
+                'parameter_value': 1.0,
+                'description': 'Default strategic value weight (w_en) for engagements',
+                'last_updated': current_time,
+                'updated_by': 14526  # Damien Girard (Senior Manager)
+            },
+            {
+                'parameter_key': 'default_risk_coefficient',
+                'parameter_value': 1.0,
+                'description': 'Default delivery risk coefficient (r_en) for engagements',
+                'last_updated': current_time,
+                'updated_by': 14526  # Damien Girard (Senior Manager)
+            }
+        ]
+        
+        df_optimization_parameters = pd.DataFrame(optimization_parameters)
+        print(f"Created {len(optimization_parameters)} default optimization parameters")
+        return df_optimization_parameters
 
-        # Return grouped result
-        return merged[["eng_no", "eng_phase", "start_date", "end_date"]].drop_duplicates()
-    
-    
-    def __init__(self, fetcher=None):
-        from advanced_data_analysis.fetcher import DataFetcher
-        self.fetcher = fetcher if fetcher else DataFetcher(source="csv")
 
 

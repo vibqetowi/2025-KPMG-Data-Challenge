@@ -43,6 +43,8 @@ Table engagements {
   end_date date [note: 'Planned engagement end date']
   actual_end_date date [note: 'Actual engagement completion date, NULL if ongoing']
   primary_practice_id integer [note: 'Main practice area responsible for delivery']
+  strategic_weight decimal(5,2) [note: 'Weight of engagement (w_en) for optimization, default 1.0']
+  risk_coefficient decimal(5,2) [note: 'Risk factor (r_en) for optimization, default 1.0']
   
   indexes {
     client_no // Index for faster joins with clients table
@@ -149,6 +151,15 @@ Table vacations {
   }
 }
 
+// New table for optimization parameters
+Table optimization_parameters {
+  parameter_key varchar [primary key, note: 'Parameter identifier (e.g., alpha, beta, default_pse)']
+  parameter_value decimal(10,4) [note: 'Numeric value of the parameter']
+  description varchar [note: 'Explanation of parameter purpose']
+  last_updated timestamp [note: 'When parameter was last modified']
+  updated_by integer [note: 'Personnel number of employee who last modified the parameter']
+}
+
 // Foreign key references
 Ref: employees.practice_id > practices.practice_id
 Ref: engagements.primary_practice_id > practices.practice_id
@@ -163,3 +174,4 @@ Ref: timesheets.(eng_no, eng_phase) > phases.(eng_no, eng_phase)
 Ref: vacations.personnel_no > employees.personnel_no
 Ref: charge_out_rates.eng_no > engagements.eng_no
 Ref: charge_out_rates.personnel_no > employees.personnel_no
+Ref: optimization_parameters.updated_by > employees.personnel_no
