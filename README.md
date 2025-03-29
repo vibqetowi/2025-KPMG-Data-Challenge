@@ -60,13 +60,13 @@ Traditional project management metrics often fail to capture the dual financial 
 
 The VEC is calculated as follows (shown for a specific phase $ph$):
 
-$$
+$$`
 \text{VEC}_{ph} = \frac{1}{\text{BAC}_{ph}} \times \sum_{i=1}^{n} \left[ \text{AC}_i \times d_i \times ea_j \times eo_j \right]
-$$
+`$$
 
 Where:
 
-* $ \text{BAC}_{ph} $: Budget At Completion for phase $ph$. The $ \frac{1}{\text{BAC}_{ph}} $ term normalizes the extracted value against the phase budget baseline. (VEC can also be calculated at the engagement level).
+* $` \text{BAC}_{ph} `$: Budget At Completion for phase $ph$. The $ \frac{1}{\text{BAC}_{ph}} $ term normalizes the extracted value against the phase budget baseline. (VEC can also be calculated at the engagement level).
 * $ \sum_{i=1}^{n} $: Summation over all individual financial transactions $ i $ (typically timesheet entries) contributing to the phase's actual cost up to the point of measurement.
 * $ \text{AC}_i $: Actual Billed Amount (or Cost equivalent) for transaction $ i $.
 * $ d_i $: Rate Efficiency Factor for transaction $ i $, measuring how the actual chargeout rate used compares to the standard rate for the consultant $ j $ associated with transaction $ i $.
