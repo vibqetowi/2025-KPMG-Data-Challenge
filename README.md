@@ -14,7 +14,7 @@
 | Team Member | GitHub     | Linkedin                                                                 | Background                                                                               |
 | ----------- | ---------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
 | Minh        | @vibqetowi | [hminh-software-eng](https://www.linkedin.com/in/hminh-software-eng)        | Software Engineering, previous experience in software development and project management |
-| Carter      | @carterj-c | [cartercameronfina](https://www.linkedin.com/in/cartercameronfina)          | Mechanical Engineering, previous experience in aerospace engineering                     |
+| Carter      | @carterj-c | [cartercameronfina](https://www.linkedin.com/in/cartercameronfina)          | Previously Mechanical Engineering now in Finance, previous experience in aerospace engineering                     |
 | Casey       | @cassius   | [casey-jussaume](https://www.linkedin.com/in/casey-jussaume)                | Finance & accounting, previous experience in financial modeling and research             |
 | Romero      | @geekpapi  | [romero-p-faustin](https://www.linkedin.com/in/romero-p-faustin-96106a179/) | Economics & Computer Science, previous experience in data analysis                       |
 
@@ -61,30 +61,30 @@ Traditional project management metrics often fail to capture the dual financial 
 The VEC is calculated as follows (shown for a specific phase $ph$):
 
 $$
-\text{VEC}_{ph} = \frac{1}{\text{BAC}_{ph}} \times \sum_{i=1}^{n} \left[ \text{AC}_i \times d_i \times ea_j \times eo_j \right]
+\text{VEC}_{ph} = \frac{1}{\text{BAC}_{ph}} \times \sum_{t=1}^{n} \left[ \text{AC}_t \times d_t \times ea_c \times eo_c \right]
 $$
 
 Where:
 
 * $ \text{BAC}_{ph} $: Budget At Completion for phase $ph$. The $ \frac{1}{\text{BAC}_{ph}} $ term normalizes the extracted value against the phase budget baseline. (VEC can also be calculated at the engagement level).
-* $ \sum_{i=1}^{n} $: Summation over all individual financial transactions $ i $ (typically timesheet entries) contributing to the phase's actual cost up to the point of measurement.
-* $ \text{AC}_i $: Actual Billed Amount (or Cost equivalent) for transaction $ i $.
-* $ d_i $: Rate Efficiency Factor for transaction $ i $, measuring how the actual chargeout rate used compares to the standard rate for the consultant $ j $ associated with transaction $ i $.
+* $ \sum_{t=1}^{n} $: Summation over all individual financial transactions $ t $ (typically timesheet entries) contributing to the phase's actual cost up to the point of measurement.
+* $ \text{AC}_t $: Actual Billed Amount (or Cost equivalent) for transaction $ t $.
+* $ d_t $: Rate Efficiency Factor for transaction $ t $, measuring how the actual chargeout rate used compares to the standard rate for the consultant $ c $ associated with transaction $ t $.
   $$
-  d_i = \frac{\text{Chargeout}_i}{\text{StandardChargeout}_j}
+  d_t = \frac{\text{Chargeout}_t}{\text{StandardChargeout}_c}
   $$
-* $ ea_j $: External Adjustment Factor for consultant $ j $ (e.g., 1.0 for internal, 0.9 for external).
+* $ ea_c $: External Adjustment Factor for consultant $ c $ (e.g., 1.0 for internal, 0.9 for external).
   $$
-  ea_j = 1 - 0.1 \times \text{isExternal}_j
+  ea_c = 1 - 0.1 \times \text{isExternal}_c
   $$
-* $ eo_j $: Onboarding/New Hire Adjustment Factor for consultant $ j $ (e.g., 1.0 for experienced, 0.8 for new).
+* $ eo_c $: Onboarding/New Hire Adjustment Factor for consultant $ c $ (e.g., 1.0 for experienced, 0.8 for new).
   $$
-  eo_j = 1 - 0.2 \times \text{isNew}_j
+  eo_c = 1 - 0.2 \times \text{isNew}_c
   $$
 
 #### Interpreting Financial Health (using VEC and Burn)
 
-Budget Burn for a phase is calculated as $\text{Burn}_{ph} = \frac{\sum AC_i}{\text{BAC}_{ph}}$. VEC and Burn provide a nuanced view of financial health:
+Budget Burn for a phase is calculated as $\text{Burn}_{ph} = \frac{\sum AC_t}{\text{BAC}_{ph}}$. VEC and Burn provide a nuanced view of financial health:
 
 |                     | **VEC > Burn** (Premium Realization) | **VEC ≈ Burn** (Standard Realization) | **VEC < Burn** (Value Dilution) |
 | :------------------ | :----------------------------------------- | :------------------------------------------- | :------------------------------------ |
@@ -195,7 +195,7 @@ PoC uses synthesized data; production requires actual KPMG data.
 | **Employment Basis**: Assumed 40-hour week                    | Actual contracted hours per resource            | Accurate capacity for part-time/flexible staff     |
 | **Engagement/Phase Timelines**: Inferred from billing         | Actual start/end dates from CRM/Project Mgmt    | Precise SPI calculation and forecasting            |
 | **Practice Areas**: Defaulted ('SAP')                         | Actual department/practice assignments (HR/CRM) | Correct staffing mix validation & reporting        |
-| **Standard Chargeout Rates**: Assumed based on level          | Official rate cards per level/practice          | Accurate VEC Rate Efficiency ($d_i$) calculation |
+| **Standard Chargeout Rates**: Assumed based on level          | Official rate cards per level/practice          | Accurate VEC Rate Efficiency ($d_t$) calculation |
 | **Strategic Weight ($w_{en}$)/Risk ($r_{en}$)**: Constant | Defined via business rules/CRM flags            | Optimization reflects true priorities/risk         |
 
 ## 📝 Implementation Notes
@@ -217,7 +217,7 @@ Recommended enhancements:
 2. **Skills Taxonomy**: Implement detailed skills matching.
 3. **Client Priority Weighting ($w_{en}$)**: Allow dynamic setting of strategic weights.
 4. **VEC Deeper Analytics**: Add views to analyze VEC trends by practice, client, etc.
-5. **Chargeout Discount Monitoring**: Visualize rate realization ($d_i$) trends.
+5. **Chargeout Discount Monitoring**: Visualize rate realization ($d_t$) trends.
 6. **Calibrated Switching Penalty ($\text{pse}$)**: Set realistic $\text{pse}$ based on historical data.
 
 These steps evolve the PoC into an essential operational tool.
@@ -305,130 +305,207 @@ The optimization formula is solved algorithmically:
    * Future skills matching constraints.
    * Calibrate engagement switching factor ($\text{pse}$) based on data.
 
-
 ## Appendix 3: Modelling Assumptions
 
 This appendix outlines the key assumptions underpinning the analysis presented in this document. These assumptions were necessary due to data limitations or for simplification in the modelling process. They are categorized into critical and supporting assumptions.
 
 ### **Critical Assumptions**
 
-1.  **Cost Performance Index (CPI) is set at 0.98.**
-    *   **Basis:** This value is derived from standard project management contingency practices (estimated at 10%) and an assumption regarding the operational efficiency of the KPMG workforce.
-    *   **Impact:** Enables preliminary project timeline estimations based on budget utilization. It is recommended that this assumption be replaced with empirically derived CPI values based on actual project performance data and VEC calculations in future operational applications.
+1. **Cost Performance Index (CPI) is set at 0.98.**
+   * **Basis:** This value is derived from standard project management contingency practices (estimated at 10%) and an assumption regarding the operational efficiency of the KPMG workforce.
+   * **Impact:** Enables preliminary project timeline estimations based on budget utilization. It is recommended that this assumption be replaced with empirically derived CPI values based on actual project performance data and VEC calculations in future operational applications.
 
 ### **Supporting Assumptions**
 
-1.  **Phase Duration is Based on Staff Allocation.**
-    *   **Impact:** Project phase durations are estimated by dividing the total required effort (in hours) for the phase by the number of personnel allocated. This approach facilitates the projection of project completion dates based on planned resource assignments.
+1. **Phase Duration is Based on Staff Allocation.**
 
-2.  **Staffing Distribution is Consistent Across Phases.**
-    *   **Basis:** Analysis of sample engagement data indicates relatively consistent ratios in staff levels (e.g., Consultant, Manager) across different phases.
-    *   **Impact:** Allows for the calculation of reliable weighted average chargeout rates for engagements.
+   * **Impact:** Project phase durations are estimated by dividing the total required effort (in hours) for the phase by the number of personnel allocated. This approach facilitates the projection of project completion dates based on planned resource assignments.
+2. **Staffing Distribution is Consistent Across Phases.**
 
-3.  **Project Phases Progress Linearly.**
-    *   **Impact:** Projects are assumed to progress sequentially through defined phases without significant overlap. This simplification facilitates the calculation of Planned Value (PV) and project schedule projections.
+   * **Basis:** Analysis of sample engagement data indicates relatively consistent ratios in staff levels (e.g., Consultant, Manager) across different phases.
+   * **Impact:** Allows for the calculation of reliable weighted average chargeout rates for engagements.
+3. **Project Phases Progress Linearly.**
 
-4.  **Project/Mandate Start Date is the First Logged Work Date.**
-    *   **Impact:** In the absence of explicitly defined start dates within the dataset, this definition provides a consistent reference point for timeline analysis and management.
+   * **Impact:** Projects are assumed to progress sequentially through defined phases without significant overlap. This simplification facilitates the calculation of Planned Value (PV) and project schedule projections.
+4. **Project/Mandate Start Date is the First Logged Work Date.**
 
-5.  **Client Identity is Determined by Client Number.**
-    *   **Basis:** Consistent with standard database management principles, the unique client number is used as the primary identifier for each client.
-    *   **Impact:** Ensures data integrity and enables consistent client tracking and aggregation across different engagements.
+   * **Impact:** In the absence of explicitly defined start dates within the dataset, this definition provides a consistent reference point for timeline analysis and management.
+5. **Client Identity is Determined by Client Number.**
 
-6.  **Staff at Equivalent Levels are Interchangeable.**
-    *   **Impact:** Personnel within the same practice and at the same designated level are considered functionally interchangeable for resource allocation modelling purposes, assuming equivalent productivity (Productivity Substitution Effect, $pse = 1$). This simplifies calculations for cross-project assignments but represents an idealization; it should be refined with performance metrics where available.
+   * **Basis:** Consistent with standard database management principles, the unique client number is used as the primary identifier for each client.
+   * **Impact:** Ensures data integrity and enables consistent client tracking and aggregation across different engagements.
+6. **Staff at Equivalent Levels are Interchangeable.**
 
-7.  **All Projects are Equally Important.**
-    *   **Basis:** Due to the absence of specific prioritization criteria in the available data, all projects within the analyzed dataset are assigned equal importance (project weight, $w_p$ = constant).
-    *   **Impact:** Simplifies initial optimization modelling. Prioritization factors should be incorporated in subsequent analyses if available.
+   * **Impact:** Personnel within the same practice and at the same designated level are considered functionally interchangeable for resource allocation modelling purposes, assuming equivalent productivity (Productivity Substitution Effect, $pse = 1$). This simplifies calculations for cross-project assignments but represents an idealization; it should be refined with performance metrics where available.
+7. **All Projects are Equally Important.**
 
-8.  **All Projects Carry Uniform Risk.**
-    *   **Basis:** Project-specific risk data was not available for this analysis. Consequently, all projects are assumed to carry an equal level of risk (project risk, $r_p$ = constant).
-    *   **Impact:** Facilitates simplified preliminary analysis; risk differentiation should be included when data permits.
+   * **Basis:** Due to the absence of specific prioritization criteria in the available data, all projects within the analyzed dataset are assigned equal importance (project weight, $w_p$ = constant).
+   * **Impact:** Simplifies initial optimization modelling. Prioritization factors should be incorporated in subsequent analyses if available.
+8. **All Projects Carry Uniform Risk.**
 
-9.  **Negative Hour Logs Offset Work on Other Projects for the Same Client.**
-    *   **Basis:** Observed data patterns suggest this correlation, aligning with common project management practices for budget adjustments.
-    *   **Impact:** Negative hours are interpreted as adjustments within the client's project portfolio. Further investigation is warranted to fully validate this interpretation.
+   * **Basis:** Project-specific risk data was not available for this analysis. Consequently, all projects are assumed to carry an equal level of risk (project risk, $r_p$ = constant).
+   * **Impact:** Facilitates simplified preliminary analysis; risk differentiation should be included when data permits.
+9. **Negative Hour Logs Offset Work on Other Projects for the Same Client.**
 
+   * **Basis:** Observed data patterns suggest this correlation, aligning with common project management practices for budget adjustments.
+   * **Impact:** Negative hours are interpreted as adjustments within the client's project portfolio. Further investigation is warranted to fully validate this interpretation.
 10. **Time Reporting Behaviours Differ Between Internal and External Consultants.**
-    *   **Basis:** Analysis revealed significant variations in timesheet submission timeliness, with delays more pronounced among certain senior internal staff.
-    *   **Impact & Application:** A heuristic was applied for modelling: consultants with an average reporting lag < 3 days were provisionally classified as 'external' (excluding managers+). This allows for differential analysis but requires validation with actual employment status data.
 
+    * **Basis:** Analysis revealed significant variations in timesheet submission timeliness, with delays more pronounced among certain senior internal staff.
+    * **Impact & Application:** A heuristic was applied for modelling: consultants with an average reporting lag < 3 days were provisionally classified as 'external' (excluding managers+). This allows for differential analysis but requires validation with actual employment status data.
 11. **External Consultants Reduce Profitability by 10%.**
-    *   **Basis:** A preliminary estimate applied due to lack of specific cost data. This rate requires validation.
-    *   **Impact:** Adjusts the VEC calculation to account for potential differences in resource costs, informing staffing mix decisions.
 
+    * **Basis:** A preliminary estimate applied due to lack of specific cost data. This rate requires validation.
+    * **Impact:** Adjusts the VEC calculation to account for potential differences in resource costs, informing staffing mix decisions.
 12. **Chargeout Rates are Negotiated Per Engagement.**
-    *   **Basis:** Data analysis shows consultant rates are consistent within one engagement but vary across different engagements for the same individual.
-    *   **Impact:** Enables the tracking of engagement-specific chargeout rates, facilitating more accurate VEC calculations reflecting specific financial terms.
 
+    * **Basis:** Data analysis shows consultant rates are consistent within one engagement but vary across different engagements for the same individual.
+    * **Impact:** Enables the tracking of engagement-specific chargeout rates, facilitating more accurate VEC calculations reflecting specific financial terms.
 
 ## Appendix 4: Key Metrics Derivation
 
-Budget at Completion (BAC)
+### Database Field References for Key Metrics
 
-- **Source**: Budget data, specified per **engagement phase** ($\text{BAC}_{ph}$).
+This section provides the specific database field mappings for metrics described conceptually in the main document.
+
+#### Budget at Completion (BAC)
+
+- **Database Source**: `phases.budget` for engagement phase 
 - **Purpose**: Financial baseline for a phase.
 
 #### Weighted Average Chargeout Rate (Estimation Aid)
 
-- **Formula**: $`\text{Weighted Rate} = \sum_{k=1}^{m} (\text{StandardChargeout}_k \times \frac{\sum \text{AssignedHours}_{k}}{\sum \text{TotalAssignedHours}})`$ (Sum over levels/roles $k$)
-- **Purpose**: PoC estimation of average rate for a phase based on planned mix, used for initial duration estimates. Less critical if using actual AC/VEC.
+- **Formula**: $`\text{Weighted Rate}_{ph} = \sum_{l=1}^{m} (\text{charge\_out\_rates.standard\_chargeout\_rate}_{l} \times \frac{\sum \text{staffing.planned\_hours}_{l}}{\sum \text{staffing.planned\_hours}})`$
+- **Purpose**: PoC estimation of average rate for a phase based on planned mix.
+
+#### Staffing Ratio Per Phase
+
+- **Formula**: $\text{StaffingRatio}_{l,ph} = \frac{\sum \text{timesheets.hours}_{l,ph}}{\sum \text{timesheets.hours}_{ph}}$
 
 #### Hours Required / Estimated Duration (Estimation Aids)
 
-- **Formulae**: $\text{Hours}_{\text{required\_est}} = \frac{\text{BAC}_{ph}}{\text{Weighted Rate}}$; $`\text{Duration}_{\text{est}} = \frac{\text{Hours}_{\text{required\_est}}}{\sum (\text{# Empl}_k \times \text{HrsPerDay})}`$
+- **Formulae**:
+  - $\text{Hours}_{\text{required\_est},ph} = \frac{\text{phases.budget}_{ph}}{\text{Weighted Rate}_{ph}}$
+  - $`\text{Duration}_{\text{est},ph} = \frac{\text{Hours}_{\text{required\_est},ph}}{\sum (\text{staff\_count}_{l} \times \text{daily\_hours})}`$
 - **Purpose**: PoC estimation of total effort/timeline for a phase.
 
 #### Days Elapsed
 
-- **Formula**: $\text{Days}_{\text{elapsed}} = \text{Current Date} - \text{Actual Start Date}$ (of phase/engagement)
+- **Formula**: $\text{Days}_{\text{elapsed},ph} = \text{CURRENT\_DATE} - \text{phases.start\_date}_{ph}$
 - **Purpose**: Measures time progression.
 
 #### Percentage Schedule Elapsed
 
-- **Formula**: $\text{Schedule\%} = \frac{\text{Days Elapsed}}{\text{Planned Duration}}$
+- **Formula**: $\text{Schedule\%}_{ph} = \frac{\text{Days Elapsed}_{ph}}{(\text{phases.end\_date}_{ph} - \text{phases.start\_date}_{ph})}$
 - **Purpose**: Standardizes schedule progress measurement for PV calculation.
 
 #### Actual Cost (AC)
 
-- **Formula**: $\text{AC}_{\text{to date}} = \sum_{i=1}^{n} \text{TransactionValue}_i$ (Sum over relevant timesheet/cost entries $i$)
-- **Purpose**: Calculates actual expenditure/billed value to date. $\text{AC}_i$ in VEC is individual transaction value. Calculated periodically (e.g., weekly) and cumulatively.
+- **Formula**: $\text{AC}_{\text{to date},ph} = \sum_{t=1}^{n} (\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t})$
+- **Purpose**: Calculates actual expenditure to date.
+
+#### Value Extraction Coefficient (VEC)
+
+- **Formula**:
+  $\text{VEC}_{ph} = \frac{1}{\text{phases.budget}_{ph}} \times \sum_{t=1}^{n} [(\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t}) \times d_{t} \times ea_{c} \times eo_{c}]$
+
+Where:
+  - $d_{t} = \frac{\text{timesheets.charge\_out\_rate}_{t}}{\text{charge\_out\_rates.standard\_chargeout\_rate}_{c}}$
+  - $ea_{c} = 1 - 0.1 \times \text{employees.is\_external}_{c}$
+  - $eo_{c} = 1 - 0.2 \times isNew_c$ (derived field, not in database)
+
+#### Budget Burn
+
+- **Formula**: $\text{Burn}_{ph} = \frac{\sum_{t} (\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t})}{\text{phases.budget}_{ph}}$
 
 #### Planned Value (PV)
 
-- **Formula**: $\text{PV} = \text{BAC} \times \text{Percentage Schedule Elapsed}$ (BAC at phase or engagement level as appropriate)
+- **Formula**: $\text{PV}_{ph} = \text{phases.budget}_{ph} \times \text{Schedule\%}_{ph}$
 - **Purpose**: Budgeted cost of work scheduled.
 
 #### Earned Value (EV)
 
-- **Formula (PoC Method)**: $\text{EV} = \sum \text{AC}_{\text{to date}} \times \text{CPI}_{\text{proxy}}$ (CPI proxy = 0.98)
-- **Purpose (PoC Method)**: Represents value of work completed, estimated via cost adjusted by proxy efficiency. *Needs refinement in production (e.g., link to VEC, physical % complete).*
-
-#### Cost Performance Index (CPI - Proxy)
-
-- **Value (PoC)**: Fixed at 0.98 by assumption.
-- **Purpose**: Used in PoC EV derivation. *Production may focus more on VEC/Burn.*
+- **Formula (PoC Method)**: $\text{EV}_{ph} = \sum_{t} (\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t}) \times 0.98$
+- **Purpose**: Represents value of work completed with efficiency factor.
 
 #### Schedule Performance Index (SPI)
 
-- **Formula**: $\text{SPI} = \frac{\text{EV}}{\text{PV}}$
-- **Purpose**: Quantifies schedule efficiency (ahead/behind). Core KPI and optimization input.
+- **Formula**: $\text{SPI}_{ph} = \frac{\text{EV}_{ph}}{\text{PV}_{ph}}$
+- **Purpose**: Quantifies schedule efficiency.
 
 #### Weekly Benching Rate
 
-- **Formula**: $`\text{Benching Rate}_c = \left( 1 - \frac{\sum_{en \in EN} \text{Assigned Hours}_{c,en,w}}{\text{Standard Weekly Capacity}_c} \right) \times 100\%`$
-- **Definition**: Percentage of consultant $c$'s standard weekly capacity (contracted hours minus vacation hours for week $w$) that is *not assigned* to specific engagements.
-- **Purpose**: Core KPI measuring unallocated 'bench' time. Target for minimization.
+- **Formula**: $`\text{Benching Rate}_{c,w} = \left( 1 - \frac{\sum_{en,ph} \text{staffing.planned\_hours}_{c,en,ph,w}}{\text{employees.employment\_basis}_{c}} \right) \times 100\%`$
+- **Definition**: Percentage of employee's contracted capacity not assigned to engagements.
+- **Purpose**: KPI measuring unallocated bench time.
 
 #### Weekly Capacity Utilization Rate
 
-- **Formula**: $`\text{Capacity Utilization}_c = \frac{\sum \text{Actual Billable Hours}_{c,w}}{\text{Standard Weekly Capacity}_c} \times 100\%`$
-- **Definition**: Percentage of consultant $c$'s standard weekly capacity (adjusted for vacation) logged as *actual billable hours* in week $w$.
-- **Purpose**: Core KPI measuring overall productive engagement against potential. Target typically >80%.
+- **Formula**: $`\text{Capacity Utilization}_{c,w} = \frac{\sum_{en,ph} \text{timesheets.hours}_{c,en,ph,w}}{\text{employees.employment\_basis}_{c}} \times 100\%`$
+- **Definition**: Percentage of employee's contracted capacity utilized in billable work.
+- **Purpose**: KPI measuring productive engagement.
 
 #### Weekly Assignment Realization Rate (Internal Metric)
 
-- **Formula**: $`\text{Assignment Realization Rate}_{c,w} = \frac{\sum_{en \in EN} \text{Actual Billable Hours}_{c,en,w}}{\sum_{en \in EN} \text{Assigned Hours}_{c,en,w}}`$
-- **Definition**: Compares actual billable hours logged to assigned hours for specific engagements in week $w$. Target is 1.
-- **Purpose**: **Internal metric** for assessing planning accuracy. Deviation from 1 can be used as a feedback/error signal (loss function component) for tuning the next week's assignment predictions (as noted in Appendix 2).
+- **Formula**: $`\text{Assignment Realization Rate}_{c,w} = \frac{\sum_{en,ph} \text{timesheets.hours}_{c,en,ph,w}}{\sum_{en,ph} \text{staffing.planned\_hours}_{c,en,ph,w}}`$
+- **Definition**: Ratio of actual hours to assigned hours.
+- **Purpose**: Internal metric for planning accuracy assessment.
+
+## Appendix 5: Mathematical Notation Conventions
+
+This appendix documents the standardized notation used in formulas throughout this document to ensure consistency and clarity.
+
+### Suffix Conventions
+
+All variables in formulas use consistent suffixes to denote the entity they refer to:
+
+| Suffix | Entity                  | Example                          | Description                                       |
+|--------|-------------------------|----------------------------------|---------------------------------------------------|
+| `c`    | Consultant/Employee     | $ea_c$ (External Adjustment)     | Refers to a specific consultant/employee          |
+| `t`    | Transaction/Timesheet   | $AC_t$ (Actual Cost)             | Refers to a specific timesheet entry              |
+| `ph`   | Phase                   | $VEC_{ph}$ (VEC of a phase)      | Refers to a specific engagement phase             |
+| `en`   | Engagement              | $SPI_{en}$ (SPI of engagement)   | Refers to a specific engagement                   |
+| `l`    | Staff Level             | $StaffingRatio_{l,ph}$           | Refers to a specific staff level (e.g., Manager)  |
+| `pr`   | Practice                | $C_{l,pr}$ (Consultants in practice) | Refers to a practice area (e.g., SAP)        |
+| `w`    | Week                    | $Hours_{c,en,w}$ (Weekly hours)  | Refers to a specific week (time period)           |
+
+### Core Variables and Factors
+
+#### Financial Metrics
+
+| Variable          | Definition                                        | Formula/Source                                            |
+|-------------------|---------------------------------------------------|-----------------------------------------------------------|
+| $BAC_{ph}$        | Budget at Completion for phase                    | `phases.budget`                                           |
+| $AC_t$            | Actual Cost for transaction                       | `timesheets.std_price + timesheets.adm_surcharge`         |
+| $PV_{ph}$         | Planned Value for phase                           | $BAC_{ph} \times Schedule\%_{ph}$                         |
+| $EV_{ph}$         | Earned Value for phase                            | $\sum_t AC_t \times CPI_{proxy}$ (PoC method)             |
+| $SPI_{ph}$        | Schedule Performance Index                        | $EV_{ph} / PV_{ph}$                                       |
+| $VEC_{ph}$        | Value Extraction Coefficient                      | $\frac{1}{BAC_{ph}} \times \sum_t [AC_t \times d_t \times ea_c \times eo_c]$ |
+| $Burn_{ph}$       | Budget Burn Rate                                  | $\frac{\sum_t AC_t}{BAC_{ph}}$                            |
+
+#### Adjustment Factors
+
+| Factor     | Definition                                    | Formula                                      | Purpose                                         |
+|------------|-----------------------------------------------|----------------------------------------------|------------------------------------------------|
+| $d_t$      | Rate Efficiency Factor                        | $\frac{timesheets.charge\_out\_rate_t}{charge\_out\_rates.standard\_chargeout\_rate_c}$ | Measures charge-out rate efficiency |
+| $ea_c$     | External Adjustment Factor                    | $1 - 0.1 \times employees.is\_external_c$    | Accounts for external consultants' impact on profitability |
+| $eo_c$     | Onboarding/New Hire Adjustment Factor         | $1 - 0.2 \times isNew_c$                     | Accounts for newer consultants' learning curve |
+| $pse$      | Phase Switching Efficiency                    | Typically 0.9 (configurable)                 | Productivity loss factor when switching engagements |
+
+#### Optimization Parameters
+
+| Parameter        | Definition                                    | Range/Default                                 | Source                                     |
+|------------------|-----------------------------------------------|-----------------------------------------------|-------------------------------------------|
+| $\alpha$         | SPI weight in optimization                    | 0.5 (default)                                 | `optimization_parameters` table           |
+| $\beta$          | VEC weight in optimization                    | 0.5 (default)                                 | `optimization_parameters` table           |
+| $w_{en}$         | Strategic weight of engagement                | Default: 1.0                                  | `engagements.strategic_weight`            |
+| $r_{en}$         | Risk coefficient of engagement                | Default: 1.0                                  | `engagements.risk_coefficient`            |
+| $r_{l,pr,en}$    | Required staffing ratio                       | Calculated from historical data               | Derived from timesheet data               |
+
+#### Utilization Metrics
+
+| Metric                         | Definition                                         | Formula                                                 |
+|--------------------------------|----------------------------------------------------|----------------------------------------------------------|
+| Benching Rate                  | Percentage of capacity not assigned                 | $\left(1 - \frac{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}{employees.employment\_basis_c}\right) \times 100\%$ |
+| Capacity Utilization Rate      | Percentage of capacity utilized in billable work    | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{employees.employment\_basis_c} \times 100\%$ |
+| Assignment Realization Rate    | Ratio of actual hours to assigned hours             | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}$ |

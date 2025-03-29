@@ -3,18 +3,37 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from datetime import datetime
-# Fix the import for DataMocker to use the correct filename
-from utils.data_mocking import DataMocker
+import sys
+import logging
 
-# File paths
-BUDGET_CSV = Path('/Users/notAdmin/Dev/2025 KPMG Data Challenge/csv-dump/KPMG Case Data_Budget.csv')
-STAFFING_2024_CSV = Path('/Users/notAdmin/Dev/2025 KPMG Data Challenge/csv-dump/KPMG Case Data_Staffing___2024.csv')
-STAFFING_2025_CSV = Path('/Users/notAdmin/Dev/2025 KPMG Data Challenge/csv-dump/KPMG Case Data_Staffing___2025.csv')
-TIME_CSV = Path('/Users/notAdmin/Dev/2025 KPMG Data Challenge/csv-dump/KPMG Case Data_TIME.csv')
-DICTIONARY_CSV = Path('/Users/notAdmin/Dev/2025 KPMG Data Challenge/csv-dump/KPMG Case Data_Dictionnaire___Dictionary_.csv')
+# Add parent directories to path
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+project_root = current_dir.parent.parent.parent
+shared_dir = project_root / "scripts" / "shared"
+sys.path.append(str(shared_dir))
+
+# Import from shared modules
+from config import CSV_DUMP_DIR, TRANSFORMED_DIR, RAW_FILE_MAP
+
+# Import local modules
+from .data_mocking import DataMocker
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# File paths using shared config
+BUDGET_CSV = CSV_DUMP_DIR / RAW_FILE_MAP["budget"]
+STAFFING_2024_CSV = CSV_DUMP_DIR / RAW_FILE_MAP["staffing"]
+STAFFING_2025_CSV = CSV_DUMP_DIR / "KPMG Case Data_Staffing___2025.csv"  # Add to RAW_FILE_MAP if needed
+TIME_CSV = CSV_DUMP_DIR / RAW_FILE_MAP["timesheets"]
+DICTIONARY_CSV = CSV_DUMP_DIR / RAW_FILE_MAP["dictionary"]
 
 # Output directory
-OUTPUT_DIR = Path('/Users/notAdmin/Dev/2025 KPMG Data Challenge/csv-dump/transformed')
+OUTPUT_DIR = TRANSFORMED_DIR
 
 class DataTransformer:
     def __init__(self):

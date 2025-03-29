@@ -52,13 +52,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger("pipeline")
 
-# Default directories
-EXCEL_FILE = project_root / 'Documentation/KPMG Case Data.xlsx'
-CSV_DUMP_DIR = project_root / 'csv-dump'
-TRANSFORMED_DIR = project_root / 'csv-dump/transformed'
-DATABASE_DIR = project_root / 'Database'
-DDL_FILE = DATABASE_DIR / 'DDL.sql'
-DML_FILE = DATABASE_DIR / 'DML.sql'
+# Update imports
+import sys
+from pathlib import Path
+import os
+
+# Get the absolute path to the current script's directory
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+project_root = current_dir.parent.parent
+
+# Add the shared directory to the Python path
+shared_dir = project_root / "scripts" / "shared"
+sys.path.append(str(shared_dir))
+
+# Import from shared modules
+from config import EXCEL_FILE, CSV_DUMP_DIR, TRANSFORMED_DIR, DATABASE_DIR, DDL_FILE, DML_FILE
+from db_utils import test_db_connection, execute_sql_file
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -68,37 +77,6 @@ def parse_arguments():
     parser.add_argument('--skip-dml', action='store_true', help='Skip DML generation')
     parser.add_argument('--skip-db-execution', action='store_true', help='Skip database execution')
     return parser.parse_args()
-
-def test_db_connection():
-    """Test the connection to the SQL Server database."""
-    logger.info("Testing database connection...")
-    
-    # Get database connection details from environment variables
-    server = os.getenv('SQL_SERVER')
-    database = os.getenv('SQL_DATABASE')
-    username = os.getenv('SQL_USERNAME')
-    password = os.getenv('SQL_PASSWORD')
-    driver = os.getenv('SQL_DRIVER')
-    
-    if not all([server, database, username, password, driver]):
-        logger.error("Database connection details missing in .env file")
-        return False
-    
-    connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}"
-    
-    try:
-        # Try to connect to the database
-        conn = pyodbc.connect(connection_string)
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1")
-        cursor.close()
-        conn.close()
-        
-        logger.info("Database connection successful")
-        return True
-    except Exception as e:
-        logger.error(f"Database connection failed: {str(e)}")
-        return False
 
 def run_excel_to_csv(excel_file, output_dir):
     """Run the Excel to CSV conversion script."""
@@ -144,47 +122,6 @@ def run_dml_generation():
         logger.error(f"Error during DML generation: {str(e)}", exc_info=True)
         return False
 
-def execute_sql_file(sql_file):
-    """Execute a SQL file against the database."""
-    logger.info(f"Executing SQL file: {sql_file}")
-    
-    # Get database connection details from environment variables
-    server = os.getenv('SQL_SERVER')
-    database = os.getenv('SQL_DATABASE')
-    username = os.getenv('SQL_USERNAME')
-    password = os.getenv('SQL_PASSWORD')
-    driver = os.getenv('SQL_DRIVER')
-    
-    connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}"
-    
-    try:
-        # Read the SQL file
-        with open(sql_file, 'r', encoding='utf-8') as f:
-            sql = f.read()
-        
-        # Split the script on GO statements (T-SQL batch separator)
-        batches = sql.split('GO')
-        
-        # Connect to the database
-        conn = pyodbc.connect(connection_string)
-        cursor = conn.cursor()
-        
-        # Execute each batch
-        for batch in batches:
-            batch = batch.strip()
-            if batch:  # Skip empty batches
-                cursor.execute(batch)
-                conn.commit()
-        
-        cursor.close()
-        conn.close()
-        
-        logger.info(f"SQL file execution completed: {sql_file}")
-        return True
-    except Exception as e:
-        logger.error(f"SQL file execution failed: {str(e)}", exc_info=True)
-        return False
-
 def main():
     """Main pipeline execution function."""
     start_time = time.time()
@@ -193,7 +130,7 @@ def main():
     args = parse_arguments()
     success = True
     
-    # Step 0: Test database connection
+    # Step 0: Test database connection - now using shared module
     if not test_db_connection():
         logger.error("Database connection test failed. Pipeline stopped.")
         return False
@@ -225,7 +162,7 @@ def main():
     else:
         logger.info("Skipping DML generation as requested")
     
-    # Step 4: Execute DDL and DML SQL scripts
+    # Step 4: Execute DDL and DML SQL scripts - now using shared module
     if not args.skip_db_execution and success:
         # Execute DDL SQL script
         logger.info("Executing DDL SQL script...")

@@ -9,6 +9,7 @@ import time
 import signal
 import threading
 import logging
+import sys
 
 # Set up logging
 logging.basicConfig(
@@ -21,6 +22,14 @@ logger = logging.getLogger("fetcher")
 current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 # Calculate project root using relative path (3 levels up from utils)
 project_root = current_dir.parent.parent.parent
+
+# Add the shared directory to the Python path
+shared_dir = project_root / "scripts" / "shared"
+sys.path.append(str(shared_dir))
+
+# Import from shared modules
+from config import CSV_DUMP_DIR, TRANSFORMED_DIR, RAW_FILE_MAP, COLUMN_MAPPINGS
+from db_utils import test_db_connection, create_sqlalchemy_engine
 
 # Load environment variables from .env file in root directory
 load_dotenv(project_root / '.env')
@@ -156,15 +165,20 @@ class DataFetcher:
         if self.source == "db":
             self._test_db_connection()
 
-        # Default tables to fetch if none specified
+        # Default tables to fetch if none specified - include all tables from data_transformation.py
         if tables is None:
             tables = [
-                "timesheets",
+                "practices",
                 "employees",
                 "clients",
                 "engagements",
                 "phases",
-                "practices",
+                "staffing",
+                "timesheets",
+                "dictionary",
+                "vacations",
+                "charge_out_rates",
+                "optimization_parameters"
             ]
 
         # Handle case of single table name as string
@@ -231,6 +245,9 @@ class DataFetcher:
                         "staffing": "KPMG Case Data_Staffing___2024.csv",
                         "practices": None,  # Might be internal only
                         "dictionary": "KPMG Case Data_Dictionnaire___Dictionary_.csv",
+                        "vacations": None,  # Generated internally, no raw file
+                        "charge_out_rates": None,  # Generated internally from timesheets
+                        "optimization_parameters": None,  # Generated internally, no raw file
                     }
 
                     if table_name in raw_file_map and raw_file_map[table_name]:
@@ -358,9 +375,98 @@ class DataFetcher:
                     .astype(float)
                 )
 
+        elif table_name == 'phases':
+            column_mapping = {
+                "Code projet": "eng_no",
+                "Code phase": "eng_phase",
+                "Phase Projet": "phase_description",
+                "Budget": "budget"
+            }
+            df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
            
-        # Add more transformations for other tables as needed
+        elif table_name == 'staffing':
+            column_mapping = {
+                "Eng. No.": "eng_no",
+                "Eng. Phase": "eng_phase",
+                "Personnel No.": "personnel_no"
+            }
+            df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
+            
+            # Process staffing with date columns similar to data_transformation.py
+            if 'week_start_date' not in df.columns:
+                date_columns = [col for col in df.columns if col not in [
+                    'Eng. No.', 'Eng. Description', 'Eng. Phase', 'Phase Description',
+                    'Client No.', 'Client Name', 'Personnel No.', 'Employee Name', 'Staff Level'
+                ]]
+                
+                # Reshape to long format with each row containing a week date
+                if date_columns:
+                    long_df = []
+                    for _, row in df.iterrows():
+                        for date_col in date_columns:
+                            hours = row[date_col]
+                            if pd.notna(hours) and hours > 0:
+                                try:
+                                    week_date = pd.to_datetime(date_col)
+                                except:
+                                    if ' 0:00' in date_col or ' 00:00:00' in date_col:
+                                        date_str = date_col.split(' ')[0]
+                                    else:
+                                        date_str = date_col
+                                    week_date = pd.to_datetime(date_str)
+                                
+                                long_df.append({
+                                    'personnel_no': row['personnel_no'],
+                                    'eng_no': row['eng_no'],
+                                    'eng_phase': row['eng_phase'],
+                                    'week_start_date': week_date,
+                                    'planned_hours': float(hours)
+                                })
+                    
+                    if long_df:
+                        df = pd.DataFrame(long_df)
+           
+        elif table_name == "dictionary":
+            if all(col in df.columns for col in ["Clé", "Description"]):
+                df = df.rename(columns={
+                    "Clé": "key",
+                    "Description": "description"
+                })
+            
+        elif table_name == "engagements":
+            column_mapping = {
+                "Code projet": "eng_no",
+                "Nom de projet": "eng_description",
+                "Client No.": "client_no"
+            }
+            df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
+            
+            # Add primary_practice_id if missing
+            if "primary_practice_id" not in df.columns:
+                df["primary_practice_id"] = 1  # Default to SAP practice
+            
+        elif table_name == "budget":
+            if all(col in df.columns for col in ["Code projet", "Code phase", "Budget"]):
+                df = df[["Code projet", "Code phase", "Budget"]].dropna()
+                df = df.rename(columns={
+                    "Code projet": "eng_no",
+                    "Code phase": "eng_phase",
+                    "Budget": "budget"
+                })
 
+                # Clean up numeric budget values if needed
+                df["budget"] = (
+                    df["budget"]
+                    .astype(str)
+                    .str.replace(r"[^\d]", "", regex=True)  # Remove commas, spaces
+                    .astype(float)
+                )
+
+        # For tables generated internally, just return an empty DataFrame
+        # They will be fetched from the transformed directory
+        elif table_name in ["vacations", "charge_out_rates", "optimization_parameters", "practices"]:
+            logger.info(f"Table {table_name} is synthetically generated - returning empty DataFrame")
+            
         return df
 
     # Backward compatibility methods below

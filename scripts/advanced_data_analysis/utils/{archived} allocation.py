@@ -2,14 +2,24 @@ import pandas as pd
 from datetime import datetime
 import os
 import sys
-from fetcher import DataFetcher
+from pathlib import Path
+
+# Get the absolute path to the current script's directory
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to sys.path to allow imports
+parent_dir = current_dir.parent
+sys.path.append(str(parent_dir))
+
+# Proper import of DataFetcher
+from utils.fetcher import DataFetcher
 
 # Create a DataFetcher instance (defaults to trying DB first then CSV)
 fetcher = DataFetcher()
 
-# Fetch timesheet data using the modular approach
-data = fetcher.fetch_data(['timesheet_data'])
+# Fetch needed data using the DataFetcher
+data = fetcher.fetch_data(['timesheet_data', 'budget'])
 df_time = data['timesheet_data']
+df_budget = data['budget']  # Also get budget data for BAC values
 
 # Convert relevant columns to datetime
 if 'Posting Date' in df_time.columns:
@@ -41,11 +51,19 @@ df_projects = df_time.groupby('project_key').agg(agg_dict).reset_index()
 # Rename 'Posting Date' to 'start_date' for clarity
 df_projects.rename(columns={'Posting Date': 'start_date'}, inplace=True)
 
-# 5. Define placeholders or assumptions for EVM calculations
-#    (Replace these with real data or merge from another table if you have them.)
+# 5. Define budget data from the fetched budget information
+# Create a mapping of project_key to budget value
+budget_map = {}
+if not df_budget.empty and 'budget' in df_budget.columns:
+    for _, row in df_budget.iterrows():
+        if pd.notna(row.get('eng_no')) and pd.notna(row.get('eng_phase')):
+            key = f"{row['eng_no']}_{row['eng_phase']}"
+            budget_map[key] = row.get('budget', 0)
 
-# Example: Budget At Completion (BAC). If not in the CSV, set a default or merge from a master file
-df_projects['BAC'] = 100000  # placeholder, e.g. $100k for each project
+# 6. Calculate key EVM metrics
+df_projects['BAC'] = df_projects['project_key'].map(budget_map)
+# Use default BAC if not found in budget data
+df_projects['BAC'] = df_projects['BAC'].fillna(100000)  # fallback to placeholder
 
 # Example: average charge rate (if not in your data, you might have 'Charge-Out Rate' column per line)
 df_projects['average_charge_rate'] = 100  # $100/hr placeholder
