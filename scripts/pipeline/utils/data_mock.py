@@ -6,10 +6,11 @@ from pandas.tseries.offsets import BDay
 class DataMocker:
     
     
-    def __init__(self, fetcher=None):
-        from advanced_data_analysis.fetcher import DataFetcher
-        self.fetcher = fetcher if fetcher else DataFetcher(source="csv")
-        self._phase_dates_cache = None  # Initialize the cache
+    def __init__(self, fetcher):
+        self.fetcher = fetcher
+        self._phase_dates_cache = None
+
+
 
         
     def create_default_practices(self):
@@ -206,7 +207,7 @@ class DataMocker:
             pd.to_datetime(start_reference)
         )
 
-        merged["end_date"] = merged["start_date"] + merged["duration_days"] * BDay()
+        merged["end_date"] = pd.to_datetime(merged["start_date"]) + merged["duration_days"].apply(lambda x: BDay(x))
 
         return merged.drop_duplicates(subset=["eng_no", "eng_phase"])[["eng_no", "eng_phase", "start_date", "end_date"]]
 
