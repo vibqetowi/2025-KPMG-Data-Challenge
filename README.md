@@ -58,7 +58,7 @@ $$
 Where:
 
 - $w_i$ is the financial weight of transaction $i$ where $w_i = \left(\frac{\text{AC}_i}{\text{AC}}\right)$
-- $d_i$ is the chargeout rate ratio for transaction $i$ where $`d_i = \frac{\text{Chargeout}_i}{\text{StandardChargeout}_{j}}`$ (≤ 1) * $`Chargeout_i`$ is the  chargout for transaction i and $StandardChargeout_j$ is the normal chargeout for consultant j on this engagment
+- $d_i$ is the chargeout rate ratio for transaction $i$ where $`d_i = 1 - \frac{\text{Chargeout}_i}{\text{StandardChargeout}_{j}}`$ (≤ 1) * $`Chargeout_i`$ is the  chargout for transaction i and $StandardChargeout_j$ is the normal chargeout for consultant j on this engagment
 - $ea_j$ is profit adjustment for external consultants (assumed 10% lower) where $ea_j = 0.9 \times \text{isExternal}_j$ ($isExternal$ being a boolean with values 1 or 0)
 - $eo_j$ is the profit adjustment for first year consultants (20 lower according to case files) where $eo_j = 0.8 \times \text{isNew}_j$ ($isNew$ being a boolean with values 1 or 0)
 
@@ -75,29 +75,34 @@ Each factor represents the percentage of value retained after applying that part
 Our solution addresses the core optimization challenge facing consulting organizations:
 
 $$
-`
-\max_{A} \sum_{p \in P} \text{SPI}_p \cdot w_p - \sum_{j \in J_{ext}} ea_j \cdot \sum_{p \in P} \text{Hours}_{j,p,w}
-`
+\max_{A} \sum_{p \in P} w_p \times (\alpha \times \text{SPI}_p + \beta \times \text{VEC}_p)
 $$
+
+Where $A$ represents the assignment matrix of consultants to projects (i.e., which consultants work on which projects and for how many hours). The optimization seeks to find the best possible allocation of consultant resources across all projects that maximizes the objective function.
 
 Subject to critical business constraints:
 
 - SPI > 0.85 for all projects (preventing schedule slippage)
 - Consultant benching < 20% (maximizing billable utilization)
 - $\forall c \in C, \sum_{p \in P} \text{Hours}_{c,p,w} \leq 40, \forall w \in \text{Weeks}$ (maintaining work-life balance)
-- $`\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,p,w}}{\sum_{c \in C} \text{Hours}_{c,p,w}} = r_{l,pr,p}, \forall p \in P, \forall w \in \text{Weeks}`$ (maintaining appropriate staffing ratios)
+- $\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,p,w}}{\sum_{c \in C} \text{Hours}_{c,p,w}} = r_{l,pr,p}, \forall p \in P, \forall w \in \text{Weeks}$ (maintaining appropriate staffing ratios)
 
 Where:
 
-- $w_p$ represents the relative importance or priority of project $p$
+- $w_p$ represents the strategic value weight of project $p$ (higher values for strategically important clients or projects)
+- $\alpha, \beta$ are weighting coefficients for balancing schedule performance and value extraction
 - $L$ is the set of staff levels
 - $PR$ is the set of practice areas
 - $C_{l,pr}$ is the subset of consultants at level $l$ from practice area $pr$
 - $r_{l,pr,p}$ is the target ratio of hours for level $l$ and practice $pr$ in project $p$
-- $J_{ext}$ is the subset of consultants who are external
-- $ea_j$ is the external adjustment factor for consultant $j$, representing the preference to staff internally
 
-The added constraint ensures that the distribution of hours across different staff levels and practice areas maintains appropriate ratios for each project, reflecting the reality that projects require specific mixes of junior/senior staff and expertise from relevant practice areas. This optimization approach maximizes project schedule performance while penalizing the use of external consultants, reflecting the organizational preference to prioritize internal staffing when possible. The external adjustment factor ($ea_j$) creates a "cost" for assigning external consultants, which the optimization algorithm will avoid unless necessary for meeting other constraints such as maintaining SPI targets or required expertise levels.
+The staffing ratio constraint ensures that each project maintains the required mix of different staff levels and practice areas, which is critical for proper project delivery. This optimization balances:
+
+1. Schedule performance (SPI) to ensure timely project delivery
+2. Value extraction (VEC) to maximize financial performance 
+3. Strategic project importance through project-specific weights ($w_p$)
+
+While maintaining appropriate staffing ratios by level and practice area for each project.
 
 ### Key Performance Indicators (KPIs)
 
@@ -105,13 +110,7 @@ Due to these business objectives, our solution focuses on four key performance i
 
 1. **VEC (rolling)**: Value Extraction Coefficient measured on a rolling basis to identify trends in maintaining target rates without excessive discounting
 2. **SPI (rolling)**: Schedule Performance Index tracked on a rolling basis to monitor project delivery efficiency
-3. **Benching Rates (internal/external)**: Weekly rolling ratio of work basis/ assigned hours on staffing. Separated between internal and external
-4. **Assignment Utilization**: Ratio of actual billed amounts to planned billings, highlighting deviations between resource planning and execution
-
-By dynamically reallocating resources based on these constraints, we help organizations achieve:
-
-- reduction in bench time
-- improvement in project delivery timelines
+3. **Benching Rate (internal/external)**: Weekly rolling ratio of work basis/ assigned hours on staffing. Separated between internal and external
 - Enhanced client satisfaction through consistently meeting deadlines
 - Better work-life balance through realistic capacity planning
 
@@ -283,7 +282,7 @@ By replacing synthetic data with actual operational data and implementing these 
 
 #### Percentage Schedule Elapsed
 
-- **Formula**: $\text{Schedule\%} = \frac{\text{Days}_{\text{elapsed}}}{\text{Duration}_{\text{est}}}$
+- **Formula**: $\text{Schedule\%} = \frac{\text{Days elapsed}}{\text{Duration}_{\text{est}}}$
 - **Purpose**: Standardizes the measurement of schedule progress, allowing for comparison across projects regardless of their duration.
 
 #### Actual Cost (AC)
@@ -354,3 +353,5 @@ For a sample project with code ending 365, phase 000010, the following performan
 ## Appendix 1: AI Usage
 
 For the development of this project, ChatGPT (free version) and GitHub Copilot were utilized as valuable tools for research assistance, content generation, and code development support. These tools helped our team bridge knowledge gaps between our engineering/technical backgrounds and the consulting domain-specific requirements of this challenge.
+
+## Appendix 2: Predicting Optimal Allocation of Employee Resources

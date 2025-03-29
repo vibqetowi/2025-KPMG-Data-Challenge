@@ -17,3 +17,5 @@ python-dotenv>=0.15.0
 
 # Path handling
 pathlib>=1.0.1
+
+pulp
