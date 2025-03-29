@@ -13,8 +13,12 @@ RUN apt-get update && apt-get install -y gnupg2 curl && \
     apt-get update && \
     apt-get install -y unixodbc unixodbc-dev && \
     ACCEPT_EULA=Y apt-get install -y msodbcsql18 && \
+    ACCEPT_EULA=Y apt-get install -y mssql-tools18 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Add SQL Server tools to PATH
+ENV PATH="${PATH}:/opt/mssql-tools18/bin"
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -29,4 +33,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Run the Python script when the container starts
-CMD ["python", "scripts/pipeline/pipeline.py"]
+CMD ["python", "scripts/dockerstart.py"]
