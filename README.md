@@ -67,9 +67,9 @@ Traditional project management metrics often fail to capture the dual financial 
 
 The VEC is calculated as follows (shown for a specific phase $ph$):
 
-$$
+```math
 \text{VEC}_{ph} = \frac{1}{\text{BAC}_{ph}} \times \sum_{t=1}^{n} \left[ \text{AC}_t \times d_t \times ea_c \times eo_c \right]
-$$
+```
 
 Where:
 
@@ -77,17 +77,17 @@ Where:
 * $ \sum_{t=1}^{n} $: Summation over all individual financial transactions $ t $ (typically timesheet entries) contributing to the phase's actual cost up to the point of measurement.
 * $ \text{AC}_t $: Actual Billed Amount (or Cost equivalent) for transaction $ t $.
 * $ d_t $: Rate Efficiency Factor for transaction $ t $, measuring how the actual chargeout rate used compares to the standard rate for the consultant $ c $ associated with transaction $ t $.
-  $$
+  ```math
   d_t = \frac{\text{Chargeout}_t}{\text{StandardChargeout}_c}
-  $$
+  ```
 * $ ea_c $: External Adjustment Factor for consultant $ c $ (e.g., 1.0 for internal, 0.9 for external).
-  $$
+  ```math
   ea_c = 1 - 0.1 \times \text{isExternal}_c
-  $$
+  ```
 * $ eo_c $: Onboarding/New Hire Adjustment Factor for consultant $ c $ (e.g., 1.0 for experienced, 0.8 for new).
-  $$
+  ```math
   eo_c = 1 - 0.2 \times \text{isNew}_c
-  $$
+  ```
 
 #### Interpreting Financial Health (using VEC and Burn)
 
@@ -115,9 +115,9 @@ Our solution addresses the core optimization challenge facing consulting organiz
 
 The optimization seeks the assignment matrix $A$ (consultant $c$, engagement $en$, hours in week $w$) that maximizes overall value, penalized by switching costs and deviations from recent staffing patterns:
 
-$$
+```math
 \max_{A} \sum_{en \in EN} \left[ w_{en} \times r_{en} \times (\alpha \times \text{SPI}_{en} + \beta \times \text{VEC}_{en}) \right] - \sum_{c,en,w} \text{pse} \times \text{is\_switch}_{c,en,w} - \sum_{en, l, pr, w} \text{Penalty}_{l,pr,en,w}
-$$
+```
 
 Where:
 
@@ -129,16 +129,16 @@ Where:
 * $\text{pse}$: Phase Switching Efficiency factor (penalty for task switching).
 * $\text{is\_switch}_{c,en,w}$: Binary variable: 1 if consultant $c$ is newly assigned to engagement $en$ in week $w$ compared to week $w-1$.
 * **`Penalty_{l,pr,en,w}`**: A penalty term discouraging significant deviations from the previous week's actual staffing mix for level $l$ and practice $pr$ on engagement $en$. Calculated as:
-  $$
+  ```math
   \text{Penalty}_{l,pr,en,w} = \gamma_{l,pr,en} \times \left| \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,en,w}}{\sum_{c \in C} \text{Hours}_{c,en,w}} - \text{ActualRatio}_{l,pr,en,w-1} \right|
-  $$
+  ```
 
   * $\gamma_{l,pr,en}$: A configurable penalty weight. Higher values enforce stricter adherence to the previous week's ratio for that level/practice/engagement.
   * $\text{Hours}_{c,en,w}$: The *planned* hours for consultant $c$ on engagement $en$ in week $w$ (part of the decision variable $A$).
   * $\text{ActualRatio}_{l,pr,en,w-1}$: The *actual* ratio of hours worked by consultants of level $l$ and practice $pr$ on engagement $en$ during the *previous* week ($w-1$), calculated dynamically from the `timesheets` data:
-    $$
+    ```math
     \text{ActualRatio}_{l,pr,en,w-1} = \frac{\sum_{c \in C_{l,pr}} \text{ActualHours}_{c,en,w-1}}{\sum_{c \in C} \text{ActualHours}_{c,en,w-1}}
-    $$
+    ```
 
 **Implementation Notes:**
 
@@ -386,18 +386,28 @@ This section provides the specific database field mappings for metrics described
 
 #### Weighted Average Chargeout Rate (Estimation Aid)
 
-- **Formula**: $`\text{Weighted Rate}_{ph} = \sum_{l=1}^{m} (\text{charge\_out\_rates.standard\_chargeout\_rate}_{l} \times \frac{\sum \text{staffing.planned\_hours}_{l}}{\sum \text{staffing.planned\_hours}})`$
+- **Formula**: 
+```math
+\text{Weighted Rate}_{ph} = \sum_{l=1}^{m} (\text{charge\_out\_rates.standard\_chargeout\_rate}_{l} \times \frac{\sum \text{staffing.planned\_hours}_{l}}{\sum \text{staffing.planned\_hours}})
+```
 - **Purpose**: PoC estimation of average rate for a phase based on planned mix.
 
 #### Staffing Ratio Per Phase
 
-- **Formula**: $\text{StaffingRatio}_{l,ph} = \frac{\sum \text{timesheets.hours}_{l,ph}}{\sum \text{timesheets.hours}_{ph}}$
+- **Formula**: 
+```math
+\text{StaffingRatio}_{l,ph} = \frac{\sum \text{timesheets.hours}_{l,ph}}{\sum \text{timesheets.hours}_{ph}}
+```
 
 #### Hours Required / Estimated Duration (Estimation Aids)
 
 - **Formulae**:
-  - $\text{Hours}_{\text{required\_est},ph} = \frac{\text{phases.budget}_{ph}}{\text{Weighted Rate}_{ph}}$
-  - $`\text{Duration}_{\text{est},ph} = \frac{\text{Hours}_{\text{required\_est},ph}}{\sum (\text{staff\_count}_{l} \times \text{daily\_hours})}`$
+  ```math
+  \text{Hours}_{\text{required\_est},ph} = \frac{\text{phases.budget}_{ph}}{\text{Weighted Rate}_{ph}}
+  ```
+  ```math
+  \text{Duration}_{\text{est},ph} = \frac{\text{Hours}_{\text{required\_est},ph}}{\sum (\text{staff\_count}_{l} \times \text{daily\_hours})}
+  ```
 - **Purpose**: PoC estimation of total effort/timeline for a phase.
 
 #### Days Elapsed
@@ -418,12 +428,14 @@ This section provides the specific database field mappings for metrics described
 #### Value Extraction Coefficient (VEC)
 
 - **Formula**:
-  $\text{VEC}_{ph} = \frac{1}{\text{phases.budget}_{ph}} \times \sum_{t=1}^{n} [(\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t}) \times d_{t} \times ea_{c} \times eo_{c}]$
+  ```math
+  \text{VEC}_{ph} = \frac{1}{\text{phases.budget}_{ph}} \times \sum_{t=1}^{n} [(\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t}) \times d_{t} \times ea_{c} \times eo_{c}]
+  ```
 
 Where:
 
 - $d_{t} = \frac{\text{timesheets.charge\_out\_rate}_{t}}{\text{charge\_out\_rates.standard\_chargeout\_rate}_{c}}$
-- $ea_{c} = 1 - 0.1 \times \text{employees.is\_external}_{c}$
+- $ea_{c} = 1 - 0.1 \times employees.is\_external_c$
 - $eo_{c} = 1 - 0.2 \times isNew_c$ (derived field, not in database)
 
 #### Budget Burn
@@ -522,11 +534,11 @@ All variables in formulas use consistent suffixes to denote the entity they refe
 | Capacity Utilization Rate   | Percentage of capacity utilized in billable work | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{employees.employment\_basis_c} \times 100\%$                         |
 | Assignment Realization Rate | Ratio of actual hours to assigned hours          | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}$                   |
 
-## ETL (Extract, Transform, and Load) Pipeline
+## Appendix 6: ETL (Extract, Transform, and Load) Pipeline
 
 This pipeline is a proof of concept (POC) for automating data extraction, transformation, and loading into a SQL Server database for the KPMG Data Challenge project. In this POC, we're working with CSV and Excel files, but the production implementation would connect directly to Salesforce
 
-## Getting Started
+### Getting Started
 
 1. Ensure all dependencies are installed: `pip install -r requirements.txt`
 2. Configure database connection in `.env` file
@@ -544,59 +556,59 @@ This pipeline is a proof of concept (POC) for automating data extraction, transf
    ```
 5. Execute the generated DML.sql file in SQL Server
 
-### Pipeline Components
+#### Pipeline Components
 
-#### 1. Data Extraction (`excel_to_csv.py`)
+##### 1. Data Extraction (`excel_to_csv.py`)
 
 - **excel_to_csv.py**: Utility for converting Excel files to CSV format, useful for initial data ingestion from Excel sources.
 - **Missing Component**: A direct Salesforce connector that would replace the Excel/CSV ingestion in the production implementation.
 
-#### 2. Data Transformation (`data_transformation.py`)
+##### 2. Data Transformation (`data_transformation.py`)
 
 - Processes raw data files into standardized tables matching the database schema
 - Handles data cleaning, type conversion, and foreign key validation
 - Creates proper relationships between entities (employees, clients, engagements, etc.)
 - Outputs transformed CSV files ready for database loading
 
-#### 3. Database Loading (`DML_writer.py`)
+##### 3. Database Loading (`DML_writer.py`)
 
 - Generates SQL Server T-SQL merge statements (upsert operations) from transformed data
 - Handles batching for large datasets
 - Manages proper insertion order for foreign key constraints
 - Creates a single DML file that can be executed in SQL Server
 
-#### 4. Unified Pipeline (`pipeline.py`)
+##### 4. Unified Pipeline (`pipeline.py`)
 
 - Orchestrates the entire ETL process by calling each component in sequence
 - Handles errors and ensures proper data flow between components
 - Provides a single entry point for executing the complete pipeline
 
-### ETL Workflow
+#### ETL Workflow
 
 1. **Data Extraction**: Raw data is retrieved from Excel files and converted to CSV
 2. **Transformation**: Data is cleaned, validated, and transformed to match database schema
 3. **SQL Generation**: T-SQL statements are generated for database loading
 4. **Database Update**: SQL scripts are executed to update the database
 
-### Production Implementation
+#### Production Implementation
 
 For a production environment, this pipeline would be modified in the following ways:
 
-#### Salesforce Integration
+##### Salesforce Integration
 
 - Replace CSV input with direct Salesforce API integration
 - Use the Salesforce Bulk API for large dataset extraction
 - Implement OAuth 2.0 authentication for secure Salesforce access
 - Schedule regular syncs via cron jobs or schedulers
 
-#### Direct SQL Server Connection
+##### Direct SQL Server Connection
 
 - Eliminate the DML file generation step
 - Use pyodbc or SQLAlchemy to execute SQL statements directly
 - Implement transaction management for atomic operations
 - Add comprehensive logging and error handling
 
-#### Power Automate Integration
+##### Power Automate Integration
 
 Advanced analyses could be triggered via Microsoft Power Automate:
 
@@ -605,7 +617,7 @@ Advanced analyses could be triggered via Microsoft Power Automate:
 - Send notifications when key metrics change
 - Trigger downstream processes based on data changes
 
-### Making the Pipeline Robust
+#### Making the Pipeline Robust
 
 The current pipeline is a proof of concept. To make it production-ready and robust:
 
@@ -635,63 +647,63 @@ The current pipeline is a proof of concept. To make it production-ready and robu
    - Containerize the pipeline for consistent deployment
    - Implement scheduling for regular automated runs
 
-## Advanced Data Analysis
+### Advanced Data Analysis
 
-### Analysis Components
+#### Analysis Components
 
-#### 1. Data Fetcher (`fetcher.py`)
+##### 1. Data Fetcher (`fetcher.py`)
 
 - Provides a flexible data access layer for advanced analysis scripts
 - Automatically attempts to connect to the SQL Server database first
 - Falls back to CSV files if database connection fails
 - Offers standardized data access methods for consistent analysis
 
-#### 2. Timesheet Analysis (`analyze_time_entry.py`)
+##### 2. Timesheet Analysis (`analyze_time_entry.py`)
 
 - Analyzes employee time entry patterns and delays
 - Calculates average delay between work date and entry date
 - Identifies employees with the longest and shortest entry delays
 - Detects unusual time entry behavior (e.g., entries made before work date)
 
-#### 3. Anomaly Detection (`anomaly_detection.py`)
+##### 3. Anomaly Detection (`anomaly_detection.py`)
 
 - Uses machine learning (Isolation Forest) to detect unusual patterns in timesheet data
 - Identifies anomalies in hours logged and time entry delays
 - Generates summary statistics and visualizations
 - Highlights employees with significant anomaly percentages
 
-#### 4. Resource Allocation (`allocation.py`)
+##### 4. Resource Allocation (`allocation.py`)
 
 - Calculates project performance metrics using Earned Value Management (EVM)
 - Analyzes project completion rates against schedules
 - Computes Cost Performance Index (CPI) and Schedule Performance Index (SPI)
 - Provides insights into project health and resource allocation efficiency
 
-### Analysis Workflow
+#### Analysis Workflow
 
 1. **Data Retrieval**: The `fetcher.py` utility retrieves data from the database or CSV files
 2. **Data Processing**: Analysis scripts transform and clean the data for specific analyses
 3. **Analysis Execution**: Specialized algorithms are applied to detect patterns or anomalies
 4. **Results Generation**: Analysis results are displayed or saved for further reporting
 
-### Using the Analysis Tools
+#### Using the Analysis Tools
 
 To run the advanced analysis tools:
 
 ```
-# For timesheet entry analysis
+## For timesheet entry analysis
 python advanced_data_analysis/analyze_time_entry.py
 
-# For anomaly detection
+## For anomaly detection
 python advanced_data_analysis/anomaly_detection.py
 
-# For resource allocation analysis
+## For resource allocation analysis
 python advanced_data_analysis/allocation.py
 ```
 
 Each script will automatically attempt to connect to the database, fall back to CSV files if needed, and generate the appropriate analysis output.
 
-### Next Steps
+#### Next Steps
 
 - Integrate analysis scripts with Power BI for interactive dashboards
 - Create scheduled analysis jobs for regular monitoring
