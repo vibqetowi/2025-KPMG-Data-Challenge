@@ -68,30 +68,30 @@ Traditional project management metrics often fail to capture the dual financial 
 The VEC is calculated as follows (shown for a specific phase $ph$):
 
 ```math
-\text{VEC}_{ph} = \frac{1}{\text{BAC}_{ph}} \times \sum_{t=1}^{n} \left[ \text{AC}_t \times d_t \times ea_c \times eo_c \right]
+VEC_{ph} = \frac{1}{BAC_{ph}} \times \sum_{t=1}^{n} \left[ AC_t \times d_t \times ea_c \times eo_c \right]
 ```
 
 Where:
 
-* $ \text{BAC}_{ph} $: Budget At Completion for phase $ph$. The $ \frac{1}{\text{BAC}_{ph}} $ term normalizes the extracted value against the phase budget baseline. (VEC can also be calculated at the engagement level).
+* $ BAC_{ph} $: Budget At Completion for phase $ph$. The $ \frac{1}{BAC_{ph}} $ term normalizes the extracted value against the phase budget baseline. (VEC can also be calculated at the engagement level).
 * $ \sum_{t=1}^{n} $: Summation over all individual financial transactions $ t $ (typically timesheet entries) contributing to the phase's actual cost up to the point of measurement.
-* $ \text{AC}_t $: Actual Billed Amount (or Cost equivalent) for transaction $ t $.
+* $ AC_t $: Actual Billed Amount (or Cost equivalent) for transaction $ t $.
 * $ d_t $: Rate Efficiency Factor for transaction $ t $, measuring how the actual chargeout rate used compares to the standard rate for the consultant $ c $ associated with transaction $ t $.
   ```math
-  d_t = \frac{\text{Chargeout}_t}{\text{StandardChargeout}_c}
+  d_t = \frac{Chargeout_t}{StandardChargeout_c}
   ```
 * $ ea_c $: External Adjustment Factor for consultant $ c $ (e.g., 1.0 for internal, 0.9 for external).
   ```math
-  ea_c = 1 - 0.1 \times \text{isExternal}_c
+  ea_c = 1 - 0.1 \times isExternal_c
   ```
 * $ eo_c $: Onboarding/New Hire Adjustment Factor for consultant $ c $ (e.g., 1.0 for experienced, 0.8 for new).
   ```math
-  eo_c = 1 - 0.2 \times \text{isNew}_c
+  eo_c = 1 - 0.2 \times isNew_c
   ```
 
 #### Interpreting Financial Health (using VEC and Burn)
 
-Budget Burn for a phase is calculated as $\text{Burn}_{ph} = \frac{\sum AC_t}{\text{BAC}_{ph}}$. VEC and Burn provide a nuanced view of financial health:
+Budget Burn for a phase is calculated as $\text{Burn}_{ph} = \frac{\sum AC_t}{BAC_{ph}}$. VEC and Burn provide a nuanced view of financial health:
 
 |                     | **VEC > Burn** (Premium Realization) | **VEC ≈ Burn** (Standard Realization) | **VEC < Burn** (Value Dilution) |
 | :------------------ | :----------------------------------------- | :------------------------------------------- | :------------------------------------ |
@@ -116,7 +116,7 @@ Our solution addresses the core optimization challenge facing consulting organiz
 The optimization seeks the assignment matrix $A$ (consultant $c$, engagement $en$, hours in week $w$) that maximizes overall value, penalized by switching costs and deviations from recent staffing patterns:
 
 ```math
-\max_{A} \sum_{en \in EN} \left[ w_{en} \times r_{en} \times (\alpha \times \text{SPI}_{en} + \beta \times \text{VEC}_{en}) \right] - \sum_{c,en,w} \text{pse} \times \text{is\_switch}_{c,en,w} - \sum_{en, l, pr, w} \text{Penalty}_{l,pr,en,w}
+\max_{A} \sum_{en \in EN} \left[ w_{en} \times r_{en} \times (\alpha \times SPI_{en} + \beta \times VEC_{en}) \right] - \sum_{c,en,w} pse \times is\_switch_{c,en,w} - \sum_{en, l, pr, w} Penalty_{l,pr,en,w}
 ```
 
 Where:
@@ -125,19 +125,19 @@ Where:
 * $w_{en}$: Strategic value weight of engagement $en$.
 * $r_{en}$: Delivery risk coefficient for engagement $en$.
 * $\alpha, \beta$: Weighting coefficients balancing schedule (SPI) vs. value (VEC).
-* $\text{SPI}_{en}, \text{VEC}_{en}$: Predicted Schedule Performance Index and Value Extraction Coefficient for engagement $en$ *resulting from* the assignment $A$.
-* $\text{pse}$: Phase Switching Efficiency factor (penalty for task switching).
-* $\text{is\_switch}_{c,en,w}$: Binary variable: 1 if consultant $c$ is newly assigned to engagement $en$ in week $w$ compared to week $w-1$.
-* **`Penalty_{l,pr,en,w}`**: A penalty term discouraging significant deviations from the previous week's actual staffing mix for level $l$ and practice $pr$ on engagement $en$. Calculated as:
+* $SPI_{en}, VEC_{en}$: Predicted Schedule Performance Index and Value Extraction Coefficient for engagement $en$ *resulting from* the assignment $A$.
+* $pse$: Phase Switching Efficiency factor (penalty for task switching).
+* $is\_switch_{c,en,w}$: Binary variable: 1 if consultant $c$ is newly assigned to engagement $en$ in week $w$ compared to week $w-1$.
+* $Penalty_{l,pr,en,w}$: A penalty term discouraging significant deviations from the previous week's actual staffing mix for level $l$ and practice $pr$ on engagement $en$. Calculated as:
   ```math
-  \text{Penalty}_{l,pr,en,w} = \gamma_{l,pr,en} \times \left| \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,en,w}}{\sum_{c \in C} \text{Hours}_{c,en,w}} - \text{ActualRatio}_{l,pr,en,w-1} \right|
+  Penalty_{l,pr,en,w} = \gamma_{l,pr,en} \times \left| \frac{\sum_{c \in C_{l,pr}} Hours_{c,en,w}}{\sum_{c \in C} Hours_{c,en,w}} - ActualRatio_{l,pr,en,w-1} \right|
   ```
 
   * $\gamma_{l,pr,en}$: A configurable penalty weight. Higher values enforce stricter adherence to the previous week's ratio for that level/practice/engagement.
-  * $\text{Hours}_{c,en,w}$: The *planned* hours for consultant $c$ on engagement $en$ in week $w$ (part of the decision variable $A$).
-  * $\text{ActualRatio}_{l,pr,en,w-1}$: The *actual* ratio of hours worked by consultants of level $l$ and practice $pr$ on engagement $en$ during the *previous* week ($w-1$), calculated dynamically from the `timesheets` data:
+  * $Hours_{c,en,w}$: The *planned* hours for consultant $c$ on engagement $en$ in week $w$ (part of the decision variable $A$).
+  * $ActualRatio_{l,pr,en,w-1}$: The *actual* ratio of hours worked by consultants of level $l$ and practice $pr$ on engagement $en$ during the *previous* week ($w-1$), calculated dynamically from the `timesheets` data:
     ```math
-    \text{ActualRatio}_{l,pr,en,w-1} = \frac{\sum_{c \in C_{l,pr}} \text{ActualHours}_{c,en,w-1}}{\sum_{c \in C} \text{ActualHours}_{c,en,w-1}}
+    ActualRatio_{l,pr,en,w-1} = \frac{\sum_{c \in C_{l,pr}} ActualHours_{c,en,w-1}}{\sum_{c \in C} ActualHours_{c,en,w-1}}
     ```
 
 **Implementation Notes:**
@@ -151,7 +151,7 @@ Where:
 Due to these business objectives, our solution focuses on the following core KPIs enabling proactive management:
 
 1. **VEC (rolling)**: Value Extraction Coefficient tracking financial realization efficiency.
-2. **Budget Burn (rolling)**: Ratio of Actual Cost to Budget ($\frac{\sum AC}{\text{BAC}}$) tracking cost control. *Used with VEC for financial health.*
+2. **Budget Burn (rolling)**: Ratio of Actual Cost to Budget ($\frac{\sum AC}{BAC}$) tracking cost control. *Used with VEC for financial health.*
 3. **SPI (rolling)**: Schedule Performance Index tracking delivery progress against plan.
 4. **Benching Rate (internal/external)**: Weekly rolling percentage of available capacity *not assigned* to engagements.
 5. **Capacity Utilization Rate (internal/external)**: Weekly rolling ratio of *actual billable hours logged* versus standard capacity.
@@ -388,7 +388,7 @@ This section provides the specific database field mappings for metrics described
 
 - **Formula**: 
 ```math
-\text{Weighted Rate}_{ph} = \sum_{l=1}^{m} (\text{charge\_out\_rates.standard\_chargeout\_rate}_{l} \times \frac{\sum \text{staffing.planned\_hours}_{l}}{\sum \text{staffing.planned\_hours}})
+Weighted Rate_{ph} = \sum_{l=1}^{m} (charge\_out\_rates.standard\_chargeout\_rate_{l} \times \frac{\sum staffing.planned\_hours_{l}}{\sum staffing.planned\_hours})
 ```
 - **Purpose**: PoC estimation of average rate for a phase based on planned mix.
 
@@ -396,82 +396,82 @@ This section provides the specific database field mappings for metrics described
 
 - **Formula**: 
 ```math
-\text{StaffingRatio}_{l,ph} = \frac{\sum \text{timesheets.hours}_{l,ph}}{\sum \text{timesheets.hours}_{ph}}
+StaffingRatio_{l,ph} = \frac{\sum timesheets.hours_{l,ph}}{\sum timesheets.hours_{ph}}
 ```
 
 #### Hours Required / Estimated Duration (Estimation Aids)
 
 - **Formulae**:
   ```math
-  \text{Hours}_{\text{required\_est},ph} = \frac{\text{phases.budget}_{ph}}{\text{Weighted Rate}_{ph}}
+  Hours_{\text{required\_est},ph} = \frac{phases.budget_{ph}}{Weighted Rate_{ph}}
   ```
   ```math
-  \text{Duration}_{\text{est},ph} = \frac{\text{Hours}_{\text{required\_est},ph}}{\sum (\text{staff\_count}_{l} \times \text{daily\_hours})}
+  Duration_{\text{est},ph} = \frac{Hours_{\text{required\_est},ph}}{\sum (staff\_count_{l} \times daily\_hours)}
   ```
 - **Purpose**: PoC estimation of total effort/timeline for a phase.
 
 #### Days Elapsed
 
-- **Formula**: $\text{Days}_{\text{elapsed},ph} = \text{CURRENT\_DATE} - \text{phases.start\_date}_{ph}$
+- **Formula**: $Days_{\text{elapsed},ph} = CURRENT\_DATE - phases.start\_date_{ph}$
 - **Purpose**: Measures time progression.
 
 #### Percentage Schedule Elapsed
 
-- **Formula**: $\text{Schedule\%}_{ph} = \frac{\text{Days Elapsed}_{ph}}{(\text{phases.end\_date}_{ph} - \text{phases.start\_date}_{ph})}$
+- **Formula**: $Schedule\%_{ph} = \frac{Days Elapsed_{ph}}{(phases.end\_date_{ph} - phases.start\_date_{ph})}$
 - **Purpose**: Standardizes schedule progress measurement for PV calculation.
 
 #### Actual Cost (AC)
 
-- **Formula**: $\text{AC}_{\text{to date},ph} = \sum_{t=1}^{n} (\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t})$
+- **Formula**: $AC_{\text{to date},ph} = \sum_{t=1}^{n} (timesheets.std\_price_{t} + timesheets.adm\_surcharge_{t})$
 - **Purpose**: Calculates actual expenditure to date.
 
 #### Value Extraction Coefficient (VEC)
 
 - **Formula**:
   ```math
-  \text{VEC}_{ph} = \frac{1}{\text{phases.budget}_{ph}} \times \sum_{t=1}^{n} [(\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t}) \times d_{t} \times ea_{c} \times eo_{c}]
+  VEC_{ph} = \frac{1}{phases.budget_{ph}} \times \sum_{t=1}^{n} [(timesheets.std\_price_{t} + timesheets.adm\_surcharge_{t}) \times d_{t} \times ea_{c} \times eo_{c}]
   ```
 
 Where:
 
-- $d_{t} = \frac{\text{timesheets.charge\_out\_rate}_{t}}{\text{charge\_out\_rates.standard\_chargeout\_rate}_{c}}$
+- $d_{t} = \frac{timesheets.charge\_out\_rate_t}{charge\_out\_rates.standard\_chargeout\_rate_c}$
 - $ea_{c} = 1 - 0.1 \times employees.is\_external_c$
 - $eo_{c} = 1 - 0.2 \times isNew_c$ (derived field, not in database)
 
 #### Budget Burn
 
-- **Formula**: $\text{Burn}_{ph} = \frac{\sum_{t} (\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t})}{\text{phases.budget}_{ph}}$
+- **Formula**: $Burn_{ph} = \frac{\sum_{t} (timesheets.std\_price_{t} + timesheets.adm\_surcharge_{t})}{phases.budget_{ph}}$
 
 #### Planned Value (PV)
 
-- **Formula**: $\text{PV}_{ph} = \text{phases.budget}_{ph} \times \text{Schedule\%}_{ph}$
+- **Formula**: $PV_{ph} = phases.budget_{ph} \times Schedule\%_{ph}$
 - **Purpose**: Budgeted cost of work scheduled.
 
 #### Earned Value (EV)
 
-- **Formula (PoC Method)**: $\text{EV}_{ph} = \sum_{t} (\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t}) \times 0.98$
+- **Formula (PoC Method)**: $EV_{ph} = \sum_{t} (timesheets.std\_price_{t} + timesheets.adm\_surcharge_{t}) \times 0.98$
 - **Purpose**: Represents value of work completed with efficiency factor.
 
 #### Schedule Performance Index (SPI)
 
-- **Formula**: $\text{SPI}_{ph} = \frac{\text{EV}_{ph}}{\text{PV}_{ph}}$
+- **Formula**: $SPI_{ph} = \frac{EV_{ph}}{PV_{ph}}$
 - **Purpose**: Quantifies schedule efficiency.
 
 #### Weekly Benching Rate
 
-- **Formula**: $`\text{Benching Rate}_{c,w} = \left( 1 - \frac{\sum_{en,ph} \text{staffing.planned\_hours}_{c,en,ph,w}}{\text{employees.employment\_basis}_{c}} \right) \times 100\%`$
+- **Formula**: $`Benching Rate_{c,w} = \left( 1 - \frac{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}{employees.employment\_basis_c} \right) \times 100\%`$
 - **Definition**: Percentage of employee's contracted capacity not assigned to engagements.
 - **Purpose**: KPI measuring unallocated bench time.
 
 #### Weekly Capacity Utilization Rate
 
-- **Formula**: $`\text{Capacity Utilization}_{c,w} = \frac{\sum_{en,ph} \text{timesheets.hours}_{c,en,ph,w}}{\text{employees.employment\_basis}_{c}} \times 100\%`$
+- **Formula**: $`Capacity Utilization_{c,w} = \frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{employees.employment\_basis_c} \times 100\%`$
 - **Definition**: Percentage of employee's contracted capacity utilized in billable work.
 - **Purpose**: KPI measuring productive engagement.
 
 #### Weekly Assignment Realization Rate (Internal Metric)
 
-- **Formula**: $`\text{Assignment Realization Rate}_{c,w} = \frac{\sum_{en,ph} \text{timesheets.hours}_{c,en,ph,w}}{\sum_{en,ph} \text{staffing.planned\_hours}_{c,en,ph,w}}`$
+- **Formula**: $`Assignment Realization Rate_{c,w} = \frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}`$
 - **Definition**: Ratio of actual hours to assigned hours.
 - **Purpose**: Internal metric for planning accuracy assessment.
 
