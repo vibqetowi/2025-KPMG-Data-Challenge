@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: kpmg-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "YourStrong@Passw0rd"
+      MSSQL_TCP_PORT: "1433"
+    ports:
+      - "3306:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./Database/DDL.sql:/docker-entrypoint-initdb.d/DDL.sql
+      - ./Database/DML.sql:/docker-entrypoint-initdb.d/DML.sql
+
+  python:
+    build: .
+    container_name: kpmg-python
+    volumes:
+      - .:/app
+    depends_on:
+      - sqlserver
+
+volumes:
+  sqlserver_data:

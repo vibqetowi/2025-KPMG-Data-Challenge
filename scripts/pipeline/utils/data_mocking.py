@@ -5,13 +5,9 @@ from pandas.tseries.offsets import BDay
 
 class DataMocker:
     
-    
-    def __init__(self, fetcher):
-        self.fetcher = fetcher
-        self._phase_dates_cache = None
-
-
-
+    def __init__(self, fetcher=None):
+        from advanced_data_analysis.fetcher import DataFetcher
+        self.fetcher = fetcher if fetcher else DataFetcher(source="csv")
         
     def create_default_practices(self):
         """
@@ -151,65 +147,104 @@ class DataMocker:
         return df_vacations
 
     def get_engagement_dates(self, eng_no):
-        if self._phase_dates_cache is None:
-            data = self.fetcher.fetch_data(["phases", "staffing"])
-            self._phase_dates_cache = self.generate_phase_dates_from_budget(data["phases"], data["staffing"])
-        rows = self._phase_dates_cache[self._phase_dates_cache["eng_no"] == eng_no]
-        return (rows["start_date"].min(), rows["end_date"].max()) if not rows.empty else (None, None)
+        """
+        Returns mock start and end date for an engagement, based on its phases.
+        """
+        fetcher = self.fetcher
+        data = fetcher.fetch_data(["phases", "staffing"])
+
+        phases_df = data["phases"]
+        staffing_df = data["staffing"]
+  
+        # Generate dates for all phases
+        phases_with_dates = self.generate_phase_dates_from_budget(phases_df, staffing_df)
+        
+        print(phases_with_dates[["eng_no", "eng_phase", "start_date", "end_date"]])
+
+       # Filter only phases for this engagement
+        rows = phases_with_dates[phases_with_dates["eng_no"] == eng_no]
+
+        if rows.empty:
+            return None, None
+    
+        start_date = rows["start_date"].min()
+        end_date = rows["end_date"].max()
+
+        return start_date, end_date
 
     def get_phase_dates(self, eng_no, eng_phase):
-        if self._phase_dates_cache is None:
-            data = self.fetcher.fetch_data(["phases", "staffing"])
-            self._phase_dates_cache = self.generate_phase_dates_from_budget(data["phases"], data["staffing"])
-        row = self._phase_dates_cache[
-            (self._phase_dates_cache["eng_no"] == eng_no) &
-            (self._phase_dates_cache["eng_phase"] == eng_phase)
-        ]
-        return (row.iloc[0]["start_date"], row.iloc[0]["end_date"]) if not row.empty else (None, None)
+        """
+        Returns mock start and end dates for a specific engagement phase.
+        """
+        fetcher = self.fetcher
+        data = fetcher.fetch_data(["phases", "staffing"])
 
+        phases_df = data["phases"]
+        staffing_df = data["staffing"]
+
+        # Generate all phase dates
+        phases_with_dates = self.generate_phase_dates_from_budget(phases_df, staffing_df)
+
+        # Extract the matching row
+        row = phases_with_dates[
+        (phases_with_dates["eng_no"] == eng_no) &
+        (phases_with_dates["eng_phase"] == eng_phase)
+        ]
+
+        if not row.empty:
+            return row.iloc[0]["start_date"], row.iloc[0]["end_date"]
+        else:
+            return None, None
+        
     def generate_phase_dates_from_budget(self, phases_df, staffing_df, start_reference="2025-01-01", default_rate=100):
+        import pandas as pd
+        from datetime import timedelta
+        
+
+
+        # Merge phase and staffing
         merged = pd.merge(phases_df, staffing_df, on=["eng_no", "eng_phase"], how="left")
-        timesheets = self.fetcher.fetch_data("timesheets")["timesheets"]
-        timesheets["work_date"] = pd.to_datetime(timesheets["work_date"])
-        first_work_dates = (
-            timesheets.dropna(subset=["eng_no", "eng_phase", "work_date"])
-            .groupby(["eng_no", "eng_phase"])["work_date"]
-            .min()
-            .reset_index()
-            .rename(columns={"work_date": "start_date"})
-        )
-        merged = pd.merge(merged, first_work_dates, on=["eng_no", "eng_phase"], how="left")
-        rate_col = "charge_out_rate"
-        merged[rate_col] = merged.get(rate_col, default_rate)
-        merged[rate_col] = merged[rate_col].fillna(default_rate)
-        merged["effort_hours"] = merged["budget"] / merged[rate_col]
+
+        # Fill missing charge rates if needed
+        if "charge_out_rate" not in merged.columns:
+            merged["charge_out_rate"] = default_rate
+        else:
+            merged["charge_out_rate"] = merged["charge_out_rate"].fillna(default_rate)
+
+        # Estimate effort per person (budget ÷ rate)
+        merged["effort_hours"] = merged["budget"] / merged["charge_out_rate"]
+
+        # Group by phase and count personnel
         headcounts = (
             merged.groupby(["eng_no", "eng_phase"])["personnel_no"]
             .nunique()
             .reset_index()
-            .rename(columns={"personnel_no": "headcount"})
         )
+        headcounts.rename(columns={"personnel_no": "headcount"}, inplace=True)
+
+        # Merge again
         merged = pd.merge(merged, headcounts, on=["eng_no", "eng_phase"], how="left")
-        merged["headcount"] = merged["headcount"].fillna(1)
-        merged["duration_days"] = (merged["effort_hours"] / (merged["headcount"] * 8)).round().astype(int)
 
-        if "start_date_y" in merged.columns:
-            start_col = "start_date_y"
-        elif "start_date_x" in merged.columns:
-            start_col = "start_date_x"
-        else:
-            start_col = None
-
-        merged["start_date"] = pd.to_datetime(
-            merged[start_col] if start_col else start_reference
-        ).where(
-            merged[start_col].notna() if start_col else False,
-            pd.to_datetime(start_reference)
+        # Avoid division by zero
+        merged["headcount"] = merged["headcount"].replace(0, 1)
+    
+        # Duration in days = effort ÷ (headcount × 8)
+        merged["end_date"] = merged.apply(
+            lambda row: row["start_date"] + BDay(int(row["duration_days"])), axis=1
         )
 
-        merged["end_date"] = pd.to_datetime(merged["start_date"]) + merged["duration_days"].apply(lambda x: BDay(x))
 
-        return merged.drop_duplicates(subset=["eng_no", "eng_phase"])[["eng_no", "eng_phase", "start_date", "end_date"]]
+        # Mock start date from reference
+        merged["start_date"] = pd.to_datetime(start_reference)
+        merged["end_date"] = merged["start_date"] + merged["duration_days"].astype("int") * BDay()
 
+
+        # Return grouped result
+        return merged[["eng_no", "eng_phase", "start_date", "end_date"]].drop_duplicates()
     
+    
+    def __init__(self, fetcher=None):
+        from advanced_data_analysis.fetcher import DataFetcher
+        self.fetcher = fetcher if fetcher else DataFetcher(source="csv")
+
 
