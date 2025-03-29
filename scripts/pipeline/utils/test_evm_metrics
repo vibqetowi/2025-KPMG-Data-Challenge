@@ -1,0 +1,28 @@
+# test_evm_metrics.py
+import os
+import sys
+import pandas as pd
+
+# 👇 Adds 'scripts/' to sys.path so imports work from there
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+from evm_metrics import compute_evm_metrics
+from advanced_data_analysis.fetcher import DataFetcher
+
+
+# ✅ Set up the CSV fetcher
+fetcher = DataFetcher(source="csv", csv_base_path="C:\\Users\\elrom\\Documents\\2025-KPMG-Data-Challenge\\csv-dump")
+
+# ✅ Load timesheet data
+df_time = fetcher.fetch_data("timesheets")["timesheets"]
+
+# ✅ Compute EV, PV, SPI
+summary = compute_evm_metrics(df_time)
+
+# ✅ Display results
+print(summary)
+
+# ✅ Save summary to CSV
+output_path = "C:\\Users\\elrom\\Documents\\2025-KPMG-Data-Challenge\\csv-dump\\evm_summary.csv"
+summary.to_csv(output_path, index=False)
+print(f"✅ EVM summary saved to {output_path}")
