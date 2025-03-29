@@ -75,7 +75,7 @@ Each factor represents the percentage of value retained after applying that part
 Our solution addresses the core optimization challenge facing consulting organizations:
 
 $$
-\max_{A} \sum_{p \in P} w_p \times (\alpha \times \text{SPI}_p + \beta \times \text{VEC}_p)
+\max_{A} \sum_{p \in P} w_p \times r_p \times (\alpha \times \text{SPI}_p + \beta \times \text{VEC}_p) - \sum_{c\in C, p \in P, w \in W}\text{pse} \times \text{is\_switch}_{c,p,w}
 $$
 
 Where $A$ represents the assignment matrix of consultants to projects (i.e., which consultants work on which projects and for how many hours). The optimization seeks to find the best possible allocation of consultant resources across all projects that maximizes the objective function.
@@ -83,26 +83,35 @@ Where $A$ represents the assignment matrix of consultants to projects (i.e., whi
 Subject to critical business constraints:
 
 - SPI > 0.85 for all projects (preventing schedule slippage)
+- VEC > 0.85 for all projects (ensuring adequate value extraction)
 - Consultant benching < 20% (maximizing billable utilization)
 - $\forall c \in C, \sum_{p \in P} \text{Hours}_{c,p,w} \leq 40, \forall w \in \text{Weeks}$ (maintaining work-life balance)
 - $\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,p,w}}{\sum_{c \in C} \text{Hours}_{c,p,w}} = r_{l,pr,p}, \forall p \in P, \forall w \in \text{Weeks}$ (maintaining appropriate staffing ratios)
+- $\sum_{p \in P} \text{Hours}_{c_{ext},p,w} > 0 \implies \sum_{p \in P} \text{Hours}_{c_{int},p,w} = 40, \forall c_{int} \in C_{int}, \forall c_{ext} \in C_{ext}, \forall w \in \text{Weeks}$ (prioritizing internal consultants before external consultants)
 
 Where:
 
 - $w_p$ represents the strategic value weight of project $p$ (higher values for strategically important clients or projects)
+- $r_p$ is the delivery risk coefficient for project $p$, reflecting complexity and criticality
 - $\alpha, \beta$ are weighting coefficients for balancing schedule performance and value extraction
+- $\text{pse}$ is the project switching efficiency factor (≤ 1) that accounts for productivity loss when consultants switch projects
+- $\text{is\_switch}_{c,p,w}$ is a binary variable indicating whether consultant $c$ is newly assigned to project $p$ in week $w$
 - $L$ is the set of staff levels
 - $PR$ is the set of practice areas
 - $C_{l,pr}$ is the subset of consultants at level $l$ from practice area $pr$
+- $C_{int}$ is the subset of internal consultants
+- $C_{ext}$ is the subset of external consultants
 - $r_{l,pr,p}$ is the target ratio of hours for level $l$ and practice $pr$ in project $p$
 
 The staffing ratio constraint ensures that each project maintains the required mix of different staff levels and practice areas, which is critical for proper project delivery. This optimization balances:
 
 1. Schedule performance (SPI) to ensure timely project delivery
-2. Value extraction (VEC) to maximize financial performance 
+2. Value extraction (VEC) to maximize financial performance
 3. Strategic project importance through project-specific weights ($w_p$)
+4. Delivery risk through the risk coefficient ($r_p$)
+5. Efficiency considerations in consultant reassignments through the project switching efficiency factor
 
-While maintaining appropriate staffing ratios by level and practice area for each project.
+While maintaining appropriate staffing ratios by level and practice area for each project and prioritizing the utilization of internal resources before external consultants.
 
 ### Key Performance Indicators (KPIs)
 
@@ -111,6 +120,7 @@ Due to these business objectives, our solution focuses on four key performance i
 1. **VEC (rolling)**: Value Extraction Coefficient measured on a rolling basis to identify trends in maintaining target rates without excessive discounting
 2. **SPI (rolling)**: Schedule Performance Index tracked on a rolling basis to monitor project delivery efficiency
 3. **Benching Rate (internal/external)**: Weekly rolling ratio of work basis/ assigned hours on staffing. Separated between internal and external
+
 - Enhanced client satisfaction through consistently meeting deadlines
 - Better work-life balance through realistic capacity planning
 
@@ -219,33 +229,37 @@ By replacing synthetic data with actual operational data and implementing these 
 
    - Justification: In database practice, it is resonable to trust keys when in doubt.
    - Impact: Standardizing client identity by number ensures consistent client handling.
-7) Employees at the same level and practice are interchangeable without compromising efficiency.
+7) Employees at the same level and practice are interchangeable without compromising efficiency ($pse = 1$).
 
    - Impact: Simplifies our calculations for cross project assignments, this will not reflect in production but is hard to estimate without more metrics.
 8) Project starts on the date of the first logged working day of the phase
 
    - Impact: Establishing the mandate start date from the first billing addresses the absence of explicit start dates in the original dataset, providing a consistent basis for project timeline management.
-9) All projects have equal importance
+9) All projects inthe dataset are equally important ($w_p$ is constant)
 
    - Justification: In the absence of specific prioritization criteria, all projects are assumed to be of equal importance for optimization purposes.
-   - Impact: With no differentiated project priorities, the optimization process focuses on maximizing overall resource assignment and utilization across the project portfolio.
-10) Due to discrepancies between staffing and timesheets, staffing data will be prioritized
+   - Impact: Easier calculation for this demo.
+10) All projects in the dataser are equally risky ($r_p$ is constant)
+
+    - Justification: No data
+    - Impact: Easier calculation for this demo.
+11) Due to discrepancies between staffing and timesheets, staffing data will be prioritized
 
     - Justification: Staffing data contains a client ID number that is absent in the 'TIME' dataset, which appears to be specific to Company Y.
     - Impact: To maintain data integrity and consistency, client ID numbers in the 'TIME' dataset for Client Y are assumed to be erroneous and will be replaced with the corresponding values from the staffing data.
-11) Negative hours logged offset hours on other projects for the same client
+12) Negative hours logged offset hours on other projects for the same client
 
     - Justification: Data analysis indicates a pattern where negative hour entries for a consultant are associated with work on other mandates for the same client. This is also standard project management practice to respect budgets
     - Impact: While this assumption is made based on observed data patterns, the validity and full implications remain uncertain and require further investigation.
-12) Differential Time Reporting Behaviors Between Internal and External Consultants
+13) Differential Time Reporting Behaviors Between Internal and External Consultants
 
     - Justification: Analysis of timesheet submission patterns revealed significant delays from some senior managers, with entries submitted up to 55+ days late. This pattern aligns with previous observations that internal consultants (who receive regular salaries regardless of timely reporting) may have fewer immediate incentives for prompt time entry compared to external consultants whose compensation depends directly on reported hours.
     - Impact: For the sake of a demo, statistical analysis was conducted and consultants who wait on average less than 3 days to report their work hours were tagged as external, managers and above were excluded.
-13) External consultants reduce profitability by 10%
+14) External consultants reduce profitability by 10%
 
     - Justification: This discount rate is arbitrary and should be fixed with production data.
     - Impact: This adjustment ensures that the VEC calculation accurately reflects the lower profitability of engagements with higher proportions of external consultants, helping practice leaders make more informed decisions about staffing mix.
-14) Chargeout rates are negotiated per engagement
+15) Chargeout rates are negotiated per engagement
 
 - Justification: analysis on the current dataset reveals that chargeout rates per consultant are consistent across one assignment but not across all assignments. Considering the limited timeframe, it is unlikely this is because of a promotion.
 - Impact: This allows us to track the negotiatied chargeout rate and run the VEC calculations.
@@ -355,3 +369,69 @@ For a sample project with code ending 365, phase 000010, the following performan
 For the development of this project, ChatGPT (free version) and GitHub Copilot were utilized as valuable tools for research assistance, content generation, and code development support. These tools helped our team bridge knowledge gaps between our engineering/technical backgrounds and the consulting domain-specific requirements of this challenge.
 
 ## Appendix 2: Predicting Optimal Allocation of Employee Resources
+
+The optimization formula presented in the Business Objectives section represents a complex resource allocation problem that requires an algorithmic approach to solve efficiently. Here, we outline our implementation strategy for this optimization:
+
+### Implementation Strategy
+
+1. **Data Preparation Phase**
+
+   - Calculate current project statuses (SPI, VEC) from the database
+   - Retrieve consultant availability data, including planned vacations
+   - Calculate staffing ratios for each phase and for the open projects in the practice (essential because ratios may be missing or significantly differ from department averages)
+   - Calculate strategic value weights $(w_p)$ for each project based on client priority, project size, and delivery risk
+   - Determine delivery risk coefficient $(r_p)$ for each project to account for complexity and criticality
+2. **Optimization Algorithm Selection**
+
+   - We implemented a Mixed Integer Linear Programming (MILP) approach using the PuLP library in Python
+   - The optimization runs weekly to reallocate resources based on updated project performance metrics
+   - The assignment matrix A represents hours allocated per consultant, per project, per week
+3. **Constraint Implementation**
+
+   - Project schedule constraints: SPI > 0.85 is enforced by calculating minimum required consultant hours
+   - Project value constraints: VEC > 0.85 to ensure adequate value extraction across all projects
+   - Staffing ratio constraints: Required percentages of each level and practice are maintained
+   - Consultant capacity constraints: No consultant is assigned more than 40 hours weekly
+   - Vacation awareness: Consultant assignments respect approved time off
+   - Internal priority: Internal consultants must be maximally utilized before external consultants are assigned
+   - Project switching efficiency: A factor (pse ≤ 1) is applied to account for efficiency loss when consultants switch projects (currently set to 1 per our assumptions)
+4. **Enhanced Objective Function**
+
+   ```python
+   # Pseudocode for the enhanced objective function
+   model += pulp.lpSum([
+       project_weights[p] * r_p * (
+           alpha * calculate_projected_SPI(p, assignments) +
+           beta * calculate_projected_VEC(p, assignments)
+       ) - sum(pse_factor * is_project_switch[c, p, w] for c in consultants)
+       for p in projects
+   ])
+
+   # Internal consultant priority constraint
+   for w in weeks:
+       for c_ext in external_consultants:
+           for p in projects:
+               # External consultants can only be assigned if all eligible internal consultants 
+               # are already at maximum capacity (or on vacation)
+               model += assignments[(c_ext, p, w)] <= M * (
+                   sum(is_at_capacity[c_int, w] for c_int in eligible_internal_consultants[p])
+                   == len(eligible_internal_consultants[p])
+               )
+   ```
+5. **Post-Optimization Processing**
+
+   - Results are written back to the staffing_prediction table
+   - Dashboard visualizations update to reflect the optimized allocations
+   - Resource managers receive notifications of significant reassignments
+6. **Practical Considerations**
+
+   - The weights α and β are configurable parameters (default: α=0.6, β=0.4)
+   - For very large consultant pools, a two-phase approach may be used where:
+
+     - Phase 1: Pre-filter eligible consultants for each project based on skills and availability
+     - Phase 2: Run optimization on the reduced candidate pool
+   - Weekly re-optimization includes "stability constraints" to minimize excessive consultant reassignments
+   - Skills matching (not fully implemented in the current version) would add additional constraints to ensure consultants have the required capabilities for assigned projects
+   - The project switching efficiency factor (pse) could be calibrated in production based on historical performance data to reflect the actual productivity impact of reassignments
+
+This approach provides a balance between optimizing for both schedule performance and value extraction while maintaining practical constraints essential for consulting operations, prioritizing internal resources, and considering the efficiency impacts of project reassignments.
