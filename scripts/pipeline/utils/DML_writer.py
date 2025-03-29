@@ -7,7 +7,17 @@ statements from transformed CSV data.
 import os
 import pandas as pd
 from pathlib import Path
+import sys
 import logging
+
+# Add parent directories to path
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+project_root = current_dir.parent.parent.parent
+shared_dir = project_root / "scripts" / "shared"
+sys.path.append(str(shared_dir))
+
+# Import from shared modules
+from config import TRANSFORMED_DIR, DML_FILE
 
 # Configure logging
 logging.basicConfig(
@@ -16,17 +26,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Hardcoded directories
-INPUT_DIR = Path('/Users/notAdmin/Dev/2025 KPMG Data Challenge/csv-dump/transformed')
-OUTPUT_FILE = Path('/Users/notAdmin/Dev/2025 KPMG Data Challenge/Database/DML.sql')
-
 class DMLWriter:
     def __init__(self):
         """
-        Initialize the DML writer with hardcoded directories for transformed CSV files and output SQL file.
+        Initialize the DML writer with directories for transformed CSV files and output SQL file.
         """
-        self.csv_dir = INPUT_DIR
-        self.output_file = OUTPUT_FILE
+        self.csv_dir = TRANSFORMED_DIR
+        self.output_file = DML_FILE
         
         # Ensure output directory exists
         self.output_file.parent.mkdir(exist_ok=True, parents=True)

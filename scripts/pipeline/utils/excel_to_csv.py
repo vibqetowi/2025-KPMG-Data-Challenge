@@ -7,6 +7,22 @@ conversion to CSV format for further processing.
 import pandas as pd
 import os
 import argparse
+import sys
+from pathlib import Path
+import logging
+
+# Add parent directories to path
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+project_root = current_dir.parent.parent.parent
+shared_dir = project_root / "scripts" / "shared"
+sys.path.append(str(shared_dir))
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def excel_to_csv(excel_file, output_dir=None):
     """
@@ -28,6 +44,7 @@ def excel_to_csv(excel_file, output_dir=None):
     base_name = os.path.splitext(os.path.basename(excel_file))[0]
     
     # Read the Excel file
+    logger.info(f"Reading Excel file: {excel_file}")
     excel = pd.ExcelFile(excel_file)
     
     # Extract each sheet
@@ -44,7 +61,7 @@ def excel_to_csv(excel_file, output_dir=None):
         
         # Save to CSV
         df.to_csv(csv_path, index=False)
-        print(f"Sheet '{sheet_name}' saved as '{csv_path}'")
+        logger.info(f"Sheet '{sheet_name}' saved as '{csv_path}'")
 
 def main():
     parser = argparse.ArgumentParser(description='Convert Excel sheets to CSV files')

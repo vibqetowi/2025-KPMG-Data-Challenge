@@ -2,12 +2,30 @@ import pandas as pd
 from datetime import datetime
 import random
 from pandas.tseries.offsets import BDay
+import sys
+import os
+from pathlib import Path
+import logging
+
+# Add parent directories to path
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+project_root = current_dir.parent.parent.parent
+shared_dir = project_root / "scripts" / "shared"
+sys.path.append(str(shared_dir))
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 class DataMocker:
     
     def __init__(self):
         """Initialize the DataMocker class for generating synthetic data."""
         self._phase_dates_cache = None
+        logger.info("DataMocker initialized")
 
     def create_default_practices(self):
         """
@@ -146,10 +164,25 @@ class DataMocker:
         
         return df_vacations
 
-    def get_engagement_dates(self, eng_no):
+    def get_engagement_dates(self, eng_no, phases_df=None, staffing_df=None):
+        """
+        Get start and end dates for an engagement.
+        
+        Args:
+            eng_no: Engagement number
+            phases_df: DataFrame containing phase information (optional)
+            staffing_df: DataFrame containing staffing information (optional)
+            
+        Returns:
+            Tuple of (start_date, end_date) or (None, None) if not found
+        """
         if self._phase_dates_cache is None:
-            data = self.fetch_data(["phases", "staffing"])
-            self._phase_dates_cache = self.generate_phase_dates_from_budget(data["phases"], data["staffing"])
+            if phases_df is not None and staffing_df is not None:
+                self._phase_dates_cache = self.generate_phase_dates_from_budget(phases_df, staffing_df)
+            else:
+                logger.warning("Cannot get engagement dates: No phase data available")
+                return (None, None)
+                
         rows = self._phase_dates_cache[self._phase_dates_cache["eng_no"] == eng_no]
         return (rows["start_date"].min(), rows["end_date"].max()) if not rows.empty else (None, None)
 
