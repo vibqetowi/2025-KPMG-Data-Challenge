@@ -7,7 +7,7 @@ scripts_dir = os.path.abspath(os.path.join(current_dir, "..", ".."))
 sys.path.insert(0, scripts_dir)  # now scripts/ is in the path
 
 # ✅ Now you can import properly
-from advanced_data_analysis.fetcher import DataFetcher
+from advanced_data_analysis.utils.fetcher import DataFetcher
 from pipeline.utils.data_mock import DataMocker
 
 
