@@ -1,5 +1,16 @@
+import sys
+import os
+
+# 👇 Add the correct path to access advanced_data_analysis from utils/
+current_dir = os.path.dirname(__file__)
+scripts_dir = os.path.abspath(os.path.join(current_dir, "..", ".."))
+sys.path.insert(0, scripts_dir)  # now scripts/ is in the path
+
+# ✅ Now you can import properly
 from advanced_data_analysis.fetcher import DataFetcher
 from pipeline.utils.data_mock import DataMocker
+
+
 
 # ✅ First, define your custom fetcher with the correct CSV path
 fetcher = DataFetcher(source="csv", csv_base_path="C:\\Users\\elrom\\Documents\\2025-KPMG-Data-Challenge\\csv-dump")
