@@ -129,6 +129,7 @@ Where:
 * $pse$: Phase Switching Efficiency factor (penalty for task switching).
 * $is\_switch_{c,en,w}$: Binary variable: 1 if consultant $c$ is newly assigned to engagement $en$ in week $w$ compared to week $w-1$.
 * $Penalty_{l,pr,en,w}$: A penalty term discouraging significant deviations from the previous week's actual staffing mix for level $l$ and practice $pr$ on engagement $en$. Calculated as:
+
   ```math
   Penalty_{l,pr,en,w} = \gamma_{l,pr,en} \times \left| \frac{\sum_{c \in C_{l,pr}} Hours_{c,en,w}}{\sum_{c \in C} Hours_{c,en,w}} - ActualRatio_{l,pr,en,w-1} \right|
   ```
@@ -267,54 +268,69 @@ For a sample engagement phase (Code ending 365, Phase 000010), metrics observed:
 
 ChatGPT (free version) and GitHub Copilot were utilized during development for research assistance, conceptual brainstorming, content generation, and code development support.
 
-## Appendix 2: Predicting Optimal Allocation of Employee Resources
+## Appendix 2: Predicting Optimal Allocation of Employee Resources (Demo Implementation Strategy)
 
-The optimization formula is solved algorithmically:
+This section details the algorithmic approach for solving the resource optimization problem, specifically outlining the strategy for this demonstration using Mixed Integer Linear Programming (MILP) [see video.](https://www.youtube.com/embed/E72DWgKP_1Y).
 
 ### Implementation Strategy
 
-1. **Data Preparation Phase (Scheduled)**
-   * Calculate current engagement statuses (SPI, VEC, Burn).
-   * Retrieve consultant availability (including vacations).
-   * Determine required staffing ratios ($r_{l,pr,en}$) for active **engagements/phases**.
-   * Retrieve strategic weights ($w_{en}$) and risk coefficients ($r_{en}$).
-2. **Optimization Algorithm Selection**
-   * Implemented using Mixed Integer Linear Programming (MILP) via Python `PuLP`.
-   * Runs weekly to recommend assignments for the upcoming period.
-   * Assignment matrix $A$ (hours per consultant $c$, per engagement $en$, per week $w$).
-3. **Constraint Implementation**
-   * engagement schedule constraints ($\text{SPI}_{en}$).
-   * engagement value constraints ($\text{VEC}_{en}$ vs $\text{Burn}_{en}$).
-   * Staffing ratio constraints ($r_{l,pr,en}$).
-   * Consultant capacity constraints (≤ 40 hours, adjusted for vacation).
-   * Vacation awareness.
-   * Internal priority constraint.
-   * engagement switching efficiency ($\text{pse}$) applied via objective function penalty.
-4. **Enhanced Objective Function (Conceptual)**
-   ```python
-   # Pseudocode structure
-   model += pulp.lpSum([
-       engagement_weights[en] * risk_coeffs[en] * (
-           alpha * calculate_projected_SPI(en, assignments) +
-           beta * calculate_projected_VEC(en, assignments)
-       ) - sum(pse_factor * is_engagement_switch[c, en, w] for c in consultants for w in weeks) # Penalty term
-       for en in engagements
-   ])
+1. **Data Preparation Phase (Scheduled - Weekly)**
 
-   # Internal consultant priority constraint logic...
-   # Ensures internal consultants are assigned first up to capacity.
-   ```
-5. **Post-Optimization Processing & Feedback Loop**
-   * Optimized assignments ($A$) written to a prediction table.
-   * Dashboard visualizes recommendations.
-   * Optional notifications for resource managers.
-   * **Internal Model Tuning:** The deviation measured by the *Assignment Realization Rate* (Actual Billed vs. Assigned Hours, see Appendix 4) from the previous week can be used as an input signal or error metric (part of a loss function) to potentially adjust parameters (like consultant-specific efficiency factors or even $\alpha, \beta$) or constraints in the optimization model for the *next* week's run. This creates a feedback mechanism to improve prediction accuracy over time. The specific algorithm for this adjustment (e.g., simple heuristic, gradient descent on a related metric) requires further development beyond the current PoC.
-6. **Practical Considerations**
-   * Configurable weights $\alpha, \beta$.
-   * Potential two-phase optimization for large scale (pre-filter then optimize).
-   * Future stability constraints to minimize reassignments.
-   * Future skills matching constraints.
-   * Calibrate engagement switching factor ($\text{pse}$) based on data.
+   * **Calculate Engagement Status:** Determine current or projected statuses (SPI, VEC, Budget Burn) for active engagements using methods outlined in Appendix 4. Linear approximations may be needed if using these directly in the objective/constraints.
+   * **Retrieve Consultant Availability:** Fetch each consultant's standard capacity (`employees.employment_basis`), adjusting for planned time off (`vacations`) for the target week(s) $w$.
+   * **Calculate Dynamic Target Ratios:** For each active engagement ($en$), staff level ($l$), and practice ($pr$), calculate the *actual* ratio ($ActualRatio_{l,pr,en,w-1}$) based on `timesheets.hours` from the most recently completed week ($w-1$), as per the definition in Appendix 4/5. This value serves as the baseline target for the next week's optimization constraints.
+   * **Retrieve Parameters:** Load strategic weights ($w_{en}$) and risk coefficients ($r_{en}$) from `engagements`. Fetch optimization parameters ($\alpha$, $\beta$, $pse$) and the **ratio deviation tolerance** ($\delta$) from the `optimization_parameters` table (or use defaults per Appendix 3 if table not populated).
+2. **Optimization Model Formulation (MILP)**
+
+   * **Framework:** Implemented using **Python `PuLP`**, a library suitable for defining and solving MILP problems.
+   * **Decision Variables:**
+
+     * $Hours_{c,en,w}$: Planned hours for consultant $c$ on engagement $en$ in week $w$ (continuous).
+     * $is\_switch_{c,en,w}$: Binary variable (0 or 1) indicating if consultant $c$ starts work on engagement $en$ in week $w$ (having not worked on it in $w-1$).
+   * **Objective Function (Linear - Demo Implementation):**
+
+     * **Note:** For this demo implementation using MILP, we are **using a hard boundary constraint** (with tolerance $\delta$, detailed below) to manage staffing ratios, **instead of the non-linear penalty term** ($\sum \text{Penalty}_{l,pr,en,w}$) described conceptually earlier in the document. Therefore, the objective function optimized in this demo is:
+
+     ```math
+     \max \sum_{en \in EN} \left[ w_{en} \times r_{en} \times (\alpha \times \text{Proj\_SPI\_Contrib}_{en} + \beta \times \text{Proj\_VEC\_Contrib}_{en}) \right] - \sum_{c,en,w} \text{pse} \times \text{is\_switch}_{c,en,w}
+     ```
+
+     * *Linearity Requirement:* For this MILP model, $\text{Proj\_SPI\_Contrib}_{en}$ and $\text{Proj\_VEC\_Contrib}_{en}$ must be defined as linear functions of the $Hours_{c,en,w}$ variables. Simplifications (e.g., assuming contribution is proportional to hours assigned relative to a target) may be necessary.
+   * **Constraints (Linear):**
+
+     * **Consultant Capacity:** Total planned hours for each consultant cannot exceed their adjusted weekly availability:
+       ```math
+       \sum_{en \in EN} Hours_{c,en,w} \leq \text{AdjustedCapacity}_c \quad \forall c, w
+       ```
+     * **Staffing Ratio Tolerance (Linearized Hard Constraint):** Enforces that the planned staffing mix for the target week ($w$) stays within the tolerance ($\delta$) of the *previous week's actual ratio* ($ActualRatio_{l,pr,en,w-1}$). For each engagement $en$, level $l$, practice $pr$, and week $w$:
+       * Let $\text{TargetRatio} = ActualRatio_{l,pr,en,w-1}$ (pre-calculated constant).
+       * Let $\text{SumHours}_{l,pr} = \sum_{c \in C_{l,pr}} Hours_{c,en,w}$.
+       * Let $\text{SumHours}_{\text{other}} = \sum_{c \notin C_{l,pr}} Hours_{c,en,w}$.
+       * Constraint 1 (Lower Bound): Ensures $\text{PlannedRatio} \ge \text{TargetRatio} \times (1-\delta)$
+         ```math
+         (\text{TargetRatio} \times (1-\delta) - 1) \times \text{SumHours}_{l,pr} + \text{TargetRatio} \times (1-\delta) \times \text{SumHours}_{\text{other}} \leq 0
+         ```
+       * Constraint 2 (Upper Bound): Ensures $\text{PlannedRatio} \le \text{TargetRatio} \times (1+\delta)$
+         ```math
+         (1 - \text{TargetRatio} \times (1+\delta)) \times \text{SumHours}_{l,pr} - \text{TargetRatio} \times (1+\delta) \times \text{SumHours}_{\text{other}} \leq 0
+         ```
+     * **Performance Thresholds (Simplified/Linearized):** If required, constraints like $SPI_{en} \ge 0.85$ must be represented linearly or checked post-optimization.
+     * **Benching Rate:** A constraint limiting total unassigned internal consultant hours relative to their total capacity.
+     * **Internal Priority:** Constraints ensuring $Hours_{c,en,w} = 0$ for external consultants unless specific internal consultants are fully assigned.
+     * **Switch Logic:** Constraints defining $is\_switch_{c,en,w}$ based on $Hours_{c,en,w}$ and assignment status in week $w-1$.
+3. **Solver Execution**
+
+   * The PuLP model is passed to a compatible MILP solver (e.g., CBC, GLPK, Gurobi, CPLEX). The solver finds the optimal $Hours_{c,en,w}$ values.
+4. **Post-Optimization Processing & Feedback Loop**
+
+   * **Output:** Optimal assignments ($Hours_{c,en,w}$) are saved (e.g., to `staffing_prediction`).
+   * **Visualization:** Recommendations presented on the Power BI dashboard.
+   * **Monitoring & Tuning:** Actual performance (`timesheets`) compared to predictions. Parameters ($\alpha$, $\beta$, $pse$, $\delta$) manually adjusted based on results.
+5. **Demo Implementation Considerations**
+
+   * **Linearity & Simplification:** This strategy prioritizes a solvable MILP model using PuLP. **Crucially, this involved replacing the non-linear "soft boundary" penalty approach with the linearized "hard boundary" staffing ratio constraints (allowing $\delta$ tolerance) described above.** Projections for SPI/VEC within the model might also be simplified.
+   * **Dynamic Target:** Reliance on the previous week's actual ratio makes the plan adaptive but sensitive to past anomalies. $\delta$ provides flexibility.
+   * **Future Enhancements:** Could involve exploring non-linear solvers, adding skills matching, improving SPI/VEC predictions, and adding stability constraints.
 
 ## Appendix 3: Modelling Assumptions
 
@@ -338,7 +354,7 @@ This appendix outlines the key assumptions underpinning the analysis presented i
 3. **Project Phases Progress Linearly.**
 
    * **Impact:** Projects are assumed to progress sequentially through defined phases without significant overlap. This simplification facilitates the calculation of Planned Value (PV) and project schedule projections.
-4. **Project/Mandate Start Date is the First Logged Work Date.**
+4. **Phase Start Date is the First Logged Work Date.**
 
    * **Impact:** In the absence of explicitly defined start dates within the dataset, this definition provides a consistent reference point for timeline analysis and management.
 5. **Client Identity is Determined by Client Number.**
@@ -386,15 +402,18 @@ This section provides the specific database field mappings for metrics described
 
 #### Weighted Average Chargeout Rate (Estimation Aid)
 
-- **Formula**: 
+- **Formula**:
+
 ```math
 Weighted Rate_{ph} = \sum_{l=1}^{m} (charge\_out\_rates.standard\_chargeout\_rate_{l} \times \frac{\sum staffing.planned\_hours_{l}}{\sum staffing.planned\_hours})
 ```
+
 - **Purpose**: PoC estimation of average rate for a phase based on planned mix.
 
 #### Staffing Ratio Per Phase
 
-- **Formula**: 
+- **Formula**:
+
 ```math
 StaffingRatio_{l,ph} = \frac{\sum timesheets.hours_{l,ph}}{\sum timesheets.hours_{ph}}
 ```
@@ -402,9 +421,11 @@ StaffingRatio_{l,ph} = \frac{\sum timesheets.hours_{l,ph}}{\sum timesheets.hours
 #### Hours Required / Estimated Duration (Estimation Aids)
 
 - **Formulae**:
+
   ```math
   Hours_{\text{required\_est},ph} = \frac{phases.budget_{ph}}{Weighted Rate_{ph}}
   ```
+
   ```math
   Duration_{\text{est},ph} = \frac{Hours_{\text{required\_est},ph}}{\sum (staff\_count_{l} \times daily\_hours)}
   ```

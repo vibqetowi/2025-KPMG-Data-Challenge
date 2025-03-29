@@ -40,6 +40,7 @@ load_dotenv(project_root / '.env')
 from utils.DML_writer import DMLWriter
 from utils.data_transformation import DataTransformer
 from utils.excel_to_csv import excel_to_csv
+from utils.data_enrichment import DataEnricher  # New import
 
 # Configure logging
 logging.basicConfig(
@@ -108,6 +109,20 @@ def run_data_transformation():
         logger.error(f"Error during data transformation: {str(e)}", exc_info=True)
         return False
 
+def run_data_enrichment():
+    """Run the data enrichment script."""
+    logger.info(f"Starting data enrichment process")
+    try:
+        # Create enricher and run enrichment
+        enricher = DataEnricher()
+        enricher.enrich_all()  # This will now call both phase and engagement enrichment
+        
+        logger.info(f"Data enrichment completed successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Error during data enrichment: {str(e)}", exc_info=True)
+        return False
+
 def run_dml_generation():
     """Run the DML generation script."""
     logger.info(f"Starting DML generation")
@@ -153,7 +168,16 @@ def main():
     else:
         logger.info("Skipping data transformation as requested")
     
-    # Step 3: DML generation
+    # Step 3: Data enrichment
+    if not args.skip_transform and success:
+        success = run_data_enrichment()
+        if not success:
+            logger.error("Data enrichment failed. Pipeline stopped.")
+            return False
+    else:
+        logger.info("Skipping data enrichment as requested")
+    
+    # Step 4: DML generation
     if not args.skip_dml and success:
         success = run_dml_generation()
         if not success:
@@ -162,7 +186,7 @@ def main():
     else:
         logger.info("Skipping DML generation as requested")
     
-    # Step 4: Execute DDL and DML SQL scripts - now using shared module
+    # Step 5: Execute DDL and DML SQL scripts - now using shared module
     if not args.skip_db_execution and success:
         # Execute DDL SQL script
         logger.info("Executing DDL SQL script...")

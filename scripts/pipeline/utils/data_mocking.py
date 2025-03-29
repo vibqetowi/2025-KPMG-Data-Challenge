@@ -1,5 +1,6 @@
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
+import numpy as np
 import random
 from pandas.tseries.offsets import BDay
 import sys
@@ -25,7 +26,43 @@ class DataMocker:
     def __init__(self):
         """Initialize the DataMocker class for generating synthetic data."""
         self._phase_dates_cache = None
-        logger.info("DataMocker initialized")
+        self._charge_out_rates_df = None  # Store charge out rates here
+        
+        # Default parameters for duration calculations
+        self.default_chargeout_rate = 1000  # Fallback rate if no data is available
+        self.default_headcount = 3  # Default number of consultants per phase
+        self.default_working_hours = 8  # Default working hours per day
+        self.cpi_proxy = 0.98  # Cost Performance Index proxy as per README Appendix 3
+        
+        # Initialize reference date (for BDays calculation)
+        self.reference_date = pd.Timestamp('2025-01-01')
+        
+        # Initialize staff level weights (for weighted average calculations)
+        self.staff_level_rates = {
+            'STAFF ACCOUNTANT/CONSULTA': 800,  # Junior
+            'SPECIALIST/SENIOR CONSULT': 1100, # Senior Consultant
+            'MANAGER': 1400,                   # Manager
+            'SENIOR MANAGER': 1700,            # Senior Manager
+            'DIRECTOR': 2000,                  # Director
+            'PARTNER': 2500                    # Partner
+        }
+        
+        logger.info("DataMocker initialized with duration calculation parameters")
+    
+    def set_charge_out_rates(self, charge_out_rates_df):
+        """
+        Set the charge out rates DataFrame from the transformer.
+        
+        Args:
+            charge_out_rates_df: DataFrame containing standard chargeout rates
+        """
+        self._charge_out_rates_df = charge_out_rates_df
+        logger.info(f"Received {len(charge_out_rates_df)} charge out rate records from transformer")
+        
+        # Log some statistics about the rates
+        if not charge_out_rates_df.empty:
+            rate_stats = charge_out_rates_df['standard_chargeout_rate'].describe()
+            logger.info(f"Charge out rate statistics: min={rate_stats['min']:.2f}, max={rate_stats['max']:.2f}, avg={rate_stats['mean']:.2f}")
 
     def create_default_practices(self):
         """
@@ -128,31 +165,43 @@ class DataMocker:
 
     def generate_vacation_data(self, employees_df):
         """
-        Generate exactly 5 vacation records, with 1 vacation per employee.
+        Generate vacation records based on realistic patterns.
+        
+        Args:
+            employees_df: DataFrame containing employee information
+            
+        Returns:
+            DataFrame with vacation records
         """
         if employees_df.empty:
-            print("No employee data available to generate vacation placeholders")
+            logger.warning("No employee data available to generate vacations")
             return pd.DataFrame()
         
+        # Define common vacation periods as per README 
         vacation_periods = [
             ('2025-03-10', '2025-03-17'),  # Spring break
             ('2025-07-01', '2025-07-15'),  # Summer vacations
-            ('2025-08-03', '2025-08-17'),
+            ('2025-08-03', '2025-08-17'),  # Summer vacations  
             ('2025-10-20', '2025-10-27'),  # Fall break
             ('2025-12-22', '2025-12-31')   # Winter holidays
         ]
         
         personnel_nos = employees_df['personnel_no'].dropna().unique().tolist()
         
-        if not personnel_nos or len(personnel_nos) < 5:
-            print(f"Not enough employees ({len(personnel_nos)}) to generate 5 vacations")
+        if not personnel_nos:
+            logger.warning("No valid personnel numbers found for vacation generation")
             return pd.DataFrame()
         
-        selected_employees = random.sample(personnel_nos, 5)
+        # Select employees for vacations - at least 5 if available
+        num_to_select = min(len(personnel_nos), 5)
+        selected_employees = random.sample(personnel_nos, num_to_select)
         
         vacations = []
         for i, personnel_no in enumerate(selected_employees):
-            start_date, end_date = vacation_periods[i]
+            # Select vacation period based on index
+            period_idx = i % len(vacation_periods)
+            start_date, end_date = vacation_periods[period_idx]
+            
             vacations.append({
                 'personnel_no': personnel_no,
                 'start_date': pd.Timestamp(start_date),
@@ -160,18 +209,18 @@ class DataMocker:
             })
         
         df_vacations = pd.DataFrame(vacations)
-        print(f"Generated exactly 5 vacation records, 1 per employee")
+        logger.info(f"Generated {len(vacations)} vacation records")
         
         return df_vacations
 
     def get_engagement_dates(self, eng_no, phases_df=None, staffing_df=None):
         """
-        Get start and end dates for an engagement.
+        Get start and end dates for an engagement based on its phases.
         
         Args:
             eng_no: Engagement number
-            phases_df: DataFrame containing phase information (optional)
-            staffing_df: DataFrame containing staffing information (optional)
+            phases_df: DataFrame containing phase information
+            staffing_df: DataFrame containing staffing information
             
         Returns:
             Tuple of (start_date, end_date) or (None, None) if not found
@@ -182,132 +231,178 @@ class DataMocker:
             else:
                 logger.warning("Cannot get engagement dates: No phase data available")
                 return (None, None)
-                
+        
+        # Get all phases for this engagement
         rows = self._phase_dates_cache[self._phase_dates_cache["eng_no"] == eng_no]
-        return (rows["start_date"].min(), rows["end_date"].max()) if not rows.empty else (None, None)
+        
+        # Return the earliest start and latest end date
+        if not rows.empty:
+            start_date = rows["start_date"].min()
+            end_date = rows["end_date"].max()
+            return (start_date, end_date)
+        else:
+            return (None, None)
 
     def get_phase_dates(self, eng_no, eng_phase):
+        """
+        Get specific dates for a particular phase of an engagement.
+        
+        Args:
+            eng_no: Engagement number
+            eng_phase: Phase number
+            
+        Returns:
+            Tuple of (start_date, end_date) or (None, None) if not found
+        """
         if self._phase_dates_cache is None:
-            data = self.fetch_data(["phases", "staffing"])
-            self._phase_dates_cache = self.generate_phase_dates_from_budget(data["phases"], data["staffing"])
+            logger.warning("Phase dates cache not initialized. Cannot retrieve phase dates.")
+            return (None, None)
+            
+        # Find the specific phase
         row = self._phase_dates_cache[
             (self._phase_dates_cache["eng_no"] == eng_no) &
             (self._phase_dates_cache["eng_phase"] == eng_phase)
         ]
-        return (row.iloc[0]["start_date"], row.iloc[0]["end_date"]) if not row.empty else (None, None)
+        
+        # Return dates if found
+        if not row.empty:
+            return (row.iloc[0]["start_date"], row.iloc[0]["end_date"])
+        else:
+            return (None, None)
 
-    def generate_phase_dates_from_budget(self, phases_df, staffing_df, start_reference="2025-01-01", default_rate=100):
+    def generate_phase_dates_from_budget(self, phases_df, staffing_df, reference_date="2025-01-01", charge_out_rates_df=None, timesheet_df=None):
         """
-        Generate phase dates from budget information.
+        Generate simple phase dates for initial data transformation.
+        Note: More accurate dates will be calculated in the DataEnricher module.
         
         Args:
-            phases_df: DataFrame containing phase information
-            staffing_df: DataFrame containing staffing information
-            start_reference: Default start date string if not found in data
-            default_rate: Default hourly rate to use if not specified
+            phases_df: DataFrame containing phase information with budgets
+            staffing_df: DataFrame containing staffing information 
+            reference_date: Default start date string if not found in data
+            charge_out_rates_df: DataFrame containing standard chargeout rates (optional)
+            timesheet_df: DataFrame containing timesheet entries (optional)
             
         Returns:
             DataFrame with calculated start and end dates for each phase
         """
-        # Use direct DataFrame operations instead of requiring a fetcher
-        merged = pd.merge(phases_df, staffing_df, on=["eng_no", "eng_phase"], how="left")
+        logger.info("Generating simplified phase dates for initial transformation")
         
-        # Since we don't have access to the fetcher, adapt the method to work with provided data
-        # This is a simplified version; in practice you would need to provide the timesheet data
+        # Create a copy of the phases DataFrame to avoid modifying the original
+        phases = phases_df.copy()
         
-        # Create a dummy timesheet DataFrame with minimal structure if needed
-        timesheets = pd.DataFrame(columns=["eng_no", "eng_phase", "work_date"])
-        timesheets["work_date"] = pd.to_datetime(timesheets["work_date"])
+        # Convert reference date to Timestamp if it's a string
+        if isinstance(reference_date, str):
+            reference_date = pd.Timestamp(reference_date)
         
-        # Rest of the method continues as is...
-        first_work_dates = (
-            timesheets.dropna(subset=["eng_no", "eng_phase", "work_date"])
-            .groupby(["eng_no", "eng_phase"])["work_date"]
-            .min()
-            .reset_index()
-            .rename(columns={"work_date": "start_date"})
-        )
-        merged = pd.merge(merged, first_work_dates, on=["eng_no", "eng_phase"], how="left")
-        rate_col = "charge_out_rate"
-        merged[rate_col] = merged.get(rate_col, default_rate)
-        merged[rate_col] = merged[rate_col].fillna(default_rate)
-        merged["effort_hours"] = merged["budget"] / merged[rate_col]
-        headcounts = (
-            merged.groupby(["eng_no", "eng_phase"])["personnel_no"]
-            .nunique()
-            .reset_index()
-            .rename(columns={"personnel_no": "headcount"})
-        )
-        merged = pd.merge(merged, headcounts, on=["eng_no", "eng_phase"], how="left")
-        merged["headcount"] = merged["headcount"].fillna(1)
-        merged["duration_days"] = (merged["effort_hours"] / (merged["headcount"] * 8)).round().astype(int)
-
-        if "start_date_y" in merged.columns:
-            start_col = "start_date_y"
-        elif "start_date_x" in merged.columns:
-            start_col = "start_date_x"
-        else:
-            start_col = None
-
-        merged["start_date"] = pd.to_datetime(
-            merged[start_col] if start_col else start_reference
-        ).where(
-            merged[start_col].notna() if start_col else False,
-            pd.to_datetime(start_reference)
-        )
-
-        merged["end_date"] = pd.to_datetime(merged["start_date"]) + merged["duration_days"].apply(lambda x: BDay(x))
-
-        return merged.drop_duplicates(subset=["eng_no", "eng_phase"])[["eng_no", "eng_phase", "start_date", "end_date"]]
+        # Sort phases by eng_no and eng_phase
+        phases = phases.sort_values(['eng_no', 'eng_phase'])
+        
+        # Initialize start and end date columns
+        phases['start_date'] = None
+        phases['end_date'] = None
+        
+        # Group by engagement
+        for eng_no, eng_group in phases.groupby('eng_no'):
+            # Start date for the first phase
+            start_date = reference_date
+            
+            # For each phase in the engagement
+            for idx, row in eng_group.iterrows():
+                # Set start date
+                phases.at[idx, 'start_date'] = start_date
+                
+                # Set end date (simple 30 business days duration)
+                end_date = start_date + BDay(30)
+                phases.at[idx, 'end_date'] = end_date
+                
+                # Next phase starts 1 business day after this phase ends
+                start_date = end_date + BDay(1)
+        
+        # Convert dates to datetime64[ns]
+        phases['start_date'] = pd.to_datetime(phases['start_date'])
+        phases['end_date'] = pd.to_datetime(phases['end_date'])
+        
+        # Keep only necessary columns for the result
+        result = phases[['eng_no', 'eng_phase', 'start_date', 'end_date']].copy()
+        
+        logger.info(f"Generated simple sequential dates for {len(result)} phases")
+        
+        # Store in cache for future reference
+        self._phase_dates_cache = result
+        
+        return result
 
     def create_default_optimization_parameters(self):
         """
-        Create default optimization parameters used in the resource allocation algorithm.
-        Based on the optimization formula in the README:
+        Create default optimization parameters as specified in README Appendix 3.
+        Based on the optimization formula:
         max_{A} \sum_{en \in EN} w_{en} \times r_{en} \times (\alpha \times \text{SPI}_{en} + \beta \times \text{VEC}_{en})
               - \sum_{c\in C, en \in EN, w \in W}\text{pse} \times \text{is\_switch}_{c,en,w}
         """
         current_time = datetime.now()
+        
+        # Parameters based on README Appendix 3 and 5
         optimization_parameters = [
             {
                 'parameter_key': 'alpha',
                 'parameter_value': 0.6,
-                'description': 'Weight coefficient for SPI (Schedule Performance Index) in optimization',
+                'description': 'Weight coefficient for SPI (Schedule Performance Index) in optimization objective function',
                 'last_updated': current_time,
-                'updated_by': 14526  # Damien Girard (Senior Manager)
+                'updated_by': 14526  # Default to a Senior Manager
             },
             {
                 'parameter_key': 'beta',
                 'parameter_value': 0.4,
-                'description': 'Weight coefficient for VEC (Value Extraction Coefficient) in optimization',
+                'description': 'Weight coefficient for VEC (Value Extraction Coefficient) in optimization objective function',
                 'last_updated': current_time,
-                'updated_by': 14526  # Damien Girard (Senior Manager)
+                'updated_by': 14526
             },
             {
-                'parameter_key': 'default_pse',
-                'parameter_value': 0.85,
-                'description': 'Default Phase Switching Efficiency factor (productivity loss when consultants switch tasks)',
+                'parameter_key': 'pse',
+                'parameter_value': 0.9,
+                'description': 'Phase Switching Efficiency factor - productivity loss when consultants switch engagements',
                 'last_updated': current_time,
-                'updated_by': 14526  # Damien Girard (Senior Manager)
+                'updated_by': 14526
+            },
+            {
+                'parameter_key': 'delta',
+                'parameter_value': 0.2,
+                'description': 'Acceptable variation in staffing ratios (±20%)',
+                'last_updated': current_time,
+                'updated_by': 14526
+            },
+            {
+                'parameter_key': 'min_spi',
+                'parameter_value': 0.85,
+                'description': 'Minimum acceptable SPI for any engagement',
+                'last_updated': current_time,
+                'updated_by': 14526
             },
             {
                 'parameter_key': 'default_strategic_weight',
                 'parameter_value': 1.0,
                 'description': 'Default strategic value weight (w_en) for engagements',
                 'last_updated': current_time,
-                'updated_by': 14526  # Damien Girard (Senior Manager)
+                'updated_by': 14526
             },
             {
                 'parameter_key': 'default_risk_coefficient',
                 'parameter_value': 1.0,
                 'description': 'Default delivery risk coefficient (r_en) for engagements',
                 'last_updated': current_time,
-                'updated_by': 14526  # Damien Girard (Senior Manager)
+                'updated_by': 14526
+            },
+            {
+                'parameter_key': 'cpi_proxy',
+                'parameter_value': 0.98,
+                'description': 'Cost Performance Index proxy value as per Appendix 3',
+                'last_updated': current_time,
+                'updated_by': 14526
             }
         ]
         
         df_optimization_parameters = pd.DataFrame(optimization_parameters)
-        print(f"Created {len(optimization_parameters)} default optimization parameters")
+        logger.info(f"Created {len(optimization_parameters)} default optimization parameters")
         return df_optimization_parameters
 
 

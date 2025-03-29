@@ -1,5 +1,5 @@
 -- T-SQL DML INSERT statements generated from transformed CSV files
--- Generation timestamp: 2025-03-29 16:58:53
+-- Generation timestamp: 2025-03-29 18:42:05
 
 -- Use the database created by the DDL script
 USE [KPMG_Data_Challenge];
@@ -108,11 +108,11 @@ BEGIN TRY
     -- Batch 1/1
     INSERT INTO [dbo].[engagements] ([eng_no], [eng_description], [client_no], [primary_practice_id], [start_date], [end_date], [actual_end_date], [strategic_weight], [risk_coefficient])
     VALUES
-    (2001920365, N'Neptune', 1000017023, 1, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL, NULL, NULL),
-    (2002040046, N'Terra', 1000017023, 1, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL, NULL, NULL),
-    (3000512342, N'Flora', 1000017024, 1, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL, NULL, NULL),
-    (2002059395, N'Ventus', 1000017023, 1, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL, NULL, NULL),
-    (2002055111, N'Nexus', 1000017024, 1, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL, NULL, NULL);
+    (2001920365, N'Neptune', 1000017023, 1, CONVERT(DATE, '2024-12-02', 120), CONVERT(DATE, '2026-08-26', 120), NULL, 1.00, 1.00),
+    (2002040046, N'Terra', 1000017023, 1, CONVERT(DATE, '2024-12-02', 120), CONVERT(DATE, '2025-04-23', 120), NULL, 1.00, 1.00),
+    (3000512342, N'Flora', 1000017024, 1, CONVERT(DATE, '2024-12-04', 120), CONVERT(DATE, '2026-06-25', 120), NULL, 1.00, 1.00),
+    (2002059395, N'Ventus', 1000017023, 1, CONVERT(DATE, '2024-12-02', 120), CONVERT(DATE, '2025-01-01', 120), NULL, 1.00, 1.00),
+    (2002055111, N'Nexus', 1000017024, 1, CONVERT(DATE, '2024-12-02', 120), CONVERT(DATE, '2026-06-09', 120), NULL, 1.00, 1.00);
     COMMIT TRANSACTION;
     PRINT 'Completed insert for engagements';
 END TRY
@@ -134,14 +134,14 @@ BEGIN TRY
     -- Batch 1/1
     INSERT INTO [dbo].[phases] ([eng_no], [eng_phase], [phase_description], [budget], [start_date], [end_date], [actual_end_date])
     VALUES
-    (2001920365, 10, N'Mars', 2300000.00, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL),
-    (2001920365, 20, N'Solaris', 1150000.00, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL),
-    (2001920365, 30, N'Aquilon', 1250000.00, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL),
-    (2001920365, 40, N'Horizon', 1350000.00, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL),
-    (2002040046, 10, N'Livraison', 950000.00, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL),
-    (3000512342, 10, N'Gestion', 3000000.00, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL),
-    (2002059395, 10, N'Otientation', 170000.00, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL),
-    (2002055111, 10, N'Admin', 2500000.00, CONVERT(DATE, '2025-01-01', 120), CONVERT(DATE, '2025-12-31', 120), NULL);
+    (2001920365, 10, N'Mars', 2300000.00, CONVERT(DATE, '2024-12-02', 120), CONVERT(DATE, '2025-11-18', 120), NULL),
+    (2001920365, 20, N'Solaris', 1150000.00, CONVERT(DATE, '2024-12-02', 120), CONVERT(DATE, '2026-08-26', 120), NULL),
+    (2001920365, 30, N'Aquilon', 1250000.00, CONVERT(DATE, '2024-12-02', 120), CONVERT(DATE, '2026-06-18', 120), NULL),
+    (2001920365, 40, N'Horizon', 1350000.00, CONVERT(DATE, '2024-12-02', 120), CONVERT(DATE, '2025-05-16', 120), NULL),
+    (2002040046, 10, N'Livraison', 950000.00, CONVERT(DATE, '2024-12-02', 120), CONVERT(DATE, '2025-04-23', 120), NULL),
+    (3000512342, 10, N'Gestion', 3000000.00, CONVERT(DATE, '2024-12-04', 120), CONVERT(DATE, '2026-06-25', 120), NULL),
+    (2002059395, 10, N'Otientation', 170000.00, CONVERT(DATE, '2024-12-02', 120), CONVERT(DATE, '2025-01-01', 120), NULL),
+    (2002055111, 10, N'Admin', 2500000.00, CONVERT(DATE, '2024-12-02', 120), CONVERT(DATE, '2026-06-09', 120), NULL);
     COMMIT TRANSACTION;
     PRINT 'Completed insert for phases';
 END TRY
@@ -2074,11 +2074,11 @@ BEGIN TRY
     -- Batch 1/1
     INSERT INTO [dbo].[vacations] ([personnel_no], [start_date], [end_date])
     VALUES
-    (14535, CONVERT(DATE, '2025-03-10', 120), CONVERT(DATE, '2025-03-17', 120)),
-    (14537, CONVERT(DATE, '2025-07-01', 120), CONVERT(DATE, '2025-07-15', 120)),
-    (14536, CONVERT(DATE, '2025-08-03', 120), CONVERT(DATE, '2025-08-17', 120)),
-    (14524, CONVERT(DATE, '2025-10-20', 120), CONVERT(DATE, '2025-10-27', 120)),
-    (14525, CONVERT(DATE, '2025-12-22', 120), CONVERT(DATE, '2025-12-31', 120));
+    (14531, CONVERT(DATE, '2025-03-10', 120), CONVERT(DATE, '2025-03-17', 120)),
+    (14530, CONVERT(DATE, '2025-07-01', 120), CONVERT(DATE, '2025-07-15', 120)),
+    (14523, CONVERT(DATE, '2025-08-03', 120), CONVERT(DATE, '2025-08-17', 120)),
+    (14536, CONVERT(DATE, '2025-10-20', 120), CONVERT(DATE, '2025-10-27', 120)),
+    (14535, CONVERT(DATE, '2025-12-22', 120), CONVERT(DATE, '2025-12-31', 120));
     COMMIT TRANSACTION;
     PRINT 'Completed insert for vacations';
 END TRY
@@ -2148,11 +2148,14 @@ BEGIN TRY
     -- Batch 1/1
     INSERT INTO [dbo].[optimization_parameters] ([parameter_key], [parameter_value], [description], [last_updated], [updated_by])
     VALUES
-    (N'alpha', 0.60, N'Weight coefficient for SPI (Schedule Performance Index) in optimization', NULL, 14526),
-    (N'beta', 0.40, N'Weight coefficient for VEC (Value Extraction Coefficient) in optimization', NULL, 14526),
-    (N'default_pse', 0.85, N'Default Phase Switching Efficiency factor (productivity loss when consultants switch tasks)', NULL, 14526),
+    (N'alpha', 0.60, N'Weight coefficient for SPI (Schedule Performance Index) in optimization objective function', NULL, 14526),
+    (N'beta', 0.40, N'Weight coefficient for VEC (Value Extraction Coefficient) in optimization objective function', NULL, 14526),
+    (N'pse', 0.90, N'Phase Switching Efficiency factor - productivity loss when consultants switch engagements', NULL, 14526),
+    (N'delta', 0.20, N'Acceptable variation in staffing ratios (±20%)', NULL, 14526),
+    (N'min_spi', 0.85, N'Minimum acceptable SPI for any engagement', NULL, 14526),
     (N'default_strategic_weight', 1.00, N'Default strategic value weight (w_en) for engagements', NULL, 14526),
-    (N'default_risk_coefficient', 1.00, N'Default delivery risk coefficient (r_en) for engagements', NULL, 14526);
+    (N'default_risk_coefficient', 1.00, N'Default delivery risk coefficient (r_en) for engagements', NULL, 14526),
+    (N'cpi_proxy', 0.98, N'Cost Performance Index proxy value as per Appendix 3', NULL, 14526);
     COMMIT TRANSACTION;
     PRINT 'Completed insert for optimization_parameters';
 END TRY

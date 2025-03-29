@@ -823,6 +823,11 @@ class DataTransformer:
             print("\nStandard chargeout rate distribution:")
             rate_stats = self.dfs['charge_out_rates']['standard_chargeout_rate'].describe()
             print(rate_stats)
+            
+            # Make the charge out rates available to the DataMocker
+            if hasattr(self, 'mocker') and self.mocker is not None:
+                print("Sending charge out rates to DataMocker for realistic phase date calculations")
+                self.mocker.set_charge_out_rates(self.dfs['charge_out_rates'])
         else:
             print("No valid chargeout rates found")
 
@@ -1025,6 +1030,11 @@ class DataTransformer:
         # Process each data source
         self.process_budget_data()
         self.process_staffing_data()
+        self.process_timesheet_data()
+        
+        # Process charge out rates early in the pipeline to make them available to DataMocker
+        print("Processing charge out rates early for phase date calculations...")
+        self.process_standard_chargeout_rates()
         
         # Merge phase information from different sources
         print("Merging phase information from budget and staffing data")
@@ -1036,11 +1046,8 @@ class DataTransformer:
             self.dfs['phases'] = merged_phases
             print(f"Created merged phases table with {len(merged_phases)} unique phases")
         
-        # Continue with other processing
-        self.process_timesheet_data()
-        self.process_standard_chargeout_rates()
-        
-        # Set dates for all engagements and phases that are still NULL
+        # Set dates for all engagements and phases that are still NULL,
+        # now with access to actual charge out rates
         self._populate_missing_dates()
         
         # Generate mock data
@@ -1140,6 +1147,50 @@ class DataTransformer:
                 
                 self.dfs['engagements'] = engagements_df
                 print("Populated missing engagement dates with synthetic values")
+        
+        # Set dates for phases using DataMocker with actual charge out rates and timesheet data
+        if 'phases' in self.dfs and not self.dfs['phases'].empty:
+            print("Calculating realistic phase dates based on budgets, charge out rates, and first logged work dates...")
+            
+            # Pass both staffing and phases to DataMocker for calculations
+            if 'staffing' in self.dfs and not self.dfs['staffing'].empty:
+                # Include timesheet data to determine first logged work dates
+                timesheet_df = self.dfs.get('timesheets')
+                
+                phases_with_dates = self.mocker.generate_phase_dates_from_budget(
+                    self.dfs['phases'], 
+                    self.dfs['staffing'],
+                    reference_date="2025-01-01", 
+                    charge_out_rates_df=self.dfs.get('charge_out_rates'),
+                    timesheet_df=timesheet_df
+                )
+                
+                # Merge the calculated dates back into the phases dataframe
+                if not phases_with_dates.empty:
+                    # Keep existing dates where they exist, use calculated dates where missing
+                    phases_df = self.dfs['phases'].copy()
+                    
+                    # Create merge keys for matching phases
+                    phases_df['merge_key'] = phases_df['eng_no'].astype(str) + '_' + phases_df['eng_phase'].astype(str)
+                    phases_with_dates['merge_key'] = phases_with_dates['eng_no'].astype(str) + '_' + phases_with_dates['eng_phase'].astype(str)
+                    
+                    # Merge the start and end dates
+                    for idx, row in phases_df.iterrows():
+                        if pd.isna(row['start_date']) or pd.isna(row['end_date']):
+                            # Find matching calculated phase
+                            match = phases_with_dates[phases_with_dates['merge_key'] == row['merge_key']]
+                            if not match.empty:
+                                if pd.isna(row['start_date']):
+                                    phases_df.at[idx, 'start_date'] = match['start_date'].iloc[0]
+                                if pd.isna(row['end_date']):
+                                    phases_df.at[idx, 'end_date'] = match['end_date'].iloc[0]
+                    
+                    # Remove the temporary merge key
+                    phases_df = phases_df.drop(columns=['merge_key'])
+                    
+                    # Update the phases dataframe
+                    self.dfs['phases'] = phases_df
+                    print(f"Updated phase dates based on budget calculations")
         
         # Set dates for phases
         if 'phases' in self.dfs and not self.dfs['phases'].empty:
