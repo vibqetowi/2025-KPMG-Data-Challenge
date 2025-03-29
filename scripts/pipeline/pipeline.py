@@ -196,6 +196,7 @@ def main():
     return success
 
 if __name__ == "__main__":
-    # success = main()
-    # sys.exit(0 if success else 1)
-    test_db_connection()
+    # test_db_connection()
+    success = main()
+    sys.exit(0 if success else 1)
+

@@ -11,12 +11,12 @@
 
 ## 🏆 Team 7
 
-| Team Member | GitHub     | Linkedin                                                                 | Background                                                                               |
-| ----------- | ---------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| Minh        | @vibqetowi | [hminh-software-eng](https://www.linkedin.com/in/hminh-software-eng)        | Software Engineering, previous experience in software development and project management |
-| Carter      | @carterj-c | [cartercameronfina](https://www.linkedin.com/in/cartercameronfina)          | Previously Mechanical Engineering now in Finance, previous experience in aerospace engineering                     |
-| Casey       | @cassius   | [casey-jussaume](https://www.linkedin.com/in/casey-jussaume)                | Finance & accounting, previous experience in financial modeling and research             |
-| Romero      | @geekpapi  | [romero-p-faustin](https://www.linkedin.com/in/romero-p-faustin-96106a179/) | Economics & Computer Science, previous experience in data analysis                       |
+| Team Member | GitHub     | Linkedin                                                                 | Background                                                                                     |
+| ----------- | ---------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Minh        | @vibqetowi | [hminh-software-eng](https://www.linkedin.com/in/hminh-software-eng)        | Software Engineering, previous experience in software development and project management       |
+| Carter      | @carterj-c | [cartercameronfina](https://www.linkedin.com/in/cartercameronfina)          | Previously Mechanical Engineering now in Finance, previous experience in aerospace engineering |
+| Casey       | @cassius   | [casey-jussaume](https://www.linkedin.com/in/casey-jussaume)                | Finance & Accounting, previous experience in financial modeling and research                   |
+| Romero      | @geekpapi  | [romero-p-faustin](https://www.linkedin.com/in/romero-p-faustin-96106a179/) | Economics & Computer Science, previous experience in data analysis                             |
 
 ## 🎯 Project Overview
 
@@ -36,19 +36,26 @@ This dashboard is specifically engineered to address critical business needs pre
 
 ## 🌟 Key Capabilities
 
-The key business outcomes from this predictive dashboard solution are:
+PROP delivers significant advantages across several key operational areas:
 
-- True visibility on engagement profitability
-- Instant financial interpretations (VEC, Burn, SPI)
-- Enhanced client satisfaction through consistently meeting deadlines
-- Better work-life balance through realistic capacity planning
-- Earned Value Management (EVM) metrics calculation (SPI, EV, PV)
-- Consultant allocation optimization algorithm
-- engagement performance visualization for clear insights
-- Resource utilization tracking (Benching, Capacity Utilization)
-- Schedule and cost variance monitoring to maintain engagement control
-- Predictive engagement completion forecasting
-- Vacation tracking and integration to prevent resource allocation conflicts and ensure realistic capacity planning
+**1. Financial Performance & Profitability**
+
+* **Enhanced Profitability Visibility:** Provides clear, real-time insight into engagement profitability.
+* **Rapid Financial Analysis:** Delivers instant financial interpretations, includingvalue Extraction Coefficient (VEC), Burn Rate, and Schedule Performance Index (SPI).
+
+**2. Resource Management & Optimization**
+
+* **Optimized Resource Planning:** Supports improved work-life balance through realistic and effective capacity planning.
+* **Intelligent Consultant Allocation:** Features an algorithm for optimizing consultant assignments.
+* **Comprehensive Resource Tracking:** Monitors key resource utilization metrics, including bench time and overall capacity utilization.
+* **Integrated Absence Management:** Incorporates vacation and time-off tracking to prevent resource allocation conflicts and ensure realistic capacity assessments.
+
+**3. Project Execution & Performance Management**
+
+* **Automated EVM Calculations:** Automatically calculates crucial Earned Value Management (EVM) metrics, such as SPI, Earned Value (EV), and Planned Value (PV).
+* **Actionable Performance Insights:** Offers clear visualizations of engagement performance for informed decision-making.
+* **Proactive Variance Management:** Enables effective monitoring of schedule and cost variances to maintain engagement control.
+* **Improved Client Satisfaction:** Facilitates consistent adherence to project deadlines, enhancing client satisfaction. *(This outcome is directly linked to effective project execution)*
 
 ## 💼 Business Objectives and Optimization Targets
 
@@ -95,45 +102,49 @@ Budget Burn for a phase is calculated as $\text{Burn}_{ph} = \frac{\sum AC_t}{\t
 **Interpretation Notes:**
 
 * **Excellent:** High efficiency, within or at budget. Strong performance.
-* **On Track:** Standard efficiency, within or at budget. Meeting expectations.
+* ctations.
 * **Warning:** Inefficiency (dilution) detected, even if currently within budget. Potential future problems if trend continues.
 * **Ambiguous:** Over budget, but spend appears efficient. Needs investigation: Is the high efficiency justifying the cost (e.g., scope change, premium value), or masking poor cost control?
 * **Critical:** Over budget combined with standard or poor efficiency. Clear problem with cost control and/or value realization. Requires immediate attention.
 
 ### Resource Optimization
 
-Our solution addresses the core optimization challenge facing consulting organizations by recommending optimal consultant assignments:
+Our solution addresses the core optimization challenge facing consulting organizations by recommending optimal consultant assignments. The goal is to dynamically adapt staffing while maintaining project health and efficiency.
+
+**Objective Function:**
+
+The optimization seeks the assignment matrix $A$ (consultant $c$, engagement $en$, hours in week $w$) that maximizes overall value, penalized by switching costs and deviations from recent staffing patterns:
 
 $$
-\max_{A} \sum_{en \in EN} w_{en} \times r_{en} \times (\alpha \times \text{SPI}_{en} + \beta \times \text{VEC}_{en}) - \sum_{c\in C, en \in EN, w \in W}\text{pse} \times \text{is\_switch}_{c,en,w}
+\max_{A} \sum_{en \in EN} \left[ w_{en} \times r_{en} \times (\alpha \times \text{SPI}_{en} + \beta \times \text{VEC}_{en}) \right] - \sum_{c,en,w} \text{pse} \times \text{is\_switch}_{c,en,w} - \sum_{en, l, pr, w} \text{Penalty}_{l,pr,en,w}
 $$
-
-Where $A$ represents the assignment matrix (consultant $c$, engagement $en$, hours in week $w$). The optimization seeks the assignment $A$ that maximizes this weighted sum of performance indicators across all engagements $EN$, penalized by the cost (`pse`) of switching consultants between engagements.
-
-Subject to critical business constraints:
-
-- $\text{SPI}_{en} \ge 0.85$ for all engagements $en$ (preventing schedule slippage).
-- $\bigl|\text{VEC}_{en} - \text{Burn}_{en}\bigr| \le 0.15$ for all engagements $en$ (ensuring adequate value extraction).
-- Consultant Benching Rate < 20% (maximizing billable utilization).
-- $\forall c \in C, \sum_{en \in EN} \text{Hours}_{c,en,w} \leq 40, \forall w \in \text{Weeks}$ (maintaining work-life balance, respecting capacity).
-- $\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,en,w}}{\sum_{c \in C} \text{Hours}_{c,en,w}} = r_{l,pr,en}, \forall en \in EN, \forall w \in \text{Weeks}$ (maintaining appropriate staffing ratios $r$ for level $l$ and practice $pr$ on engagement $en$).
-- $\sum_{en \in EN} \text{Hours}_{c_{ext},en,w} > 0 \implies \sum_{en \in EN} \text{Hours}_{c_{int},en,w} = 40, \forall c_{int} \in C_{int}, \forall c_{ext} \in C_{ext}, \forall w \in \text{Weeks}$ (prioritizing internal consultants $C_{int}$ before external consultants $C_{ext}$).
 
 Where:
 
-- $w_{en}$: Strategic value weight of engagement $en$.
-- $r_{en}$: Delivery risk coefficient for engagement $en$.
-- $\alpha, \beta$: Weighting coefficients balancing schedule (SPI) vs. value (VEC).
-- $\text{pse}$: Phase Switching Efficiency factor (≤ 1) accounting for productivity loss when consultants switch tasks.
-- $\text{is\_switch}_{c,en,w}$: Binary variable: 1 if consultant $c$ is newly assigned to engagement $en$ in week $w$.
-- $EN$: Set of all engagements.
-- $L$: Set of staff levels.
-- $PR$: Set of practice areas.
-- $C_{l,pr}$: Subset of consultants at level $l$ from practice area $pr$.
-- $C_{int}, C_{ext}$: Subsets of internal and external consultants.
-- $r_{l,pr,en}$: Target ratio of hours for level $l$ and practice $pr$ in engagement $en$.
+* $A$: The assignment matrix being optimized for the upcoming week(s) $w$.
+* $w_{en}$: Strategic value weight of engagement $en$.
+* $r_{en}$: Delivery risk coefficient for engagement $en$.
+* $\alpha, \beta$: Weighting coefficients balancing schedule (SPI) vs. value (VEC).
+* $\text{SPI}_{en}, \text{VEC}_{en}$: Predicted Schedule Performance Index and Value Extraction Coefficient for engagement $en$ *resulting from* the assignment $A$.
+* $\text{pse}$: Phase Switching Efficiency factor (penalty for task switching).
+* $\text{is\_switch}_{c,en,w}$: Binary variable: 1 if consultant $c$ is newly assigned to engagement $en$ in week $w$ compared to week $w-1$.
+* **`Penalty_{l,pr,en,w}`**: A penalty term discouraging significant deviations from the previous week's actual staffing mix for level $l$ and practice $pr$ on engagement $en$. Calculated as:
+  $$
+  \text{Penalty}_{l,pr,en,w} = \gamma_{l,pr,en} \times \left| \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,en,w}}{\sum_{c \in C} \text{Hours}_{c,en,w}} - \text{ActualRatio}_{l,pr,en,w-1} \right|
+  $$
 
-The staffing ratio constraint ensures that each engagement maintains the required mix. This optimization balances schedule performance (SPI), value extraction (VEC), strategic importance ($w_{en}$), risk ($r_{en}$), and switching efficiency ($\text{pse}$), while respecting constraints.
+  * $\gamma_{l,pr,en}$: A configurable penalty weight. Higher values enforce stricter adherence to the previous week's ratio for that level/practice/engagement.
+  * $\text{Hours}_{c,en,w}$: The *planned* hours for consultant $c$ on engagement $en$ in week $w$ (part of the decision variable $A$).
+  * $\text{ActualRatio}_{l,pr,en,w-1}$: The *actual* ratio of hours worked by consultants of level $l$ and practice $pr$ on engagement $en$ during the *previous* week ($w-1$), calculated dynamically from the `timesheets` data:
+    $$
+    \text{ActualRatio}_{l,pr,en,w-1} = \frac{\sum_{c \in C_{l,pr}} \text{ActualHours}_{c,en,w-1}}{\sum_{c \in C} \text{ActualHours}_{c,en,w-1}}
+    $$
+
+**Implementation Notes:**
+
+* The calculation of `ActualRatio_{l,pr,en,w-1}` from `timesheets` needs to be performed *before* running the optimization for week $w$.
+* The penalty term adds complexity to the objective function, potentially requiring non-linear optimization solvers depending on the specific formulation and solver capabilities.
+* Tuning the `gamma` parameters will be crucial to balance ratio adherence against other objectives. They could be global or specific (e.g., stored in `optimization_parameters` or linked to engagements).
 
 ### Key Performance Indicators (KPIs)
 
@@ -370,7 +381,7 @@ This section provides the specific database field mappings for metrics described
 
 #### Budget at Completion (BAC)
 
-- **Database Source**: `phases.budget` for engagement phase 
+- **Database Source**: `phases.budget` for engagement phase
 - **Purpose**: Financial baseline for a phase.
 
 #### Weighted Average Chargeout Rate (Estimation Aid)
@@ -410,9 +421,10 @@ This section provides the specific database field mappings for metrics described
   $\text{VEC}_{ph} = \frac{1}{\text{phases.budget}_{ph}} \times \sum_{t=1}^{n} [(\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t}) \times d_{t} \times ea_{c} \times eo_{c}]$
 
 Where:
-  - $d_{t} = \frac{\text{timesheets.charge\_out\_rate}_{t}}{\text{charge\_out\_rates.standard\_chargeout\_rate}_{c}}$
-  - $ea_{c} = 1 - 0.1 \times \text{employees.is\_external}_{c}$
-  - $eo_{c} = 1 - 0.2 \times isNew_c$ (derived field, not in database)
+
+- $d_{t} = \frac{\text{timesheets.charge\_out\_rate}_{t}}{\text{charge\_out\_rates.standard\_chargeout\_rate}_{c}}$
+- $ea_{c} = 1 - 0.1 \times \text{employees.is\_external}_{c}$
+- $eo_{c} = 1 - 0.2 \times isNew_c$ (derived field, not in database)
 
 #### Budget Burn
 
@@ -459,53 +471,230 @@ This appendix documents the standardized notation used in formulas throughout th
 
 All variables in formulas use consistent suffixes to denote the entity they refer to:
 
-| Suffix | Entity                  | Example                          | Description                                       |
-|--------|-------------------------|----------------------------------|---------------------------------------------------|
-| `c`    | Consultant/Employee     | $ea_c$ (External Adjustment)     | Refers to a specific consultant/employee          |
-| `t`    | Transaction/Timesheet   | $AC_t$ (Actual Cost)             | Refers to a specific timesheet entry              |
-| `ph`   | Phase                   | $VEC_{ph}$ (VEC of a phase)      | Refers to a specific engagement phase             |
-| `en`   | Engagement              | $SPI_{en}$ (SPI of engagement)   | Refers to a specific engagement                   |
-| `l`    | Staff Level             | $StaffingRatio_{l,ph}$           | Refers to a specific staff level (e.g., Manager)  |
-| `pr`   | Practice                | $C_{l,pr}$ (Consultants in practice) | Refers to a practice area (e.g., SAP)        |
-| `w`    | Week                    | $Hours_{c,en,w}$ (Weekly hours)  | Refers to a specific week (time period)           |
+| Suffix | Entity                | Example                                | Description                                      |
+| ------ | --------------------- | -------------------------------------- | ------------------------------------------------ |
+| `c`  | Consultant/Employee   | $ea_c$ (External Adjustment)         | Refers to a specific consultant/employee         |
+| `t`  | Transaction/Timesheet | $AC_t$ (Actual Cost)                 | Refers to a specific timesheet entry             |
+| `ph` | Phase                 | $VEC_{ph}$ (VEC of a phase)          | Refers to a specific engagement phase            |
+| `en` | Engagement            | $SPI_{en}$ (SPI of engagement)       | Refers to a specific engagement                  |
+| `l`  | Staff Level           | $StaffingRatio_{l,ph}$               | Refers to a specific staff level (e.g., Manager) |
+| `pr` | Practice              | $C_{l,pr}$ (Consultants in practice) | Refers to a practice area (e.g., SAP)            |
+| `w`  | Week                  | $Hours_{c,en,w}$ (Weekly hours)      | Refers to a specific week (time period)          |
 
 ### Core Variables and Factors
 
 #### Financial Metrics
 
-| Variable          | Definition                                        | Formula/Source                                            |
-|-------------------|---------------------------------------------------|-----------------------------------------------------------|
-| $BAC_{ph}$        | Budget at Completion for phase                    | `phases.budget`                                           |
-| $AC_t$            | Actual Cost for transaction                       | `timesheets.std_price + timesheets.adm_surcharge`         |
-| $PV_{ph}$         | Planned Value for phase                           | $BAC_{ph} \times Schedule\%_{ph}$                         |
-| $EV_{ph}$         | Earned Value for phase                            | $\sum_t AC_t \times CPI_{proxy}$ (PoC method)             |
-| $SPI_{ph}$        | Schedule Performance Index                        | $EV_{ph} / PV_{ph}$                                       |
-| $VEC_{ph}$        | Value Extraction Coefficient                      | $\frac{1}{BAC_{ph}} \times \sum_t [AC_t \times d_t \times ea_c \times eo_c]$ |
-| $Burn_{ph}$       | Budget Burn Rate                                  | $\frac{\sum_t AC_t}{BAC_{ph}}$                            |
+| Variable      | Definition                     | Formula/Source                                                                 |
+| ------------- | ------------------------------ | ------------------------------------------------------------------------------ |
+| $BAC_{ph}$  | Budget at Completion for phase | `phases.budget`                                                              |
+| $AC_t$      | Actual Cost for transaction    | `timesheets.std_price + timesheets.adm_surcharge`                            |
+| $PV_{ph}$   | Planned Value for phase        | $BAC_{ph} \times Schedule\%_{ph}$                                            |
+| $EV_{ph}$   | Earned Value for phase         | $\sum_t AC_t \times CPI_{proxy}$ (PoC method)                                |
+| $SPI_{ph}$  | Schedule Performance Index     | $EV_{ph} / PV_{ph}$                                                          |
+| $VEC_{ph}$  | Value Extraction Coefficient   | $\frac{1}{BAC_{ph}} \times \sum_t [AC_t \times d_t \times ea_c \times eo_c]$ |
+| $Burn_{ph}$ | Budget Burn Rate               | $\frac{\sum_t AC_t}{BAC_{ph}}$                                               |
 
 #### Adjustment Factors
 
-| Factor     | Definition                                    | Formula                                      | Purpose                                         |
-|------------|-----------------------------------------------|----------------------------------------------|------------------------------------------------|
-| $d_t$      | Rate Efficiency Factor                        | $\frac{timesheets.charge\_out\_rate_t}{charge\_out\_rates.standard\_chargeout\_rate_c}$ | Measures charge-out rate efficiency |
-| $ea_c$     | External Adjustment Factor                    | $1 - 0.1 \times employees.is\_external_c$    | Accounts for external consultants' impact on profitability |
-| $eo_c$     | Onboarding/New Hire Adjustment Factor         | $1 - 0.2 \times isNew_c$                     | Accounts for newer consultants' learning curve |
-| $pse$      | Phase Switching Efficiency                    | Typically 0.9 (configurable)                 | Productivity loss factor when switching engagements |
+| Factor   | Definition                            | Formula                                                                                   | Purpose                                                    |
+| -------- | ------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| $d_t$  | Rate Efficiency Factor                | $\frac{timesheets.charge\_out\_rate_t}{charge\_out\_rates.standard\_chargeout\_rate_c}$ | Measures charge-out rate efficiency                        |
+| $ea_c$ | External Adjustment Factor            | $1 - 0.1 \times employees.is\_external_c$                                               | Accounts for external consultants' impact on profitability |
+| $eo_c$ | Onboarding/New Hire Adjustment Factor | $1 - 0.2 \times isNew_c$                                                                | Accounts for newer consultants' learning curve             |
+| $pse$  | Phase Switching Efficiency            | Typically 0.9 (configurable)                                                              | Productivity loss factor when switching engagements        |
 
 #### Optimization Parameters
 
-| Parameter        | Definition                                    | Range/Default                                 | Source                                     |
-|------------------|-----------------------------------------------|-----------------------------------------------|-------------------------------------------|
-| $\alpha$         | SPI weight in optimization                    | 0.5 (default)                                 | `optimization_parameters` table           |
-| $\beta$          | VEC weight in optimization                    | 0.5 (default)                                 | `optimization_parameters` table           |
-| $w_{en}$         | Strategic weight of engagement                | Default: 1.0                                  | `engagements.strategic_weight`            |
-| $r_{en}$         | Risk coefficient of engagement                | Default: 1.0                                  | `engagements.risk_coefficient`            |
-| $r_{l,pr,en}$    | Required staffing ratio                       | Calculated from historical data               | Derived from timesheet data               |
+| Parameter       | Definition                     | Range/Default                   | Source                            |
+| --------------- | ------------------------------ | ------------------------------- | --------------------------------- |
+| $\alpha$      | SPI weight in optimization     | 0.5 (default)                   | `optimization_parameters` table |
+| $\beta$       | VEC weight in optimization     | 0.5 (default)                   | `optimization_parameters` table |
+| $w_{en}$      | Strategic weight of engagement | Default: 1.0                    | `engagements.strategic_weight`  |
+| $r_{en}$      | Risk coefficient of engagement | Default: 1.0                    | `engagements.risk_coefficient`  |
+| $r_{l,pr,en}$ | Required staffing ratio        | Calculated from historical data | Derived from timesheet data       |
 
 #### Utilization Metrics
 
-| Metric                         | Definition                                         | Formula                                                 |
-|--------------------------------|----------------------------------------------------|----------------------------------------------------------|
-| Benching Rate                  | Percentage of capacity not assigned                 | $\left(1 - \frac{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}{employees.employment\_basis_c}\right) \times 100\%$ |
-| Capacity Utilization Rate      | Percentage of capacity utilized in billable work    | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{employees.employment\_basis_c} \times 100\%$ |
-| Assignment Realization Rate    | Ratio of actual hours to assigned hours             | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}$ |
+| Metric                      | Definition                                       | Formula                                                                                                                  |
+| --------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Benching Rate               | Percentage of capacity not assigned              | $\left(1 - \frac{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}{employees.employment\_basis_c}\right) \times 100\%$ |
+| Capacity Utilization Rate   | Percentage of capacity utilized in billable work | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{employees.employment\_basis_c} \times 100\%$                         |
+| Assignment Realization Rate | Ratio of actual hours to assigned hours          | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}$                   |
+
+## ETL (Extract, Transform, and Load) Pipeline
+
+This pipeline is a proof of concept (POC) for automating data extraction, transformation, and loading into a SQL Server database for the KPMG Data Challenge project. In this POC, we're working with CSV and Excel files, but the production implementation would connect directly to Salesforce
+
+## Getting Started
+
+1. Ensure all dependencies are installed: `pip install -r requirements.txt`
+2. Configure database connection in `.env` file
+3. Run the unified pipeline script:
+
+   ```
+   python pipeline.py --excel-file <path_to_excel> --output-dir <path_to_output_dir>
+   ```
+4. Or run the pipeline components individually:
+
+   ```
+   python excel_to_csv.py <excel_file> --output-dir /path/to/output
+   python data_transformation.py
+   python DML_writer.py
+   ```
+5. Execute the generated DML.sql file in SQL Server
+
+### Pipeline Components
+
+#### 1. Data Extraction (`excel_to_csv.py`)
+
+- **excel_to_csv.py**: Utility for converting Excel files to CSV format, useful for initial data ingestion from Excel sources.
+- **Missing Component**: A direct Salesforce connector that would replace the Excel/CSV ingestion in the production implementation.
+
+#### 2. Data Transformation (`data_transformation.py`)
+
+- Processes raw data files into standardized tables matching the database schema
+- Handles data cleaning, type conversion, and foreign key validation
+- Creates proper relationships between entities (employees, clients, engagements, etc.)
+- Outputs transformed CSV files ready for database loading
+
+#### 3. Database Loading (`DML_writer.py`)
+
+- Generates SQL Server T-SQL merge statements (upsert operations) from transformed data
+- Handles batching for large datasets
+- Manages proper insertion order for foreign key constraints
+- Creates a single DML file that can be executed in SQL Server
+
+#### 4. Unified Pipeline (`pipeline.py`)
+
+- Orchestrates the entire ETL process by calling each component in sequence
+- Handles errors and ensures proper data flow between components
+- Provides a single entry point for executing the complete pipeline
+
+### ETL Workflow
+
+1. **Data Extraction**: Raw data is retrieved from Excel files and converted to CSV
+2. **Transformation**: Data is cleaned, validated, and transformed to match database schema
+3. **SQL Generation**: T-SQL statements are generated for database loading
+4. **Database Update**: SQL scripts are executed to update the database
+
+### Production Implementation
+
+For a production environment, this pipeline would be modified in the following ways:
+
+#### Salesforce Integration
+
+- Replace CSV input with direct Salesforce API integration
+- Use the Salesforce Bulk API for large dataset extraction
+- Implement OAuth 2.0 authentication for secure Salesforce access
+- Schedule regular syncs via cron jobs or schedulers
+
+#### Direct SQL Server Connection
+
+- Eliminate the DML file generation step
+- Use pyodbc or SQLAlchemy to execute SQL statements directly
+- Implement transaction management for atomic operations
+- Add comprehensive logging and error handling
+
+#### Power Automate Integration
+
+Advanced analyses could be triggered via Microsoft Power Automate:
+
+- Create Power Automate flows triggered by database updates
+- Connect Power BI reports to automatically refresh
+- Send notifications when key metrics change
+- Trigger downstream processes based on data changes
+
+### Making the Pipeline Robust
+
+The current pipeline is a proof of concept. To make it production-ready and robust:
+
+1. **Error Handling & Logging**
+
+   - Implement comprehensive error handling at each stage
+   - Set up centralized logging with different verbosity levels
+   - Add monitoring for pipeline failures with alerts
+2. **Validation & Testing**
+
+   - Add data validation checks between each stage
+   - Implement unit and integration tests for all components
+   - Create test datasets for regression testing
+3. **Recovery & Resilience**
+
+   - Add checkpointing to allow restart from failure points
+   - Implement retry logic for transient failures
+   - Create backup/rollback mechanisms for critical operations
+4. **Security & Compliance**
+
+   - Implement proper authentication and authorization
+   - Add audit logging for all data access and modifications
+   - Ensure compliance with data governance policies
+5. **Deployment & Automation**
+
+   - Set up CI/CD for automated testing and deployment
+   - Containerize the pipeline for consistent deployment
+   - Implement scheduling for regular automated runs
+
+## Advanced Data Analysis
+
+### Analysis Components
+
+#### 1. Data Fetcher (`fetcher.py`)
+
+- Provides a flexible data access layer for advanced analysis scripts
+- Automatically attempts to connect to the SQL Server database first
+- Falls back to CSV files if database connection fails
+- Offers standardized data access methods for consistent analysis
+
+#### 2. Timesheet Analysis (`analyze_time_entry.py`)
+
+- Analyzes employee time entry patterns and delays
+- Calculates average delay between work date and entry date
+- Identifies employees with the longest and shortest entry delays
+- Detects unusual time entry behavior (e.g., entries made before work date)
+
+#### 3. Anomaly Detection (`anomaly_detection.py`)
+
+- Uses machine learning (Isolation Forest) to detect unusual patterns in timesheet data
+- Identifies anomalies in hours logged and time entry delays
+- Generates summary statistics and visualizations
+- Highlights employees with significant anomaly percentages
+
+#### 4. Resource Allocation (`allocation.py`)
+
+- Calculates project performance metrics using Earned Value Management (EVM)
+- Analyzes project completion rates against schedules
+- Computes Cost Performance Index (CPI) and Schedule Performance Index (SPI)
+- Provides insights into project health and resource allocation efficiency
+
+### Analysis Workflow
+
+1. **Data Retrieval**: The `fetcher.py` utility retrieves data from the database or CSV files
+2. **Data Processing**: Analysis scripts transform and clean the data for specific analyses
+3. **Analysis Execution**: Specialized algorithms are applied to detect patterns or anomalies
+4. **Results Generation**: Analysis results are displayed or saved for further reporting
+
+### Using the Analysis Tools
+
+To run the advanced analysis tools:
+
+```
+# For timesheet entry analysis
+python advanced_data_analysis/analyze_time_entry.py
+
+# For anomaly detection
+python advanced_data_analysis/anomaly_detection.py
+
+# For resource allocation analysis
+python advanced_data_analysis/allocation.py
+```
+
+Each script will automatically attempt to connect to the database, fall back to CSV files if needed, and generate the appropriate analysis output.
+
+### Next Steps
+
+- Integrate analysis scripts with Power BI for interactive dashboards
+- Create scheduled analysis jobs for regular monitoring
+- Implement alerting based on analysis results
+- Expand the analysis toolkit with additional specialized algorithms
+- Connect analysis outputs to project management and resource planning systems

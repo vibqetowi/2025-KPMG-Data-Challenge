@@ -16,7 +16,7 @@ sys.path.append(str(shared_dir))
 from config import CSV_DUMP_DIR, TRANSFORMED_DIR, RAW_FILE_MAP
 
 # Import local modules
-from .data_mocking import DataMocker
+from data_mocking import DataMocker
 
 # Configure logging
 logging.basicConfig(
@@ -60,11 +60,11 @@ class DataTransformer:
                 'dtypes': {'client_no': 'int', 'client_name': 'str'}
             },
             'engagements': {
-                'columns': ['eng_no', 'eng_description', 'client_no', 'start_date', 'end_date', 
-                           'actual_end_date', 'primary_practice_id'],
+                'columns': ['eng_no', 'eng_description', 'client_no', 'primary_practice_id', 
+                           'start_date', 'end_date', 'actual_end_date', 'strategic_weight', 'risk_coefficient'],
                 'dtypes': {'eng_no': 'int64', 'eng_description': 'str', 'client_no': 'int',
-                          'start_date': 'datetime64[ns]', 'end_date': 'datetime64[ns]', 
-                          'actual_end_date': 'datetime64[ns]', 'primary_practice_id': 'int'}
+                          'primary_practice_id': 'int', 'start_date': 'datetime64[ns]', 'end_date': 'datetime64[ns]', 
+                          'actual_end_date': 'datetime64[ns]', 'strategic_weight': 'float', 'risk_coefficient': 'float'}
             },
             'phases': {
                 'columns': ['eng_no', 'eng_phase', 'phase_description', 'budget', 
@@ -74,7 +74,7 @@ class DataTransformer:
                           'actual_end_date': 'datetime64[ns]'}
             },
             'staffing': {
-                'columns': ['personnel_no', 'eng_no', 'eng_phase', 'week_start_date', 'planned_hours'],
+                'columns': ['personnel_no', 'eng_no', 'eng_phase', 'week_start_date', 'planned_hours'],  # Removed 'id'
                 'dtypes': {'personnel_no': 'int', 'eng_no': 'int64', 
                           'eng_phase': 'int', 'week_start_date': 'datetime64[ns]', 'planned_hours': 'float'}
             },
@@ -97,6 +97,11 @@ class DataTransformer:
             'charge_out_rates': {
                 'columns': ['eng_no', 'personnel_no', 'standard_chargeout_rate'],
                 'dtypes': {'eng_no': 'int64', 'personnel_no': 'int', 'standard_chargeout_rate': 'float'}
+            },
+            'staffing_prediction': {
+                'columns': ['personnel_no', 'eng_no', 'eng_phase', 'week_start_date', 'planned_hours'],
+                'dtypes': {'personnel_no': 'int', 'eng_no': 'int64', 
+                          'eng_phase': 'int', 'week_start_date': 'datetime64[ns]', 'planned_hours': 'float'}
             },
             'optimization_parameters': {
                 'columns': ['parameter_key', 'parameter_value', 'description', 'last_updated', 'updated_by'],
@@ -187,7 +192,8 @@ class DataTransformer:
             if col in df.columns:
                 try:
                     # Don't convert ID columns if they already contain sequential values
-                    if col == 'id' and table_name in self.db_generated_columns and not df[col].isna().all():
+                    if (col == 'id' and table_name in self.db_generated_columns and 
+                        not df[col].isna().all()):
                         print(f"Preserving generated ID values in {table_name}")
                         continue
                         
@@ -236,6 +242,60 @@ class DataTransformer:
         
         return df
 
+    def _standardize_personnel_no(self, personnel_no):
+        """
+        Standardize personnel number format by removing leading/trailing zeros.
+        
+        Args:
+            personnel_no: The personnel number to standardize
+            
+        Returns:
+            Standardized personnel number as integer
+        """
+        if pd.isna(personnel_no):
+            return None
+            
+        try:
+            # Handle float values by converting to integer first
+            if isinstance(personnel_no, float):
+                personnel_no = int(personnel_no)
+                
+            # Convert to string to handle various input formats
+            personnel_str = str(personnel_no).strip()
+            
+            # Remove any leading zeros and decimal points
+            personnel_str = personnel_str.lstrip('0')
+            if '.' in personnel_str:
+                personnel_str = personnel_str.split('.')[0]
+                
+            # If empty after stripping (all zeros), return 0
+            if not personnel_str:
+                return 0
+                
+            # Convert to integer
+            return int(personnel_str)
+        except ValueError as e:
+            print(f"Warning: Could not convert personnel number '{personnel_no}' to integer: {e}")
+            return None
+        except Exception as e:
+            print(f"Error processing personnel number '{personnel_no}': {e}")
+            return None
+    
+    def _standardize_personnel_numbers_in_df(self, df, column='personnel_no'):
+        """
+        Apply personnel number standardization to a DataFrame column.
+        
+        Args:
+            df: DataFrame to process
+            column: Column name containing personnel numbers
+            
+        Returns:
+            DataFrame with standardized personnel numbers
+        """
+        if column in df.columns:
+            df[column] = df[column].apply(self._standardize_personnel_no)
+        return df
+
     def process_budget_data(self):
         """
         Process budget data to populate engagements and phases tables.
@@ -267,21 +327,35 @@ class DataTransformer:
                 # Get client number from mapping or default to first client
                 client_no = eng_client_map.get(eng_no, default_client_id)
                 
+                # Generate synthetic dates using DataMocker
+                start_date = pd.Timestamp('2025-01-01')  # Default start date
+                end_date = pd.Timestamp('2025-12-31')    # Default end date
+                
                 engagement = {
                     'eng_no': eng_no,
                     'eng_description': eng_description,
                     'client_no': client_no,
-                    'primary_practice_id': 1  # Default to SAP practice
+                    'primary_practice_id': 1,  # Default to SAP practice
+                    'start_date': start_date,
+                    'end_date': end_date,
+                    'strategic_weight': 1.0,
+                    'risk_coefficient': 1.0
                 }
                 
                 engagements.append(engagement)
                 
-                # Extract phase data
+                # Extract phase data with dates
+                phase_start = start_date
+                phase_end = end_date
+                
                 phases.append({
                     'eng_no': eng_no,
                     'eng_phase': int(row['Code phase']),
                     'phase_description': row['Phase Projet'],
-                    'budget': float(row['Budget']) if pd.notna(row['Budget']) else None
+                    'budget': float(row['Budget']) if pd.notna(row['Budget']) else None,
+                    'start_date': phase_start,
+                    'end_date': phase_end,
+                    'actual_end_date': None
                 })
             
             # Convert to DataFrames
@@ -293,6 +367,7 @@ class DataTransformer:
             if phases:
                 df_phases = pd.DataFrame(phases)
                 df_phases = df_phases.drop_duplicates(subset=['eng_no', 'eng_phase'])
+                self.budget_phases = df_phases  # Store for later merging
                 self.dfs['phases'] = df_phases
             
             print(f"Processed budget data: {len(engagements)} engagements, {len(phases)} phases")
@@ -301,7 +376,7 @@ class DataTransformer:
             print(f"Error processing budget data: {str(e)}")
             import traceback
             traceback.print_exc()
-    
+        
     def _extract_engagement_client_mapping(self):
         """
         Extract mapping between engagement numbers and client numbers from staffing files.
@@ -327,6 +402,134 @@ class DataTransformer:
                 pass
                 
         return eng_client_map
+
+    def extract_phases_from_staffing(self):
+        """
+        Extract engagement phase information from staffing data to ensure 
+        phases referenced in staffing records are present in the phases table.
+        """
+        staffing_files = [STAFFING_2024_CSV, STAFFING_2025_CSV]
+        
+        if not any(os.path.exists(f) for f in staffing_files):
+            print("No staffing files found to extract phases")
+            return pd.DataFrame()
+            
+        # Extract unique engagement and phase combinations from staffing data
+        staffing_phases = pd.DataFrame()
+        
+        for file in staffing_files:
+            if not os.path.exists(file):
+                continue
+                
+            try:
+                df = pd.read_csv(file, encoding='utf-8-sig')
+                phases = df[['Eng. No.', 'Eng. Phase']].drop_duplicates()
+                phases = phases.rename(columns={'Eng. No.': 'eng_no', 'Eng. Phase': 'eng_phase'})
+                staffing_phases = pd.concat([staffing_phases, phases])
+            except Exception as e:
+                print(f"Error extracting phases from {file}: {e}")
+        
+        if staffing_phases.empty:
+            return pd.DataFrame()
+            
+        # Deduplicate
+        staffing_phases = staffing_phases.drop_duplicates()
+        
+        # Check which phases exist in the phases table
+        existing_phases = pd.DataFrame()
+        if 'phases' in self.dfs and not self.dfs['phases'].empty:
+            existing_phases = self.dfs['phases'][['eng_no', 'eng_phase']]
+        
+        # Create composite key for comparison
+        staffing_phases['key'] = staffing_phases['eng_no'].astype(str) + '_' + staffing_phases['eng_phase'].astype(str)
+        
+        if not existing_phases.empty:
+            existing_phases['key'] = existing_phases['eng_no'].astype(str) + '_' + existing_phases['eng_phase'].astype(str)
+            
+            # Find missing phases
+            missing_keys = set(staffing_phases['key']) - set(existing_phases['key'])
+            missing_phases = staffing_phases[staffing_phases['key'].isin(missing_keys)]
+        else:
+            missing_phases = staffing_phases
+        
+        if not missing_phases.empty:
+            print(f"Found {len(missing_phases)} phases in staffing data that need to be added to phases table")
+            
+            # Create a complete dictionary for each missing phase
+            phase_records = []
+            
+            for _, row in missing_phases.iterrows():
+                phase_dict = {
+                    'eng_no': row['eng_no'],
+                    'eng_phase': row['eng_phase'],
+                    'phase_description': 'Auto-generated from staffing data',
+                    'budget': None,
+                    'start_date': pd.Timestamp('2025-01-01'),
+                    'end_date': pd.Timestamp('2025-12-31'),
+                    'actual_end_date': None
+                }
+                phase_records.append(phase_dict)
+            
+            # Create a new DataFrame with all required columns
+            result_df = pd.DataFrame(phase_records)
+            
+            # Drop the key column if it exists
+            if 'key' in result_df.columns:
+                result_df = result_df.drop(columns=['key'])
+            
+            # Store phases from staffing for later merging
+            self.staffing_phases = result_df
+            
+            return result_df
+        
+        # Return an empty DataFrame with the correct columns
+        return pd.DataFrame(columns=['eng_no', 'eng_phase', 'phase_description', 
+                                   'budget', 'start_date', 'end_date', 'actual_end_date'])
+
+    def _merge_phase_info(self, budget_phases, staffing_phases):
+        """
+        Merge phase information from budget and staffing data,
+        keeping the most complete information available.
+        
+        Args:
+            budget_phases: DataFrame with phases from budget data
+            staffing_phases: DataFrame with phases from staffing data
+            
+        Returns:
+            DataFrame with merged phase information
+        """
+        if budget_phases.empty and staffing_phases.empty:
+            return pd.DataFrame(columns=self.schemas['phases']['columns'])
+        
+        if budget_phases.empty:
+            return staffing_phases
+        
+        if staffing_phases.empty:
+            return budget_phases
+        
+        # Convert both DataFrames to dictionaries for easier merging
+        budget_phase_dicts = budget_phases.to_dict('records')
+        staffing_phase_dicts = staffing_phases.to_dict('records')
+        
+        # Create a lookup key for each phase
+        budget_phase_lookup = {f"{phase['eng_no']}_{phase['eng_phase']}": phase 
+                              for phase in budget_phase_dicts}
+        
+        # Add staffing phases that don't exist in budget phases
+        for staffing_phase in staffing_phase_dicts:
+            key = f"{staffing_phase['eng_no']}_{staffing_phase['eng_phase']}"
+            if key not in budget_phase_lookup:
+                budget_phase_lookup[key] = staffing_phase
+        
+        # Convert the merged dictionary back to a DataFrame
+        merged_phases = pd.DataFrame(list(budget_phase_lookup.values()))
+        
+        # Ensure all expected columns exist
+        for col in self.schemas['phases']['columns']:
+            if col not in merged_phases.columns:
+                merged_phases[col] = None
+        
+        return merged_phases
 
     def process_staffing_data(self):
         """
@@ -419,6 +622,10 @@ class DataTransformer:
         if staffing_records:
             df_staffing = pd.DataFrame(staffing_records)
             
+            # Standardize personnel numbers by removing leading zeros
+            df_staffing = self._standardize_personnel_numbers_in_df(df_staffing)
+            print("Standardized personnel numbers in staffing data")
+            
             # Add debug info about date ranges
             if not df_staffing.empty and 'week_start_date' in df_staffing.columns:
                 min_date = df_staffing['week_start_date'].min()
@@ -450,6 +657,46 @@ class DataTransformer:
         
         print(f"Completed staffing data processing: {sum(records_by_file.values())} total records ({skipped_records} invalid records skipped)")
         print(f"Records by file: {records_by_file}")
+        
+        # Add missing phases from staffing
+        missing_phases = self.extract_phases_from_staffing()
+        if not missing_phases.empty:
+            # Add missing phases to phases DataFrame
+            if 'phases' in self.dfs and not self.dfs['phases'].empty:
+                # Instead of concatenation, use a more robust approach
+                print(f"Adding {len(missing_phases)} missing phases to phases table")
+                
+                # Convert all phases to a list of dictionaries
+                existing_phase_dicts = self.dfs['phases'].to_dict('records')
+                missing_phase_dicts = missing_phases.to_dict('records')
+                
+                # Combine the two lists
+                all_phase_dicts = existing_phase_dicts + missing_phase_dicts
+                
+                # Create a new DataFrame with all columns
+                all_columns = set()
+                for phase_dict in all_phase_dicts:
+                    all_columns.update(phase_dict.keys())
+                
+                # Convert back to DataFrame
+                combined_phases = pd.DataFrame(all_phase_dicts)
+                
+                # Ensure all expected columns exist
+                for col in self.schemas['phases']['columns']:
+                    if col not in combined_phases.columns:
+                        combined_phases[col] = None
+                
+                # Set the result to the phases DataFrame
+                self.dfs['phases'] = combined_phases
+                print(f"Combined phases table now contains {len(combined_phases)} phases")
+            else:
+                # If no existing phases, just use the missing phases
+                self.dfs['phases'] = missing_phases
+                print(f"Created phases table with {len(missing_phases)} phases from staffing data")
+            
+            # Ensure there are no duplicates
+            self.dfs['phases'] = self.dfs['phases'].drop_duplicates(subset=['eng_no', 'eng_phase'])
+            print(f"After removing duplicates, phases table contains {len(self.dfs['phases'])} phases")
 
     def process_timesheet_data(self):
         """
@@ -501,6 +748,10 @@ class DataTransformer:
             # Rename columns and add sequential IDs
             df_time = df_time.rename(columns=column_mapping)
             
+            # Standardize personnel numbers by removing leading zeros
+            df_time = self._standardize_personnel_numbers_in_df(df_time)
+            print("Standardized personnel numbers in timesheet data")
+            
             # IMPORTANT: Add sequential IDs starting from 1
             # and explicitly convert to integer type
             df_time['id'] = range(1, len(df_time) + 1)
@@ -527,11 +778,12 @@ class DataTransformer:
             
             # Append to the timesheets DataFrame
             self.dfs['timesheets'] = pd.concat([self.dfs['timesheets'], df_time])
-            
             print(f"Processed {len(df_time)} timesheet records")
             
         except Exception as e:
             print(f"Error processing timesheet data: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     def process_standard_chargeout_rates(self):
         """
@@ -560,6 +812,11 @@ class DataTransformer:
         # Create DataFrame and store in dfs
         if standard_rates:
             self.dfs['charge_out_rates'] = pd.DataFrame(standard_rates)
+            
+            # Standardize personnel numbers
+            self.dfs['charge_out_rates'] = self._standardize_personnel_numbers_in_df(self.dfs['charge_out_rates'])
+            print("Standardized personnel numbers in charge out rates")
+            
             print(f"Generated {len(standard_rates)} standard chargeout rate records")
             
             # Show distribution of rates for verification
@@ -573,10 +830,27 @@ class DataTransformer:
         """
         Validate foreign key relationships between tables.
         """
+        # Ensure all employees have standardized personnel numbers first
+        if 'employees' in self.dfs and not self.dfs['employees'].empty:
+            self.dfs['employees'] = self._standardize_personnel_numbers_in_df(self.dfs['employees'])
+            print("Standardized personnel numbers in employees table")
+        
+        # Also standardize personnel numbers in all related tables before validation
+        for table in ['staffing', 'timesheets', 'vacations', 'charge_out_rates']:
+            if table in self.dfs and not self.dfs[table].empty:
+                self.dfs[table] = self._standardize_personnel_numbers_in_df(self.dfs[table])
+                print(f"Standardized personnel numbers in {table} table before validation")
+        
+        # Now proceed with regular foreign key validation
         for table, fk_list in self.foreign_keys.items():
             if table not in self.dfs or self.dfs[table].empty:
                 continue
                 
+            print(f"Validating foreign keys for {table} table ({len(self.dfs[table])} records)")
+            
+            # For validation, we use strict validation for certain tables that MUST maintain referential integrity
+            strict_validation = table not in ['staffing', 'timesheets']
+            
             for fk in fk_list:
                 if isinstance(fk[0], tuple):
                     # Composite foreign key
@@ -585,8 +859,9 @@ class DataTransformer:
                     ref_cols = fk[2]
                     
                     if ref_table not in self.dfs or self.dfs[ref_table].empty:
+                        print(f"  Reference table {ref_table} is empty or missing")
                         continue
-                        
+                    
                     # Create sets of reference keys
                     ref_keys = set()
                     for _, row in self.dfs[ref_table].iterrows():
@@ -595,19 +870,29 @@ class DataTransformer:
                     
                     # Check each row in the table
                     valid_rows = []
+                    invalid_rows = []
                     for idx, row in self.dfs[table].iterrows():
                         fk_tuple = tuple(row[col] for col in fk_cols)
                         
-                        # Allow if any FK column is NULL
+                        # Skip rows with NULL foreign keys
                         if any(pd.isna(val) for val in fk_tuple):
                             valid_rows.append(idx)
                         # Otherwise check if the FK exists in the reference table
                         elif fk_tuple in ref_keys:
                             valid_rows.append(idx)
+                        else:
+                            invalid_rows.append((idx, fk_tuple))
                     
-                    # Keep only valid rows
-                    self.dfs[table] = self.dfs[table].loc[valid_rows]
-                
+                    # Report invalid foreign keys
+                    if invalid_rows:
+                        print(f"  Found {len(invalid_rows)} records with invalid FK references to {ref_table}")
+                    
+                    # Filter rows if using strict validation
+                    if strict_validation and invalid_rows:
+                        before_filter = len(self.dfs[table])
+                        self.dfs[table] = self.dfs[table].loc[valid_rows]
+                        after_filter = len(self.dfs[table])
+                        print(f"  Removed {before_filter - after_filter} records with invalid {fk_cols} references")
                 else:
                     # Simple foreign key
                     fk_col = fk[0]
@@ -615,15 +900,29 @@ class DataTransformer:
                     ref_col = fk[2]
                     
                     if ref_table not in self.dfs or self.dfs[ref_table].empty:
+                        print(f"  Reference table {ref_table} is empty or missing")
                         continue
-                        
+                    
                     # Get valid reference keys
                     ref_keys = set(self.dfs[ref_table][ref_col].dropna().unique())
                     
-                    # Filter rows with valid foreign keys or NULL
-                    self.dfs[table] = self.dfs[table][
-                        self.dfs[table][fk_col].isna() | self.dfs[table][fk_col].isin(ref_keys)
-                    ]
+                    # Find invalid foreign keys
+                    invalid_mask = ~(self.dfs[table][fk_col].isna() | self.dfs[table][fk_col].isin(ref_keys))
+                    invalid_count = invalid_mask.sum()
+                    
+                    if invalid_count > 0:
+                        invalid_keys = self.dfs[table].loc[invalid_mask, fk_col].unique()
+                        print(f"  Found {invalid_count} records with invalid {fk_col} references to {ref_table}")
+                        print(f"  Sample invalid keys: {list(invalid_keys)[:3]}")
+                    
+                    # Filter rows if using strict validation
+                    if strict_validation and invalid_count > 0:
+                        before_filter = len(self.dfs[table])
+                        self.dfs[table] = self.dfs[table][
+                            self.dfs[table][fk_col].isna() | self.dfs[table][fk_col].isin(ref_keys)
+                        ]
+                        after_filter = len(self.dfs[table])
+                        print(f"  Removed {before_filter - after_filter} records with invalid {fk_col} references")
         
         # Report counts after validation
         for table, df in self.dfs.items():
@@ -632,7 +931,7 @@ class DataTransformer:
     def save_transformed_data(self):
         """
         Save all DataFrames to CSV files in the output directory,
-        explicitly ensuring composite primary keys are included.
+        explicitly ensuring composite primary keys are included and NULL PKs are removed.
         """
         for table, df in self.dfs.items():
             if df.empty:
@@ -654,62 +953,64 @@ class DataTransformer:
                 print(f"Verifying IDs in {table}: {df['id'].notna().sum()} of {len(df)} records have IDs")
                 print(f"First 5 IDs: {df['id'].head().tolist()}")
             
-            # We've already dropped NULL columns during processing
-            # so we just need to handle primary keys and set auto-generated columns
+            # For staffing table, make sure we don't include an 'id' column that's not in the DDL
+            if table == 'staffing' and 'id' in df.columns:
+                print(f"Removing 'id' column from staffing table as it's not in the DDL schema")
+                df = df.drop(columns=['id'])
             
-            # Make sure composite primary keys are present
+            # IMPORTANT: Make sure ALL primary keys are non-null (not just composite ones)
             pk_columns = self.primary_keys.get(table, [])
-            if len(pk_columns) > 1:  # Composite primary key
-                print(f"\nProcessing table {table} with composite primary key {pk_columns}")
+            if not isinstance(pk_columns, list):
+                pk_columns = [pk_columns]
                 
-                # Filter to keep only rows where ALL primary key components are non-null
-                valid_mask = df[pk_columns].notna().all(axis=1)
-                before_filter = len(df)
-                df = df[valid_mask]
-                after_filter = len(df)
-                
-                if before_filter != after_filter:
-                    print(f"Filtered out {before_filter - after_filter} rows with NULL in composite primary key columns")
-                
-                # For staffing table, ensure uniqueness of composite primary key
-                if table == 'staffing':
-                    df = df.drop_duplicates(subset=pk_columns, keep='first')
-                    print(f"Ensured uniqueness of staffing records by composite primary key")
-                
-                # Print the first 5 rows to verify composite primary key columns
-                print(f"\nComposite primary key columns in {table}:")
-                print(df[pk_columns].head(5))
+            # Filter to keep only rows where ALL primary key components are non-null
+            print(f"\nValidating primary key integrity for {table} ({pk_columns})")
+            valid_mask = df[pk_columns].notna().all(axis=1)
+            before_filter = len(df)
+            df = df[valid_mask]
+            after_filter = len(df)
             
-            # No longer setting auto-generated columns to NULL
-            # We now use incremental IDs assigned during processing
+            if before_filter != after_filter:
+                print(f"⚠️ Filtered out {before_filter - after_filter} rows with NULL in primary key columns")
+            
+            # Ensure uniqueness of primary key (for all tables)
+            before_dedup = len(df)
+            df = df.drop_duplicates(subset=pk_columns, keep='first')
+            after_dedup = len(df)
+            
+            if before_dedup != after_dedup:
+                print(f"⚠️ Removed {before_dedup - after_dedup} duplicate rows with the same primary key values")
+            
+            # For composite primary keys, print additional information
+            if len(pk_columns) > 1:  # Composite primary key
+                print(f"Composite primary key columns in {table}:")
+                print(df[pk_columns].head(5))
             
             # Save to CSV with NULL representation for NaN values
             output_file = OUTPUT_DIR / f"{table}.csv"
             df.to_csv(output_file, index=False, na_rep='NULL')
             
-            # Verify the saved CSV actually contains the composite primary key columns
-            if len(pk_columns) > 1:
-                # Read back the saved CSV to verify
-                try:
-                    verification_df = pd.read_csv(output_file)
-                    print(f"\nVerifying composite primary key in saved CSV for {table}:")
-                    print(verification_df[pk_columns].head(5))
-                    
-                    # Verify that all primary key columns exist
-                    if all(col in verification_df.columns for col in pk_columns):
-                        print(f"✓ All composite primary key columns {pk_columns} are present in the CSV")
+            # Verify the saved CSV file
+            try:
+                verification_df = pd.read_csv(output_file)
+                pk_count = len(verification_df)
+                print(f"✓ Verified {pk_count} records saved to {table}")
+                
+                # Verify that all primary key columns exist and have no nulls
+                if all(col in verification_df.columns for col in pk_columns):
+                    null_pks = verification_df[pk_columns].isna().any(axis=1).sum()
+                    if null_pks > 0:
+                        print(f"⚠️ WARNING: Found {null_pks} records with NULL primary keys in saved CSV!")
                     else:
-                        print(f"❌ ERROR: Not all composite primary key columns {pk_columns} are in the CSV!")
-                        missing = [col for col in pk_columns if col not in verification_df.columns]
-                        print(f"   Missing columns: {missing}")
-                except Exception as e:
-                    print(f"Error verifying composite primary key in saved CSV: {e}")
+                        print(f"✓ All primary keys are non-null in the CSV")
+                else:
+                    missing = [col for col in pk_columns if col not in verification_df.columns]
+                    print(f"❌ ERROR: Missing primary key columns in CSV: {missing}")
+            except Exception as e:
+                print(f"Error verifying CSV: {e}")
             
             # Report what was saved
-            if len(pk_columns) > 1:
-                print(f"Saved {len(df)} rows to {output_file} with composite primary key: {pk_columns}")
-            else:
-                print(f"Saved {len(df)} rows to {output_file}")
+            print(f"Saved {len(df)} rows to {output_file} with primary key: {pk_columns}")
 
     def transform_all_data(self):
         """
@@ -717,14 +1018,39 @@ class DataTransformer:
         """
         print(f"Starting data transformation at {datetime.now()}")
         
+        # Initialize phase DataFrames
+        self.budget_phases = pd.DataFrame()
+        self.staffing_phases = pd.DataFrame()
+        
         # Process each data source
         self.process_budget_data()
         self.process_staffing_data()
+        
+        # Merge phase information from different sources
+        print("Merging phase information from budget and staffing data")
+        merged_phases = self._merge_phase_info(self.budget_phases, self.staffing_phases)
+        
+        if not merged_phases.empty:
+            # Ensure unique phases
+            merged_phases = merged_phases.drop_duplicates(subset=['eng_no', 'eng_phase'], keep='first')
+            self.dfs['phases'] = merged_phases
+            print(f"Created merged phases table with {len(merged_phases)} unique phases")
+        
+        # Continue with other processing
         self.process_timesheet_data()
-        self.process_standard_chargeout_rates()  # Add this line
+        self.process_standard_chargeout_rates()
+        
+        # Set dates for all engagements and phases that are still NULL
+        self._populate_missing_dates()
         
         # Generate mock data
         print("Setting 40-hour employment basis for all employees")
+        
+        # Ensure standardized personnel numbers in employees before generating vacations
+        if 'employees' in self.dfs and not self.dfs['employees'].empty:
+            self.dfs['employees'] = self._standardize_personnel_numbers_in_df(self.dfs['employees'])
+            print("Standardized personnel numbers in employees table")
+        
         self.dfs['vacations'] = self.mocker.generate_vacation_data(self.dfs['employees'])
         self.dfs['optimization_parameters'] = self.mocker.create_default_optimization_parameters()
         
@@ -756,11 +1082,133 @@ class DataTransformer:
         # Validate foreign key relationships
         self.validate_foreign_keys()
         
-        # Still call save_transformed_data but it won't need to drop columns
-        # since we've already handled that during processing
-        self.save_transformed_data()
+        # Before final save, ensure all employees have valid personnel_no values
+        if 'employees' in self.dfs and not self.dfs['employees'].empty:
+            print("Performing final validation of employee primary keys...")
+            non_null_mask = self.dfs['employees']['personnel_no'].notna()
+            before_count = len(self.dfs['employees'])
+            self.dfs['employees'] = self.dfs['employees'][non_null_mask]
+            after_count = len(self.dfs['employees'])
+            if before_count != after_count:
+                print(f"⚠️ Removed {before_count - after_count} employees with null personnel numbers")
         
+        # Perform a final check on all foreign key references
+        print("Performing final FK validation before save...")
+        self.validate_foreign_keys()
+        
+        # Save the transformed data
+        print("Saving final transformed data...")
+        self.save_transformed_data()
+                 
         print(f"Data transformation completed at {datetime.now()}")
+    
+    def _populate_missing_dates(self):
+        """
+        Populate missing dates in engagements and phases tables using realistic date ranges.
+        """
+        # Set dates for engagements
+        if 'engagements' in self.dfs and not self.dfs['engagements'].empty:
+            print("Checking for missing dates in engagements table...")
+            engagements_df = self.dfs['engagements']
+            
+            # Count engagements with missing dates
+            missing_start = engagements_df['start_date'].isna().sum()
+            missing_end = engagements_df['end_date'].isna().sum()
+            
+            if missing_start > 0 or missing_end > 0:
+                print(f"Found {missing_start} missing start dates and {missing_end} missing end dates in engagements")
+                
+                # Generate dates for engagements with missing dates
+                for idx, row in engagements_df.iterrows():
+                    if pd.isna(row['start_date']) or pd.isna(row['end_date']):
+                        # Generate realistic dates - spread engagements throughout 2025
+                        month = (idx % 12) + 1  # Spread across months 1-12
+                        day = min((idx % 28) + 1, 28)  # Spread across days 1-28
+                        
+                        # Set start date in 2025
+                        start_date = pd.Timestamp(f'2025-{month:02d}-{day:02d}')
+                        
+                        # Set end date 60-120 days later
+                        duration = random.randint(60, 120)
+                        end_date = start_date + pd.Timedelta(days=duration)
+                        
+                        # Update the DataFrame
+                        if pd.isna(row['start_date']):
+                            engagements_df.at[idx, 'start_date'] = start_date
+                        if pd.isna(row['end_date']):
+                            engagements_df.at[idx, 'end_date'] = end_date
+                
+                self.dfs['engagements'] = engagements_df
+                print("Populated missing engagement dates with synthetic values")
+        
+        # Set dates for phases
+        if 'phases' in self.dfs and not self.dfs['phases'].empty:
+            print("Checking for missing dates in phases table...")
+            phases_df = self.dfs['phases']
+            
+            # Count phases with missing dates
+            missing_start = phases_df['start_date'].isna().sum()
+            missing_end = phases_df['end_date'].isna().sum()
+            
+            if missing_start > 0 or missing_end > 0:
+                print(f"Found {missing_start} missing start dates and {missing_end} missing end dates in phases")
+                
+                # First, create a mapping of engagement dates to use as reference
+                eng_dates = {}
+                if 'engagements' in self.dfs and not self.dfs['engagements'].empty:
+                    for _, row in self.dfs['engagements'].iterrows():
+                        if pd.notna(row['start_date']) and pd.notna(row['end_date']):
+                            eng_dates[row['eng_no']] = (row['start_date'], row['end_date'])
+                
+                # Generate dates for phases with missing dates
+                for idx, row in phases_df.iterrows():
+                    eng_no = row['eng_no']
+                    
+                    if pd.isna(row['start_date']) or pd.isna(row['end_date']):
+                        # First try to use engagement dates if available
+                        if eng_no in eng_dates:
+                            eng_start, eng_end = eng_dates[eng_no]
+                            
+                            # For multi-phase engagements, divide the duration into segments
+                            phase_count = phases_df[phases_df['eng_no'] == eng_no].shape[0]
+                            if phase_count > 1:
+                                # Calculate phase duration as a portion of the engagement duration
+                                eng_duration = (eng_end - eng_start).days
+                                phase_duration = max(7, eng_duration // phase_count)
+                                
+                                # Get the phase index within this engagement
+                                phase_idx = phases_df[
+                                    (phases_df['eng_no'] == eng_no) & 
+                                    (phases_df['eng_phase'] <= row['eng_phase'])
+                                ].shape[0] - 1
+                                
+                                # Calculate phase dates based on position
+                                phase_start = eng_start + pd.Timedelta(days=phase_idx * phase_duration)
+                                phase_end = min(phase_start + pd.Timedelta(days=phase_duration), eng_end)
+                            else:
+                                # Single phase - use engagement dates
+                                phase_start = eng_start
+                                phase_end = eng_end
+                        else:
+                            # No engagement dates available - generate synthetic dates
+                            month = (idx % 12) + 1  # Spread across months 1-12
+                            day = min((idx % 28) + 1, 28)  # Spread across days 1-28
+                            
+                            # Set start date in 2025
+                            phase_start = pd.Timestamp(f'2025-{month:02d}-{day:02d}')
+                            
+                            # Set end date 30-90 days later
+                            duration = random.randint(30, 90)
+                            phase_end = phase_start + pd.Timedelta(days=duration)
+                        
+                        # Update the DataFrame
+                        if pd.isna(row['start_date']):
+                            phases_df.at[idx, 'start_date'] = phase_start
+                        if pd.isna(row['end_date']):
+                            phases_df.at[idx, 'end_date'] = phase_end
+                
+                self.dfs['phases'] = phases_df
+                print("Populated missing phase dates with synthetic values")
 
 def main():
     """
@@ -776,3 +1224,127 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Utility functions for standalone operation
+def transform_staffing_data(input_file, output_file=None, append=False):
+    """
+    Transform staffing data from wide format (dates as columns) to long format (dates as rows)
+    
+    Parameters:
+    - input_file: path to the input CSV file
+    - output_file: path to the output CSV file (if None, returns DataFrame)
+    - append: if True, append to the output file; if False, overwrite it
+    
+    Returns:
+    - DataFrame with transformed data if output_file is None
+    """
+    # Read the input CSV file
+    df = pd.read_csv(input_file)
+    
+    # Define metadata columns (first 9 columns A-I)
+    metadata_columns = [
+        'Eng. No.', 'Eng. Description', 'Eng. Phase', 'Phase Description',
+        'Client No.', 'Client Name', 'Personnel No.', 'Employee Name', 'Staff Level'
+    ]
+    
+    # All columns after the metadata columns are weekly allocations (J onwards)
+    date_columns = [col for col in df.columns if col not in metadata_columns]
+    
+    print(f"Processing file: {input_file}")
+    print(f"Found {len(date_columns)} weekly allocation columns")
+    
+    # Melt the DataFrame to convert from wide to long format
+    melted_df = pd.melt(
+        df,
+        id_vars=['Eng. No.', 'Eng. Phase', 'Personnel No.'],
+        value_vars=date_columns,
+        var_name='week_start_date',
+        value_name='planned_hours'
+    )
+    
+    # Convert week_start_date from string to datetime and format it
+    melted_df['week_start_date'] = pd.to_datetime(melted_df['week_start_date']).dt.strftime('%Y-%m-%d')
+    
+    # Rename columns to match the target format
+    melted_df = melted_df.rename(columns={
+        'Eng. No.': 'eng_no',
+        'Eng. Phase': 'eng_phase',
+        'Personnel No.': 'personnel_no'
+    })
+    
+    # Select and reorder columns
+    transformed_df = melted_df[['personnel_no', 'eng_no', 'eng_phase', 'week_start_date', 'planned_hours']]
+    
+    # Filter out rows with zero planned hours
+    transformed_df = transformed_df[transformed_df['planned_hours'] > 0]
+    
+    # Standardize personnel numbers (remove leading zeros)
+    def standardize_personnel_no(personnel_no):
+        if pd.isna(personnel_no):
+            return None
+            
+        try:
+            # Handle float values by converting to integer first
+            if isinstance(personnel_no, float):
+                personnel_no = int(personnel_no)
+                
+            # Convert to string to handle various input formats
+            personnel_str = str(personnel_no).strip()
+            
+            # Remove any leading zeros and decimal points
+            personnel_str = personnel_str.lstrip('0')
+            if '.' in personnel_str:
+                personnel_str = personnel_str.split('.')[0]
+                
+            # If empty after stripping (all zeros), return 0
+            if not personnel_str:
+                return 0
+                
+            # Convert to integer
+            return int(personnel_str)
+        except Exception:
+            return None
+    
+    transformed_df['personnel_no'] = transformed_df['personnel_no'].apply(standardize_personnel_no)
+    
+    # Convert column types
+    transformed_df['personnel_no'] = transformed_df['personnel_no'].astype(int)
+    transformed_df['eng_no'] = transformed_df['eng_no'].astype(int)
+    transformed_df['eng_phase'] = transformed_df['eng_phase'].astype(int)
+    
+    # Print summary of data by year to verify we have all dates
+    if not transformed_df.empty:
+        transformed_df['year'] = pd.to_datetime(transformed_df['week_start_date']).dt.year
+        year_counts = transformed_df.groupby('year').size()
+        print(f"Records by year:\n{year_counts}")
+        transformed_df = transformed_df.drop(columns=['year'])  # Remove temporary column
+    
+    # Write the transformed data to the output file or return the DataFrame
+    if output_file:
+        mode = 'a' if append else 'w'
+        header = not append
+        transformed_df.to_csv(output_file, index=False, mode=mode, header=header)
+        print(f"Saved {len(transformed_df)} records to {output_file}")
+    else:
+        return transformed_df
+
+def process_all_staffing_data():
+    """Process both 2024 and 2025 staffing data and combine them"""
+    # Define file paths
+    base_dir = '/Users/notAdmin/Dev/2025 KPMG Data Challenge/csv-dump'
+    staffing_2024 = os.path.join(base_dir, 'KPMG Case Data_Staffing___2024.csv')
+    staffing_2025 = os.path.join(base_dir, 'KPMG Case Data_Staffing___2025.csv')
+    output_file = os.path.join(base_dir, 'transformed/staffing.csv')
+    
+    # Transform 2024 data and write to output
+    print("Transforming 2024 staffing data...")
+    transform_staffing_data(staffing_2024, output_file, append=False)
+    
+    # Transform 2025 data and append to output
+    print("Transforming 2025 staffing data...")
+    transform_staffing_data(staffing_2025, output_file, append=True)
+    
+    print(f"Transformation complete. Output saved to {output_file}")
+
+if __name__ == "__main__":
+    process_all_staffing_data()

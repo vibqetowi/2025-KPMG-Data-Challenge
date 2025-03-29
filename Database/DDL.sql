@@ -14,6 +14,9 @@ GO
 
 -- Drop existing tables in the correct order (to avoid foreign key constraint violations)
 -- First drop tables with foreign key dependencies
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'optimization_parameters')
+    DROP TABLE [optimization_parameters];
+
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'charge_out_rates')
     DROP TABLE [charge_out_rates];
 
@@ -201,24 +204,13 @@ CREATE TABLE [charge_out_rates] (
 GO
 
 -- Create optimization_parameters table
-IF EXISTS (SELECT * FROM sys.tables WHERE name = 'optimization_parameters')
-    DROP TABLE [optimization_parameters];
-
 CREATE TABLE [optimization_parameters] (
   [parameter_key] nvarchar(50) PRIMARY KEY,
   [parameter_value] decimal(10,4) NOT NULL,
   [description] nvarchar(255),
   [last_updated] datetime DEFAULT GETDATE(),
-  [updated_by] int
+  [updated_by] int,
 );
-GO
-
--- Insert default optimization parameters (using a valid personnel_no - replace 1001 with an actual personnel_no from your data)
-INSERT INTO [optimization_parameters] ([parameter_key], [parameter_value], [description], [updated_by])
-VALUES 
-  ('alpha', 0.5, 'Weighting coefficient for SPI in optimization objective function', 1001),
-  ('beta', 0.5, 'Weighting coefficient for VEC in optimization objective function', 1001),
-  ('default_pse', 0.9, 'Default Phase Switching Efficiency factor for productivity loss when consultants switch tasks', 1001);
 GO
 
 -- Add or update column descriptions
@@ -325,6 +317,7 @@ ALTER TABLE [charge_out_rates] ADD CONSTRAINT [FK_charge_out_rates_employees]
 GO
 
 -- Add foreign key constraint for optimization_parameters.updated_by
+-- This should come last, after all data is loaded
 ALTER TABLE [optimization_parameters] ADD CONSTRAINT [FK_optimization_parameters_employees]
     FOREIGN KEY ([updated_by]) REFERENCES [employees] ([personnel_no]);
 GO
