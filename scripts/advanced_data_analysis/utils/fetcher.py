@@ -227,6 +227,7 @@ class DataFetcher:
                         "clients": "KPMG Case Data_Staffing___2024.csv",  # Extracted from staffing data
                         "engagements": "KPMG Case Data_Budget.csv",
                         "phases": "KPMG Case Data_Budget.csv",
+                        "budget": "KPMG Case Data_Budget.csv",
                         "staffing": "KPMG Case Data_Staffing___2024.csv",
                         "practices": None,  # Might be internal only
                         "dictionary": "KPMG Case Data_Dictionnaire___Dictionary_.csv",
@@ -339,6 +340,24 @@ class DataFetcher:
            "Personnel No.": "personnel_no"
            }
            df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
+           
+        elif table_name == "budget":
+            if all(col in df.columns for col in ["Code projet", "Code phase", "Budget"]):
+                df = df[["Code projet", "Code phase", "Budget"]].dropna()
+                df = df.rename(columns={
+                    "Code projet": "eng_no",
+                    "Code phase": "eng_phase",
+                    "Budget": "budget"
+                })
+
+                # Clean up numeric budget values if needed
+                df["budget"] = (
+                    df["budget"]
+                    .astype(str)
+                    .str.replace(r"[^\d]", "", regex=True)  # Remove commas, spaces
+                    .astype(float)
+                )
+
            
         # Add more transformations for other tables as needed
 
