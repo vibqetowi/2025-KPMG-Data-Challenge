@@ -17,7 +17,7 @@ shared_dir = project_root / "scripts" / "shared"
 sys.path.append(str(shared_dir))
 
 # Import from shared modules
-from config import TRANSFORMED_DIR, DML_FILE
+from config import TRANSFORMED_DIR, DML_FILE, RAW_FILE_MAP
 
 # Configure logging
 logging.basicConfig(
@@ -38,18 +38,23 @@ class DMLWriter:
         self.output_file.parent.mkdir(exist_ok=True, parents=True)
         
         # Define table schemas based on DDL (match exactly with database structure)
+        # These must match exactly with the columns in data_transformation.py
         self.schemas = {
             'practices': ['practice_id', 'practice_name', 'description'],
             'employees': ['personnel_no', 'employee_name', 'staff_level', 'is_external', 'employment_basis', 'practice_id'],
             'clients': ['client_no', 'client_name'],
-            'engagements': ['eng_no', 'eng_description', 'client_no', 'primary_practice_id'],
-            'phases': ['eng_no', 'eng_phase', 'phase_description', 'budget'],
-            'staffing': ['id', 'personnel_no', 'eng_no', 'eng_phase', 'week_start_date', 'planned_hours'],
+            'engagements': ['eng_no', 'eng_description', 'client_no', 'primary_practice_id', 
+                           'start_date', 'end_date', 'actual_end_date', 'strategic_weight', 'risk_coefficient'],
+            'phases': ['eng_no', 'eng_phase', 'phase_description', 'budget', 
+                      'start_date', 'end_date', 'actual_end_date'],
+            'staffing': ['personnel_no', 'eng_no', 'eng_phase', 'week_start_date', 'planned_hours'],
             'timesheets': ['id', 'personnel_no', 'eng_no', 'eng_phase', 'work_date', 'hours', 
                           'time_entry_date', 'posting_date', 'charge_out_rate', 'std_price', 'adm_surcharge'],
             'dictionary': ['key', 'description'],
             'vacations': ['personnel_no', 'start_date', 'end_date'],
-            'charge_out_rates': ['eng_no', 'personnel_no', 'standard_chargeout_rate']
+            'charge_out_rates': ['eng_no', 'personnel_no', 'standard_chargeout_rate'],
+            'staffing_prediction': ['personnel_no', 'eng_no', 'eng_phase', 'week_start_date', 'planned_hours'],
+            'optimization_parameters': ['parameter_key', 'parameter_value', 'description', 'last_updated', 'updated_by']
         }
         
         # Define primary keys for each table
@@ -59,11 +64,13 @@ class DMLWriter:
             'clients': ['client_no'],
             'engagements': ['eng_no'],
             'phases': ['eng_no', 'eng_phase'],
-            'staffing': ['id'],
+            'staffing': ['personnel_no', 'eng_no', 'eng_phase', 'week_start_date'],
             'timesheets': ['id'],
             'dictionary': ['key'],
             'vacations': ['personnel_no', 'start_date'],
-            'charge_out_rates': ['eng_no', 'personnel_no']
+            'charge_out_rates': ['eng_no', 'personnel_no'],
+            'staffing_prediction': ['personnel_no', 'eng_no', 'eng_phase', 'week_start_date'],
+            'optimization_parameters': ['parameter_key']
         }
         
         # Define column data types for proper SQL Server (T-SQL) formatting
@@ -97,13 +104,19 @@ class DMLWriter:
             'primary_practice_id': 'int',
             'start_date': 'date',
             'end_date': 'date',
-            'standard_chargeout_rate': 'decimal'
+            'standard_chargeout_rate': 'decimal',
+            'actual_end_date': 'date',
+            'strategic_weight': 'decimal',
+            'risk_coefficient': 'decimal',
+            'parameter_key': 'nvarchar',
+            'parameter_value': 'decimal',
+            'last_updated': 'datetime',
+            'updated_by': 'int'
         }
         
         # Define auto-generated columns that should be excluded from INSERT statements
         self.auto_generated_columns = {
-            'staffing': ['id'],
-            'timesheets': ['id']
+            'timesheets': ['id']  # Removed 'staffing' as it doesn't have an auto-generated id column
         }
         
         # SQL statements for each table
@@ -122,7 +135,13 @@ class DMLWriter:
         if not os.path.exists(self.csv_dir):
             raise FileNotFoundError(f"Transformed CSV directory not found: {self.csv_dir}")
         
-        # Load all transformed CSVs into DataFrames - including any new ones like vacations
+        # Check if any schemas don't have corresponding files in RAW_FILE_MAP
+        missing_tables = [table for table in self.schemas.keys() 
+                         if table not in RAW_FILE_MAP and table not in ['staffing_prediction', 'optimization_parameters']]
+        if missing_tables:
+            logger.warning(f"Tables not defined in RAW_FILE_MAP: {missing_tables}")
+        
+        # Load all transformed CSVs into DataFrames
         for table_name in self.schemas:
             csv_file = self.csv_dir / f"{table_name}.csv"
             if os.path.exists(csv_file):
@@ -184,6 +203,21 @@ class DMLWriter:
                 return 'NULL'
             except:
                 return 'NULL'
+        elif column_type == 'datetime':
+            try:
+                # Use proper SQL Server datetime conversion
+                if isinstance(value, pd.Timestamp):
+                    return f"CONVERT(DATETIME, '{value.strftime('%Y-%m-%d %H:%M:%S')}', 120)"
+                else:
+                    for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y']:
+                        try:
+                            date_obj = pd.to_datetime(value, format=fmt)
+                            return f"CONVERT(DATETIME, '{date_obj.strftime('%Y-%m-%d %H:%M:%S')}', 120)"
+                        except:
+                            continue
+                return 'NULL'
+            except:
+                return 'NULL'
         elif column_type == 'bit':
             if str(value).lower() in ('true', 't', 'yes', 'y', '1'):
                 return '1'
@@ -213,6 +247,13 @@ class DMLWriter:
                 logger.warning(f"Missing columns in {table_name} data: {missing_columns}")
                 for col in missing_columns:
                     df[col] = None  # Add missing columns as NULL
+            
+            # For the timesheets table, check if we need to handle ID column
+            if table_name == 'timesheets' and 'id' in schema_columns:
+                if 'id' not in df.columns or df['id'].isna().all():
+                    # Generate sequential IDs if needed
+                    logger.info(f"Generating sequential IDs for {table_name} table")
+                    df['id'] = range(1, len(df) + 1)
             
             # For large datasets, break into chunks to avoid too large SQL statements
             chunk_size = 500  # Can use larger chunk size for simple INSERT vs MERGE
@@ -279,7 +320,9 @@ class DMLWriter:
                 'staffing', 
                 'timesheets',
                 'vacations',
-                'charge_out_rates'
+                'charge_out_rates',
+                'staffing_prediction',
+                'optimization_parameters'
             ]
             
             # Write statements for each table in the defined order
@@ -296,7 +339,8 @@ class DMLWriter:
                 f.write("    BEGIN TRANSACTION;\n")
                 
                 # Handle identity insert for tables with identity columns
-                if table in ('staffing', 'timesheets'):
+                # Only timesheets has an identity column
+                if table == 'timesheets':
                     f.write(f"    SET IDENTITY_INSERT [dbo].[{table}] ON;\n")
                 
                 for i, stmt in enumerate(statements):
@@ -304,7 +348,7 @@ class DMLWriter:
                     f.write("    " + stmt.replace("\n", "\n    ") + "\n")
                 
                 # Turn off identity insert if it was turned on
-                if table in ('staffing', 'timesheets'):
+                if table == 'timesheets':
                     f.write(f"    SET IDENTITY_INSERT [dbo].[{table}] OFF;\n")
                 
                 f.write("    COMMIT TRANSACTION;\n")
@@ -356,4 +400,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

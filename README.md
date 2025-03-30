@@ -15,7 +15,7 @@
 | ----------- | ---------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
 | Minh        | @vibqetowi | [hminh-software-eng](https://www.linkedin.com/in/hminh-software-eng)        | Software Engineering, previous experience in software development and project management       |
 | Carter      | @carterj-c | [cartercameronfina](https://www.linkedin.com/in/cartercameronfina)          | Previously Mechanical Engineering now in Finance, previous experience in aerospace engineering |
-| Casey       | @cassius   | [casey-jussaume](https://www.linkedin.com/in/casey-jussaume)                | Finance & accounting, previous experience in financial modeling and research                   |
+| Casey       | @cassius   | [casey-jussaume](https://www.linkedin.com/in/casey-jussaume)                | Finance & Accounting, previous experience in financial modeling and research                   |
 | Romero      | @geekpapi  | [romero-p-faustin](https://www.linkedin.com/in/romero-p-faustin-96106a179/) | Economics & Computer Science, previous experience in data analysis                             |
 
 ## 🎯 Project Overview
@@ -36,19 +36,26 @@ This dashboard is specifically engineered to address critical business needs pre
 
 ## 🌟 Key Capabilities
 
-The key business outcomes from this predictive dashboard solution are:
+PROP delivers significant advantages across several key operational areas:
 
-- True visibility on engagement profitability
-- Instant financial interpretations (VEC, Burn, SPI)
-- Enhanced client satisfaction through consistently meeting deadlines
-- Better work-life balance through realistic capacity planning
-- Earned Value Management (EVM) metrics calculation (SPI, EV, PV)
-- Consultant allocation optimization algorithm
-- engagement performance visualization for clear insights
-- Resource utilization tracking (Benching, Capacity Utilization)
-- Schedule and cost variance monitoring to maintain engagement control
-- Predictive engagement completion forecasting
-- Vacation tracking and integration to prevent resource allocation conflicts and ensure realistic capacity planning
+**1. Financial Performance & Profitability**
+
+* **Enhanced Profitability Visibility:** Provides clear, real-time insight into engagement profitability.
+* **Rapid Financial Analysis:** Delivers instant financial interpretations, includingvalue Extraction Coefficient (VEC), Burn Rate, and Schedule Performance Index (SPI).
+
+**2. Resource Management & Optimization**
+
+* **Optimized Resource Planning:** Supports improved work-life balance through realistic and effective capacity planning.
+* **Intelligent Consultant Allocation:** Features an algorithm for optimizing consultant assignments.
+* **Comprehensive Resource Tracking:** Monitors key resource utilization metrics, including bench time and overall capacity utilization.
+* **Integrated Absence Management:** Incorporates vacation and time-off tracking to prevent resource allocation conflicts and ensure realistic capacity assessments.
+
+**3. Project Execution & Performance Management**
+
+* **Automated EVM Calculations:** Automatically calculates crucial Earned Value Management (EVM) metrics, such as SPI, Earned Value (EV), and Planned Value (PV).
+* **Actionable Performance Insights:** Offers clear visualizations of engagement performance for informed decision-making.
+* **Proactive Variance Management:** Enables effective monitoring of schedule and cost variances to maintain engagement control.
+* **Improved Client Satisfaction:** Facilitates consistent adherence to project deadlines, enhancing client satisfaction. *(This outcome is directly linked to effective project execution)*
 
 ## 💼 Business Objectives and Optimization Targets
 
@@ -60,31 +67,31 @@ Traditional project management metrics often fail to capture the dual financial 
 
 The VEC is calculated as follows (shown for a specific phase $ph$):
 
-$$
-\text{VEC}_{ph} = \frac{1}{\text{BAC}_{ph}} \times \sum_{t=1}^{n} \left[ \text{AC}_t \times d_t \times ea_c \times eo_c \right]
-$$
+```math
+VEC_{ph} = \frac{1}{BAC_{ph}} \times \sum_{t=1}^{n} \left[ AC_t \times d_t \times ea_c \times eo_c \right]
+```
 
 Where:
 
-* $ \text{BAC}_{ph} $: Budget At Completion for phase $ph$. The $ \frac{1}{\text{BAC}_{ph}} $ term normalizes the extracted value against the phase budget baseline. (VEC can also be calculated at the engagement level).
+* $ BAC_{ph} $: Budget At Completion for phase $ph$. The $ \frac{1}{BAC_{ph}} $ term normalizes the extracted value against the phase budget baseline. (VEC can also be calculated at the engagement level).
 * $ \sum_{t=1}^{n} $: Summation over all individual financial transactions $ t $ (typically timesheet entries) contributing to the phase's actual cost up to the point of measurement.
-* $ \text{AC}_t $: Actual Billed Amount (or Cost equivalent) for transaction $ t $.
+* $ AC_t $: Actual Billed Amount (or Cost equivalent) for transaction $ t $.
 * $ d_t $: Rate Efficiency Factor for transaction $ t $, measuring how the actual chargeout rate used compares to the standard rate for the consultant $ c $ associated with transaction $ t $.
-  $$
-  d_t = \frac{\text{Chargeout}_t}{\text{StandardChargeout}_c}
-  $$
+  ```math
+  d_t = \frac{Chargeout_t}{StandardChargeout_c}
+  ```
 * $ ea_c $: External Adjustment Factor for consultant $ c $ (e.g., 1.0 for internal, 0.9 for external).
-  $$
-  ea_c = 1 - 0.1 \times \text{isExternal}_c
-  $$
+  ```math
+  ea_c = 1 - 0.1 \times isExternal_c
+  ```
 * $ eo_c $: Onboarding/New Hire Adjustment Factor for consultant $ c $ (e.g., 1.0 for experienced, 0.8 for new).
-  $$
-  eo_c = 1 - 0.2 \times \text{isNew}_c
-  $$
+  ```math
+  eo_c = 1 - 0.2 \times isNew_c
+  ```
 
 #### Interpreting Financial Health (using VEC and Burn)
 
-Budget Burn for a phase is calculated as $\text{Burn}_{ph} = \frac{\sum AC_t}{\text{BAC}_{ph}}$. VEC and Burn provide a nuanced view of financial health:
+Budget Burn for a phase is calculated as $\text{Burn}_{ph} = \frac{\sum AC_t}{BAC_{ph}}$. VEC and Burn provide a nuanced view of financial health:
 
 |                     | **VEC > Burn** (Premium Realization) | **VEC ≈ Burn** (Standard Realization) | **VEC < Burn** (Value Dilution) |
 | :------------------ | :----------------------------------------- | :------------------------------------------- | :------------------------------------ |
@@ -95,53 +102,58 @@ Budget Burn for a phase is calculated as $\text{Burn}_{ph} = \frac{\sum AC_t}{\t
 **Interpretation Notes:**
 
 * **Excellent:** High efficiency, within or at budget. Strong performance.
-* **On Track:** Standard efficiency, within or at budget. Meeting expectations.
+* ctations.
 * **Warning:** Inefficiency (dilution) detected, even if currently within budget. Potential future problems if trend continues.
 * **Ambiguous:** Over budget, but spend appears efficient. Needs investigation: Is the high efficiency justifying the cost (e.g., scope change, premium value), or masking poor cost control?
 * **Critical:** Over budget combined with standard or poor efficiency. Clear problem with cost control and/or value realization. Requires immediate attention.
 
 ### Resource Optimization
 
-Our solution addresses the core optimization challenge facing consulting organizations by recommending optimal consultant assignments:
+Our solution addresses the core optimization challenge facing consulting organizations by recommending optimal consultant assignments. The goal is to dynamically adapt staffing while maintaining project health and efficiency.
 
-$$
-\max_{A} \sum_{en \in EN} w_{en} \times r_{en} \times (\alpha \times \text{SPI}_{en} + \beta \times \text{VEC}_{en}) - \sum_{c\in C, en \in EN, w \in W}\text{pse} \times \text{is\_switch}_{c,en,w}
-$$
+**Objective Function:**
 
-Where $A$ represents the assignment matrix (consultant $c$, engagement $en$, hours in week $w$). The optimization seeks the assignment $A$ that maximizes this weighted sum of performance indicators across all engagements $EN$, penalized by the cost (`pse`) of switching consultants between engagements.
+The optimization seeks the assignment matrix $A$ (consultant $c$, engagement $en$, hours in week $w$) that maximizes overall value, penalized by switching costs and deviations from recent staffing patterns:
 
-Subject to critical business constraints:
-
-- $\text{SPI}_{en} \ge 0.85$ for all engagements $en$ (preventing schedule slippage).
-- $\bigl|\text{VEC}_{en} - \text{Burn}_{en}\bigr| \le 0.15$ for all engagements $en$ (ensuring adequate value extraction).
-- Consultant Benching Rate < 20% (maximizing billable utilization).
-- $\forall c \in C, \sum_{en \in EN} \text{Hours}_{c,en,w} \leq 40, \forall w \in \text{Weeks}$ (maintaining work-life balance, respecting capacity).
-- $\forall l \in L, \forall pr \in PR, \frac{\sum_{c \in C_{l,pr}} \text{Hours}_{c,en,w}}{\sum_{c \in C} \text{Hours}_{c,en,w}} = r_{l,pr,en}, \forall en \in EN, \forall w \in \text{Weeks}$ (maintaining appropriate staffing ratios $r$ for level $l$ and practice $pr$ on engagement $en$).
-- $\sum_{en \in EN} \text{Hours}_{c_{ext},en,w} > 0 \implies \sum_{en \in EN} \text{Hours}_{c_{int},en,w} = 40, \forall c_{int} \in C_{int}, \forall c_{ext} \in C_{ext}, \forall w \in \text{Weeks}$ (prioritizing internal consultants $C_{int}$ before external consultants $C_{ext}$).
+```math
+\max_{A} \sum_{en \in EN} \left[ w_{en} \times r_{en} \times (\alpha \times SPI_{en} + \beta \times VEC_{en}) \right] - \sum_{c,en,w} pse \times is\_switch_{c,en,w} - \sum_{en, l, pr, w} Penalty_{l,pr,en,w}
+```
 
 Where:
 
-- $w_{en}$: Strategic value weight of engagement $en$.
-- $r_{en}$: Delivery risk coefficient for engagement $en$.
-- $\alpha, \beta$: Weighting coefficients balancing schedule (SPI) vs. value (VEC).
-- $\text{pse}$: Phase Switching Efficiency factor (≤ 1) accounting for productivity loss when consultants switch tasks.
-- $\text{is\_switch}_{c,en,w}$: Binary variable: 1 if consultant $c$ is newly assigned to engagement $en$ in week $w$.
-- $EN$: Set of all engagements.
-- $L$: Set of staff levels.
-- $PR$: Set of practice areas.
-- $C_{l,pr}$: Subset of consultants at level $l$ from practice area $pr$.
-- $C_{int}, C_{ext}$: Subsets of internal and external consultants.
-- $r_{l,pr,en}$: Target ratio of hours for level $l$ and practice $pr$ in engagement $en$.
+* $A$: The assignment matrix being optimized for the upcoming week(s) $w$.
+* $w_{en}$: Strategic value weight of engagement $en$.
+* $r_{en}$: Delivery risk coefficient for engagement $en$.
+* $\alpha, \beta$: Weighting coefficients balancing schedule (SPI) vs. value (VEC).
+* $SPI_{en}, VEC_{en}$: Predicted Schedule Performance Index and Value Extraction Coefficient for engagement $en$ *resulting from* the assignment $A$.
+* $pse$: Phase Switching Efficiency factor (penalty for task switching).
+* $is\_switch_{c,en,w}$: Binary variable: 1 if consultant $c$ is newly assigned to engagement $en$ in week $w$ compared to week $w-1$.
+* $Penalty_{l,pr,en,w}$: A penalty term discouraging significant deviations from the previous week's actual staffing mix for level $l$ and practice $pr$ on engagement $en$. Calculated as:
 
-The staffing ratio constraint ensures that each engagement maintains the required mix. This optimization balances schedule performance (SPI), value extraction (VEC), strategic importance ($w_{en}$), risk ($r_{en}$), and switching efficiency ($\text{pse}$), while respecting constraints.
+  ```math
+  Penalty_{l,pr,en,w} = \gamma_{l,pr,en} \times \left| \frac{\sum_{c \in C_{l,pr}} Hours_{c,en,w}}{\sum_{c \in C} Hours_{c,en,w}} - ActualRatio_{l,pr,en,w-1} \right|
+  ```
+
+  * $\gamma_{l,pr,en}$: A configurable penalty weight. Higher values enforce stricter adherence to the previous week's ratio for that level/practice/engagement.
+  * $Hours_{c,en,w}$: The *planned* hours for consultant $c$ on engagement $en$ in week $w$ (part of the decision variable $A$).
+  * $ActualRatio_{l,pr,en,w-1}$: The *actual* ratio of hours worked by consultants of level $l$ and practice $pr$ on engagement $en$ during the *previous* week ($w-1$), calculated dynamically from the `timesheets` data:
+    ```math
+    ActualRatio_{l,pr,en,w-1} = \frac{\sum_{c \in C_{l,pr}} ActualHours_{c,en,w-1}}{\sum_{c \in C} ActualHours_{c,en,w-1}}
+    ```
+
+**Implementation Notes:**
+
+* The calculation of `ActualRatio_{l,pr,en,w-1}` from `timesheets` needs to be performed *before* running the optimization for week $w$.
+* The penalty term adds complexity to the objective function, potentially requiring non-linear optimization solvers depending on the specific formulation and solver capabilities.
+* Tuning the `gamma` parameters will be crucial to balance ratio adherence against other objectives. They could be global or specific (e.g., stored in `optimization_parameters` or linked to engagements).
 
 ### Key Performance Indicators (KPIs)
 
 Due to these business objectives, our solution focuses on the following core KPIs enabling proactive management:
 
-1. **VEC**: Value Extraction Coefficient tracking financial realization efficiency.
-2. **Budget Burn**: Ratio of Actual Cost to Budget ($\frac{\sum AC}{\text{BAC}}$) tracking cost control. *Used with VEC for financial health.*
-3. **SPI**: Schedule Performance Index tracking delivery progress against plan.
+1. **VEC (rolling)**: Value Extraction Coefficient tracking financial realization efficiency.
+2. **Budget Burn (rolling)**: Ratio of Actual Cost to Budget ($\frac{\sum AC}{BAC}$) tracking cost control. *Used with VEC for financial health.*
+3. **SPI (rolling)**: Schedule Performance Index tracking delivery progress against plan.
 4. **Benching Rate (internal/external)**: Weekly rolling percentage of available capacity *not assigned* to engagements.
 5. **Capacity Utilization Rate (internal/external)**: Weekly rolling ratio of *actual billable hours logged* versus standard capacity.
 
@@ -256,54 +268,69 @@ For a sample engagement phase (Code ending 365, Phase 000010), metrics observed:
 
 ChatGPT (free version) and GitHub Copilot were utilized during development for research assistance, conceptual brainstorming, content generation, and code development support.
 
-## Appendix 2: Predicting Optimal Allocation of Employee Resources
+## Appendix 2: Predicting Optimal Allocation of Employee Resources (Demo Implementation Strategy)
 
-The optimization formula is solved algorithmically:
+This section details the algorithmic approach for solving the resource optimization problem, specifically outlining the strategy for this demonstration using Mixed Integer Linear Programming (MILP) [see video.](https://www.youtube.com/embed/E72DWgKP_1Y).
 
 ### Implementation Strategy
 
-1. **Data Preparation Phase (Scheduled)**
-   * Calculate current engagement statuses (SPI, VEC, Burn).
-   * Retrieve consultant availability (including vacations).
-   * Determine required staffing ratios ($r_{l,pr,en}$) for active **engagements/phases**.
-   * Retrieve strategic weights ($w_{en}$) and risk coefficients ($r_{en}$).
-2. **Optimization Algorithm Selection**
-   * Implemented using Mixed Integer Linear Programming (MILP) via Python `PuLP`.
-   * Runs weekly to recommend assignments for the upcoming period.
-   * Assignment matrix $A$ (hours per consultant $c$, per engagement $en$, per week $w$).
-3. **Constraint Implementation**
-   * engagement schedule constraints ($\text{SPI}_{en}$).
-   * engagement value constraints ($\text{VEC}_{en}$ vs $\text{Burn}_{en}$).
-   * Staffing ratio constraints ($r_{l,pr,en}$).
-   * Consultant capacity constraints (≤ 40 hours, adjusted for vacation).
-   * Vacation awareness.
-   * Internal priority constraint.
-   * engagement switching efficiency ($\text{pse}$) applied via objective function penalty.
-4. **Enhanced Objective Function (Conceptual)**
-   ```python
-   # Pseudocode structure
-   model += pulp.lpSum([
-       engagement_weights[en] * risk_coeffs[en] * (
-           alpha * calculate_projected_SPI(en, assignments) +
-           beta * calculate_projected_VEC(en, assignments)
-       ) - sum(pse_factor * is_engagement_switch[c, en, w] for c in consultants for w in weeks) # Penalty term
-       for en in engagements
-   ])
+1. **Data Preparation Phase (Scheduled - Weekly)**
 
-   # Internal consultant priority constraint logic...
-   # Ensures internal consultants are assigned first up to capacity.
-   ```
-5. **Post-Optimization Processing & Feedback Loop**
-   * Optimized assignments ($A$) written to a prediction table.
-   * Dashboard visualizes recommendations.
-   * Optional notifications for resource managers.
-   * **Internal Model Tuning:** The deviation measured by the *Assignment Realization Rate* (Actual Billed vs. Assigned Hours, see Appendix 4) from the previous week can be used as an input signal or error metric (part of a loss function) to potentially adjust parameters (like consultant-specific efficiency factors or even $\alpha, \beta$) or constraints in the optimization model for the *next* week's run. This creates a feedback mechanism to improve prediction accuracy over time. The specific algorithm for this adjustment (e.g., simple heuristic, gradient descent on a related metric) requires further development beyond the current PoC.
-6. **Practical Considerations**
-   * Configurable weights $\alpha, \beta$.
-   * Potential two-phase optimization for large scale (pre-filter then optimize).
-   * Future stability constraints to minimize reassignments.
-   * Future skills matching constraints.
-   * Calibrate engagement switching factor ($\text{pse}$) based on data.
+   * **Calculate Engagement Status:** Determine current or projected statuses (SPI, VEC, Budget Burn) for active engagements using methods outlined in Appendix 4. Linear approximations may be needed if using these directly in the objective/constraints.
+   * **Retrieve Consultant Availability:** Fetch each consultant's standard capacity (`employees.employment_basis`), adjusting for planned time off (`vacations`) for the target week(s) $w$.
+   * **Calculate Dynamic Target Ratios:** For each active engagement ($en$), staff level ($l$), and practice ($pr$), calculate the *actual* ratio ($ActualRatio_{l,pr,en,w-1}$) based on `timesheets.hours` from the most recently completed week ($w-1$), as per the definition in Appendix 4/5. This value serves as the baseline target for the next week's optimization constraints.
+   * **Retrieve Parameters:** Load strategic weights ($w_{en}$) and risk coefficients ($r_{en}$) from `engagements`. Fetch optimization parameters ($\alpha$, $\beta$, $pse$) and the **ratio deviation tolerance** ($\delta$) from the `optimization_parameters` table (or use defaults per Appendix 3 if table not populated).
+2. **Optimization Model Formulation (MILP)**
+
+   * **Framework:** Implemented using **Python `PuLP`**, a library suitable for defining and solving MILP problems.
+   * **Decision Variables:**
+
+     * $Hours_{c,en,w}$: Planned hours for consultant $c$ on engagement $en$ in week $w$ (continuous).
+     * $is\_switch_{c,en,w}$: Binary variable (0 or 1) indicating if consultant $c$ starts work on engagement $en$ in week $w$ (having not worked on it in $w-1$).
+   * **Objective Function (Linear - Demo Implementation):**
+
+     * **Note:** For this demo implementation using MILP, we are **using a hard boundary constraint** (with tolerance $\delta$, detailed below) to manage staffing ratios, **instead of the non-linear penalty term** ($\sum \text{Penalty}_{l,pr,en,w}$) described conceptually earlier in the document. Therefore, the objective function optimized in this demo is:
+
+     ```math
+     \max \sum_{en \in EN} \left[ w_{en} \times r_{en} \times (\alpha \times \text{Proj\_SPI\_Contrib}_{en} + \beta \times \text{Proj\_VEC\_Contrib}_{en}) \right] - \sum_{c,en,w} \text{pse} \times \text{is\_switch}_{c,en,w}
+     ```
+
+     * *Linearity Requirement:* For this MILP model, $\text{Proj\_SPI\_Contrib}_{en}$ and $\text{Proj\_VEC\_Contrib}_{en}$ must be defined as linear functions of the $Hours_{c,en,w}$ variables. Simplifications (e.g., assuming contribution is proportional to hours assigned relative to a target) may be necessary.
+   * **Constraints (Linear):**
+
+     * **Consultant Capacity:** Total planned hours for each consultant cannot exceed their adjusted weekly availability:
+       ```math
+       \sum_{en \in EN} Hours_{c,en,w} \leq \text{AdjustedCapacity}_c \quad \forall c, w
+       ```
+     * **Staffing Ratio Tolerance (Linearized Hard Constraint):** Enforces that the planned staffing mix for the target week ($w$) stays within the tolerance ($\delta$) of the *previous week's actual ratio* ($ActualRatio_{l,pr,en,w-1}$). For each engagement $en$, level $l$, practice $pr$, and week $w$:
+       * Let $\text{TargetRatio} = ActualRatio_{l,pr,en,w-1}$ (pre-calculated constant).
+       * Let $\text{SumHours}_{l,pr} = \sum_{c \in C_{l,pr}} Hours_{c,en,w}$.
+       * Let $\text{SumHours}_{\text{other}} = \sum_{c \notin C_{l,pr}} Hours_{c,en,w}$.
+       * Constraint 1 (Lower Bound): Ensures $\text{PlannedRatio} \ge \text{TargetRatio} \times (1-\delta)$
+         ```math
+         (\text{TargetRatio} \times (1-\delta) - 1) \times \text{SumHours}_{l,pr} + \text{TargetRatio} \times (1-\delta) \times \text{SumHours}_{\text{other}} \leq 0
+         ```
+       * Constraint 2 (Upper Bound): Ensures $\text{PlannedRatio} \le \text{TargetRatio} \times (1+\delta)$
+         ```math
+         (1 - \text{TargetRatio} \times (1+\delta)) \times \text{SumHours}_{l,pr} - \text{TargetRatio} \times (1+\delta) \times \text{SumHours}_{\text{other}} \leq 0
+         ```
+     * **Performance Thresholds (Simplified/Linearized):** If required, constraints like $SPI_{en} \ge 0.85$ must be represented linearly or checked post-optimization.
+     * **Benching Rate:** A constraint limiting total unassigned internal consultant hours relative to their total capacity.
+     * **Internal Priority:** Constraints ensuring $Hours_{c,en,w} = 0$ for external consultants unless specific internal consultants are fully assigned.
+     * **Switch Logic:** Constraints defining $is\_switch_{c,en,w}$ based on $Hours_{c,en,w}$ and assignment status in week $w-1$.
+3. **Solver Execution**
+
+   * The PuLP model is passed to a compatible MILP solver (e.g., CBC, GLPK, Gurobi, CPLEX). The solver finds the optimal $Hours_{c,en,w}$ values.
+4. **Post-Optimization Processing & Feedback Loop**
+
+   * **Output:** Optimal assignments ($Hours_{c,en,w}$) are saved (e.g., to `staffing_prediction`).
+   * **Visualization:** Recommendations presented on the Power BI dashboard.
+   * **Monitoring & Tuning:** Actual performance (`timesheets`) compared to predictions. Parameters ($\alpha$, $\beta$, $pse$, $\delta$) manually adjusted based on results.
+5. **Demo Implementation Considerations**
+
+   * **Linearity & Simplification:** This strategy prioritizes a solvable MILP model using PuLP. **Crucially, this involved replacing the non-linear "soft boundary" penalty approach with the linearized "hard boundary" staffing ratio constraints (allowing $\delta$ tolerance) described above.** Projections for SPI/VEC within the model might also be simplified.
+   * **Dynamic Target:** Reliance on the previous week's actual ratio makes the plan adaptive but sensitive to past anomalies. $\delta$ provides flexibility.
+   * **Future Enhancements:** Could involve exploring non-linear solvers, adding skills matching, improving SPI/VEC predictions, and adding stability constraints.
 
 ## Appendix 3: Modelling Assumptions
 
@@ -327,7 +354,7 @@ This appendix outlines the key assumptions underpinning the analysis presented i
 3. **Project Phases Progress Linearly.**
 
    * **Impact:** Projects are assumed to progress sequentially through defined phases without significant overlap. This simplification facilitates the calculation of Planned Value (PV) and project schedule projections.
-4. **Project/Mandate Start Date is the First Logged Work Date.**
+4. **Phase Start Date is the First Logged Work Date.**
 
    * **Impact:** In the absence of explicitly defined start dates within the dataset, this definition provides a consistent reference point for timeline analysis and management.
 5. **Client Identity is Determined by Client Number.**
@@ -375,80 +402,97 @@ This section provides the specific database field mappings for metrics described
 
 #### Weighted Average Chargeout Rate (Estimation Aid)
 
-- **Formula**: $`\text{Weighted Rate}_{ph} = \sum_{l=1}^{m} (\text{charge\_out\_rates.standard\_chargeout\_rate}_{l} \times \frac{\sum \text{staffing.planned\_hours}_{l}}{\sum \text{staffing.planned\_hours}})`$
+- **Formula**:
+
+```math
+Weighted Rate_{ph} = \sum_{l=1}^{m} (charge\_out\_rates.standard\_chargeout\_rate_{l} \times \frac{\sum staffing.planned\_hours_{l}}{\sum staffing.planned\_hours})
+```
+
 - **Purpose**: PoC estimation of average rate for a phase based on planned mix.
 
 #### Staffing Ratio Per Phase
 
-- **Formula**: $\text{StaffingRatio}_{l,ph} = \frac{\sum \text{timesheets.hours}_{l,ph}}{\sum \text{timesheets.hours}_{ph}}$
+- **Formula**:
+
+```math
+StaffingRatio_{l,ph} = \frac{\sum timesheets.hours_{l,ph}}{\sum timesheets.hours_{ph}}
+```
 
 #### Hours Required / Estimated Duration (Estimation Aids)
 
 - **Formulae**:
-  - $\text{Hours}_{\text{required\_est},ph} = \frac{\text{phases.budget}_{ph}}{\text{Weighted Rate}_{ph}}$
-  - $`\text{Duration}_{\text{est},ph} = \frac{\text{Hours}_{\text{required\_est},ph}}{\sum (\text{staff\_count}_{l} \times \text{daily\_hours})}`$
+
+  ```math
+  Hours_{\text{required\_est},ph} = \frac{phases.budget_{ph}}{Weighted Rate_{ph}}
+  ```
+
+  ```math
+  Duration_{\text{est},ph} = \frac{Hours_{\text{required\_est},ph}}{\sum (staff\_count_{l} \times daily\_hours)}
+  ```
 - **Purpose**: PoC estimation of total effort/timeline for a phase.
 
 #### Days Elapsed
 
-- **Formula**: $\text{Days}_{\text{elapsed},ph} = \text{CURRENT\_DATE} - \text{phases.start\_date}_{ph}$
+- **Formula**: $Days_{\text{elapsed},ph} = CURRENT\_DATE - phases.start\_date_{ph}$
 - **Purpose**: Measures time progression.
 
 #### Percentage Schedule Elapsed
 
-- **Formula**: $\text{Schedule\%}_{ph} = \frac{\text{Days Elapsed}_{ph}}{(\text{phases.end\_date}_{ph} - \text{phases.start\_date}_{ph})}$
+- **Formula**: $Schedule\%_{ph} = \frac{Days Elapsed_{ph}}{(phases.end\_date_{ph} - phases.start\_date_{ph})}$
 - **Purpose**: Standardizes schedule progress measurement for PV calculation.
 
 #### Actual Cost (AC)
 
-- **Formula**: $\text{AC}_{\text{to date},ph} = \sum_{t=1}^{n} (\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t})$
+- **Formula**: $AC_{\text{to date},ph} = \sum_{t=1}^{n} (timesheets.std\_price_{t} + timesheets.adm\_surcharge_{t})$
 - **Purpose**: Calculates actual expenditure to date.
 
 #### Value Extraction Coefficient (VEC)
 
 - **Formula**:
-  $\text{VEC}_{ph} = \frac{1}{\text{phases.budget}_{ph}} \times \sum_{t=1}^{n} [(\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t}) \times d_{t} \times ea_{c} \times eo_{c}]$
+  ```math
+  VEC_{ph} = \frac{1}{phases.budget_{ph}} \times \sum_{t=1}^{n} [(timesheets.std\_price_{t} + timesheets.adm\_surcharge_{t}) \times d_{t} \times ea_{c} \times eo_{c}]
+  ```
 
 Where:
 
-- $d_{t} = \frac{\text{timesheets.charge\_out\_rate}_{t}}{\text{charge\_out\_rates.standard\_chargeout\_rate}_{c}}$
-- $ea_{c} = 1 - 0.1 \times \text{employees.is\_external}_{c}$
+- $d_{t} = \frac{timesheets.charge\_out\_rate_t}{charge\_out\_rates.standard\_chargeout\_rate_c}$
+- $ea_{c} = 1 - 0.1 \times employees.is\_external_c$
 - $eo_{c} = 1 - 0.2 \times isNew_c$ (derived field, not in database)
 
 #### Budget Burn
 
-- **Formula**: $\text{Burn}_{ph} = \frac{\sum_{t} (\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t})}{\text{phases.budget}_{ph}}$
+- **Formula**: $Burn_{ph} = \frac{\sum_{t} (timesheets.std\_price_{t} + timesheets.adm\_surcharge_{t})}{phases.budget_{ph}}$
 
 #### Planned Value (PV)
 
-- **Formula**: $\text{PV}_{ph} = \text{phases.budget}_{ph} \times \text{Schedule\%}_{ph}$
+- **Formula**: $PV_{ph} = phases.budget_{ph} \times Schedule\%_{ph}$
 - **Purpose**: Budgeted cost of work scheduled.
 
 #### Earned Value (EV)
 
-- **Formula (PoC Method)**: $\text{EV}_{ph} = \sum_{t} (\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t}) \times 0.98$
+- **Formula (PoC Method)**: $EV_{ph} = \sum_{t} (timesheets.std\_price_{t} + timesheets.adm\_surcharge_{t}) \times 0.98$
 - **Purpose**: Represents value of work completed with efficiency factor.
 
 #### Schedule Performance Index (SPI)
 
-- **Formula**: $\text{SPI}_{ph} = \frac{\text{EV}_{ph}}{\text{PV}_{ph}}$
+- **Formula**: $SPI_{ph} = \frac{EV_{ph}}{PV_{ph}}$
 - **Purpose**: Quantifies schedule efficiency.
 
 #### Weekly Benching Rate
 
-- **Formula**: $`\text{Benching Rate}_{c,w} = \left( 1 - \frac{\sum_{en,ph} \text{staffing.planned\_hours}_{c,en,ph,w}}{\text{employees.employment\_basis}_{c}} \right) \times 100\%`$
+- **Formula**: $`Benching Rate_{c,w} = \left( 1 - \frac{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}{employees.employment\_basis_c} \right) \times 100\%`$
 - **Definition**: Percentage of employee's contracted capacity not assigned to engagements.
 - **Purpose**: KPI measuring unallocated bench time.
 
 #### Weekly Capacity Utilization Rate
 
-- **Formula**: $`\text{Capacity Utilization}_{c,w} = \frac{\sum_{en,ph} \text{timesheets.hours}_{c,en,ph,w}}{\text{employees.employment\_basis}_{c}} \times 100\%`$
+- **Formula**: $`Capacity Utilization_{c,w} = \frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{employees.employment\_basis_c} \times 100\%`$
 - **Definition**: Percentage of employee's contracted capacity utilized in billable work.
 - **Purpose**: KPI measuring productive engagement.
 
 #### Weekly Assignment Realization Rate (Internal Metric)
 
-- **Formula**: $`\text{Assignment Realization Rate}_{c,w} = \frac{\sum_{en,ph} \text{timesheets.hours}_{c,en,ph,w}}{\sum_{en,ph} \text{staffing.planned\_hours}_{c,en,ph,w}}`$
+- **Formula**: $`Assignment Realization Rate_{c,w} = \frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}`$
 - **Definition**: Ratio of actual hours to assigned hours.
 - **Purpose**: Internal metric for planning accuracy assessment.
 
@@ -510,3 +554,180 @@ All variables in formulas use consistent suffixes to denote the entity they refe
 | Benching Rate               | Percentage of capacity not assigned              | $\left(1 - \frac{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}{employees.employment\_basis_c}\right) \times 100\%$ |
 | Capacity Utilization Rate   | Percentage of capacity utilized in billable work | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{employees.employment\_basis_c} \times 100\%$                         |
 | Assignment Realization Rate | Ratio of actual hours to assigned hours          | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}$                   |
+
+## Appendix 6: ETL (Extract, Transform, and Load) Pipeline
+
+This pipeline is a proof of concept (POC) for automating data extraction, transformation, and loading into a SQL Server database for the KPMG Data Challenge project. In this POC, we're working with CSV and Excel files, but the production implementation would connect directly to Salesforce
+
+### Getting Started
+
+1. Ensure all dependencies are installed: `pip install -r requirements.txt`
+2. Configure database connection in `.env` file
+3. Run the unified pipeline script:
+
+   ```
+   python pipeline.py --excel-file <path_to_excel> --output-dir <path_to_output_dir>
+   ```
+4. Or run the pipeline components individually:
+
+   ```
+   python excel_to_csv.py <excel_file> --output-dir /path/to/output
+   python data_transformation.py
+   python DML_writer.py
+   ```
+5. Execute the generated DML.sql file in SQL Server
+
+#### Pipeline Components
+
+##### 1. Data Extraction (`excel_to_csv.py`)
+
+- **excel_to_csv.py**: Utility for converting Excel files to CSV format, useful for initial data ingestion from Excel sources.
+- **Missing Component**: A direct Salesforce connector that would replace the Excel/CSV ingestion in the production implementation.
+
+##### 2. Data Transformation (`data_transformation.py`)
+
+- Processes raw data files into standardized tables matching the database schema
+- Handles data cleaning, type conversion, and foreign key validation
+- Creates proper relationships between entities (employees, clients, engagements, etc.)
+- Outputs transformed CSV files ready for database loading
+
+##### 3. Database Loading (`DML_writer.py`)
+
+- Generates SQL Server T-SQL merge statements (upsert operations) from transformed data
+- Handles batching for large datasets
+- Manages proper insertion order for foreign key constraints
+- Creates a single DML file that can be executed in SQL Server
+
+##### 4. Unified Pipeline (`pipeline.py`)
+
+- Orchestrates the entire ETL process by calling each component in sequence
+- Handles errors and ensures proper data flow between components
+- Provides a single entry point for executing the complete pipeline
+
+#### ETL Workflow
+
+1. **Data Extraction**: Raw data is retrieved from Excel files and converted to CSV
+2. **Transformation**: Data is cleaned, validated, and transformed to match database schema
+3. **SQL Generation**: T-SQL statements are generated for database loading
+4. **Database Update**: SQL scripts are executed to update the database
+
+#### Production Implementation
+
+For a production environment, this pipeline would be modified in the following ways:
+
+##### Salesforce Integration
+
+- Replace CSV input with direct Salesforce API integration
+- Use the Salesforce Bulk API for large dataset extraction
+- Implement OAuth 2.0 authentication for secure Salesforce access
+- Schedule regular syncs via cron jobs or schedulers
+
+##### Direct SQL Server Connection
+
+- Eliminate the DML file generation step
+- Use pyodbc or SQLAlchemy to execute SQL statements directly
+- Implement transaction management for atomic operations
+- Add comprehensive logging and error handling
+
+##### Power Automate Integration
+
+Advanced analyses could be triggered via Microsoft Power Automate:
+
+- Create Power Automate flows triggered by database updates
+- Connect Power BI reports to automatically refresh
+- Send notifications when key metrics change
+- Trigger downstream processes based on data changes
+
+#### Making the Pipeline Robust
+
+The current pipeline is a proof of concept. To make it production-ready and robust:
+
+1. **Error Handling & Logging**
+
+   - Implement comprehensive error handling at each stage
+   - Set up centralized logging with different verbosity levels
+   - Add monitoring for pipeline failures with alerts
+2. **Validation & Testing**
+
+   - Add data validation checks between each stage
+   - Implement unit and integration tests for all components
+   - Create test datasets for regression testing
+3. **Recovery & Resilience**
+
+   - Add checkpointing to allow restart from failure points
+   - Implement retry logic for transient failures
+   - Create backup/rollback mechanisms for critical operations
+4. **Security & Compliance**
+
+   - Implement proper authentication and authorization
+   - Add audit logging for all data access and modifications
+   - Ensure compliance with data governance policies
+5. **Deployment & Automation**
+
+   - Set up CI/CD for automated testing and deployment
+   - Containerize the pipeline for consistent deployment
+   - Implement scheduling for regular automated runs
+
+### Advanced Data Analysis
+
+#### Analysis Components
+
+##### 1. Data Fetcher (`fetcher.py`)
+
+- Provides a flexible data access layer for advanced analysis scripts
+- Automatically attempts to connect to the SQL Server database first
+- Falls back to CSV files if database connection fails
+- Offers standardized data access methods for consistent analysis
+
+##### 2. Timesheet Analysis (`analyze_time_entry.py`)
+
+- Analyzes employee time entry patterns and delays
+- Calculates average delay between work date and entry date
+- Identifies employees with the longest and shortest entry delays
+- Detects unusual time entry behavior (e.g., entries made before work date)
+
+##### 3. Anomaly Detection (`anomaly_detection.py`)
+
+- Uses machine learning (Isolation Forest) to detect unusual patterns in timesheet data
+- Identifies anomalies in hours logged and time entry delays
+- Generates summary statistics and visualizations
+- Highlights employees with significant anomaly percentages
+
+##### 4. Resource Allocation (`allocation.py`)
+
+- Calculates project performance metrics using Earned Value Management (EVM)
+- Analyzes project completion rates against schedules
+- Computes Cost Performance Index (CPI) and Schedule Performance Index (SPI)
+- Provides insights into project health and resource allocation efficiency
+
+#### Analysis Workflow
+
+1. **Data Retrieval**: The `fetcher.py` utility retrieves data from the database or CSV files
+2. **Data Processing**: Analysis scripts transform and clean the data for specific analyses
+3. **Analysis Execution**: Specialized algorithms are applied to detect patterns or anomalies
+4. **Results Generation**: Analysis results are displayed or saved for further reporting
+
+#### Using the Analysis Tools
+
+To run the advanced analysis tools:
+
+```
+## For timesheet entry analysis
+python advanced_data_analysis/analyze_time_entry.py
+
+## For anomaly detection
+python advanced_data_analysis/anomaly_detection.py
+
+## For resource allocation analysis
+python advanced_data_analysis/allocation.py
+```
+
+Each script will automatically attempt to connect to the database, fall back to CSV files if needed, and generate the appropriate analysis output.
+
+#### Next Steps
+
+- Integrate analysis scripts with Power BI for interactive dashboards
+- Create scheduled analysis jobs for regular monitoring
+- Implement alerting based on analysis results
+- Expand the analysis toolkit with additional specialized algorithms
+- Connect analysis outputs to project management and resource planning systems

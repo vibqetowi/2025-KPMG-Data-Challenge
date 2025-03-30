@@ -1,0 +1,9 @@
+parameter_key,parameter_value,description,last_updated,updated_by
+alpha,0.6,Weight coefficient for SPI (Schedule Performance Index) in optimization objective function,2025-03-29 18:42:04.253320,14526
+beta,0.4,Weight coefficient for VEC (Value Extraction Coefficient) in optimization objective function,2025-03-29 18:42:04.253320,14526
+pse,0.9,Phase Switching Efficiency factor - productivity loss when consultants switch engagements,2025-03-29 18:42:04.253320,14526
+delta,0.2,Acceptable variation in staffing ratios (±20%),2025-03-29 18:42:04.253320,14526
+min_spi,0.85,Minimum acceptable SPI for any engagement,2025-03-29 18:42:04.253320,14526
+default_strategic_weight,1.0,Default strategic value weight (w_en) for engagements,2025-03-29 18:42:04.253320,14526
+default_risk_coefficient,1.0,Default delivery risk coefficient (r_en) for engagements,2025-03-29 18:42:04.253320,14526
+cpi_proxy,0.98,Cost Performance Index proxy value as per Appendix 3,2025-03-29 18:42:04.253320,14526
