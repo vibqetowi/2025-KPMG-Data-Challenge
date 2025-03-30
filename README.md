@@ -142,6 +142,8 @@ Where:
     ActualRatio_{l,pr,en,w-1} = \frac{\sum_{c \in C_{l,pr}} ActualHours_{c,en,w-1}}{\sum_{c \in C} ActualHours_{c,en,w-1}}
     ```
 
+Attempts were made using linear programming: ![linear programming visual](./Documentation/lp_optimization_visualization.png)
+
 **Implementation Notes:**
 
 * The calculation of `ActualRatio_{l,pr,en,w-1}` from `timesheets` needs to be performed *before* running the optimization for week $w$.

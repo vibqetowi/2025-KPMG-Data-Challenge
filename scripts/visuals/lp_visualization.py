@@ -2,6 +2,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from pathlib import Path
+import sys
+
+# Add parent directories to path to import config
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+project_root = current_dir.parent.parent
+sys.path.append(str(project_root))
+
+# Import shared config
+from scripts.shared.config import PROJECT_ROOT
 
 def generate_lp_visualization():
     """
@@ -24,6 +33,10 @@ def generate_lp_visualization():
     # Create constraint lines
     x = np.linspace(0, 12, 1000)
     
+    # KPMG brand colors
+    kpmg_teal = '#00A3A1'       # For the feasible region
+    kpmg_purple = '#483698'     # For the boundary
+    
     # Consultant capacity constraint: x + y <= 10 (total hours)
     y1 = 10 - x
     plt.plot(x, y1, 'r-', linewidth=2, label='Consultant Capacity Constraint')
@@ -41,7 +54,7 @@ def generate_lp_visualization():
     
     # Staffing ratio constraint: y = 0.7x (practice ratio)
     y3 = 0.7 * x
-    plt.plot(x, y3, 'purple', linestyle='--', linewidth=2, label='Staffing Ratio Constraint')
+    plt.plot(x, y3, kpmg_purple, linestyle='--', linewidth=2, label='Staffing Ratio Constraint')
     
     # Fill feasible region
     feasible_x = np.linspace(engagement_a_min, 12, 100)
@@ -58,7 +71,14 @@ def generate_lp_visualization():
         upper_y = upper_y[valid_indices]
         lower_y = lower_y[valid_indices]
         
-        plt.fill_between(feasible_x, lower_y, upper_y, color='lightgreen', alpha=0.5, label='Feasible Region')
+        # Use KPMG teal for the feasible region
+        plt.fill_between(feasible_x, lower_y, upper_y, color=kpmg_teal, alpha=0.5, label='Feasible Region')
+        
+        # Add a boundary with KPMG purple
+        plt.plot(feasible_x, upper_y, color=kpmg_purple, linewidth=2)
+        plt.plot(feasible_x, lower_y, color=kpmg_purple, linewidth=2)
+        plt.plot([feasible_x[0], feasible_x[0]], [lower_y[0], upper_y[0]], color=kpmg_purple, linewidth=2)
+        plt.plot([feasible_x[-1], feasible_x[-1]], [lower_y[-1], upper_y[-1]], color=kpmg_purple, linewidth=2)
     
     # Optimal solution
     optimal_x = 5.9  # Based on objective function with higher weight on engagement A
@@ -77,7 +97,7 @@ def generate_lp_visualization():
              fontsize=11, color='red', fontweight='bold')
     
     plt.text(7.5, 2, 'Staffing mix constraint:\nMaintain certain ratio between practices', 
-             fontsize=11, color='purple', fontweight='bold')
+             fontsize=11, color=kpmg_purple, fontweight='bold')
     
     # Add legend
     plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=3, fontsize=12)
@@ -85,12 +105,11 @@ def generate_lp_visualization():
     # Grid for better readability
     plt.grid(True, linestyle='--', alpha=0.7)
     
-    # Save the figure
-    project_root = Path(os.path.dirname(os.path.abspath(__file__))).parent.parent
-    img_dir = project_root / "img"
-    os.makedirs(img_dir, exist_ok=True)
+    # Save the figure to the Documentation directory
+    docs_dir = PROJECT_ROOT / "Documentation"
+    os.makedirs(docs_dir, exist_ok=True)
     
-    output_path = img_dir / "lp_optimization_visualization.png"
+    output_path = docs_dir / "lp_optimization_visualization.png"
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     
     print(f"Linear programming visualization saved to {output_path}")
