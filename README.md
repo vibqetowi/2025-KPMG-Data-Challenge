@@ -141,7 +141,7 @@ Where:
     ActualRatio_{l,pr,en,w-1} = \frac{\sum_{c \in C_{l,pr}} ActualHours_{c,en,w-1}}{\sum_{c \in C} ActualHours_{c,en,w-1}}
     ```
 
-Attempts were made using linear programming: ![linear programming visual](./Documentation/lp_optimization_visualization.png)
+Unsuccessful attempts were made using linear programming: ![linear programming visual](./Documentation/lp_optimization_visualization.png)n.png)
 
 **Implementation Notes:**
 
@@ -161,7 +161,7 @@ Due to these business objectives, our solution focuses on the following core KPI
 
 ## 🏗️ Architecture
 
-![solution_architecture](./Documentation/solution_architecture.png)
+![solution_architecture](./Documentation/KPMG%20Data%20ETL%20Flow.png)
 
 ### Technology Stack
 
@@ -337,6 +337,18 @@ This section details the algorithmic approach for solving the resource optimizat
    * **Linearity & Simplification:** This strategy prioritizes a solvable MILP model using PuLP. **Crucially, this involved replacing the non-linear "soft boundary" penalty approach with the linearized "hard boundary" staffing ratio constraints (allowing $\delta$ tolerance) described above.** Projections for SPI/VEC within the model might also be simplified.
    * **Dynamic Target:** Reliance on the previous week's actual ratio makes the plan adaptive but sensitive to past anomalies. $\delta$ provides flexibility.
    * **Future Enhancements:** Could involve exploring non-linear solvers, adding skills matching, improving SPI/VEC predictions, and adding stability constraints.
+
+**Optimization Challenges:**
+
+During implementation, we discovered that the problem's dimensional complexity made it unsuitable for linear programming methods. Each engagement phase created its own dimension in the solution space, resulting in a combinatorial explosion that couldn't be efficiently represented in a linear model. The solver consistently failed to converge to a feasible solution despite various reformulation attempts.
+
+This revealed a fundamental limitation in our approach: resource allocation across multiple phases with different staffing ratios and interdependencies creates a highly non-linear problem space. The visualization above shows one of our earlier attempts at linear programming, but the approach proved inadequate for capturing the full complexity of the optimization challenge.
+
+For a more effective implementation, the problem would require:
+
+1. Non-linear optimization techniques capable of handling high-dimensional solution spaces
+2. Potentially neural network approaches that can learn the complex relationships between staffing decisions and performance outcomes
+3. Decomposition strategies that break the problem into manageable sub-problems
 
 ## Appendix 3: Modelling Assumptions
 
