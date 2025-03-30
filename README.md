@@ -1,4 +1,4 @@
-# yPredictive Resource Optimization Platform (PROP) - KPMG Case Challenge Submission
+# Predictive Resource Optimization Platform (PROP) - KPMG Case Challenge Submission
 
 <div align="center">
 
@@ -73,9 +73,9 @@ Traditional project management metrics often fail to capture the dual financial 
 
 The VEC is calculated as follows (shown for a specific phase $ph$):
 
-```math
+$$
 VEC_{ph} = \frac{1}{BAC_{ph}} \times \sum_{t=1}^{n} \left[ AC_t \times d_t \times ea_c \times eo_c \right]
-```
+$$
 
 Where:
 
@@ -83,17 +83,17 @@ Where:
 * $ \sum_{t=1}^{n} $: Summation over all individual financial transactions $ t $ (typically timesheet entries) contributing to the phase's actual cost up to the point of measurement.
 * $ AC_t $: Actual Billed Amount (or Cost equivalent) for transaction $ t $.
 * $ d_t $: Rate Efficiency Factor for transaction $ t $, measuring how the actual chargeout rate used compares to the standard rate for the consultant $ c $ associated with transaction $ t $.
-  ```math
+  $$
   d_t = \frac{Chargeout_t}{StandardChargeout_c}
-  ```
+  $$
 * $ ea_c $: External Adjustment Factor for consultant $ c $ (e.g., 1.0 for internal, 0.9 for external).
-  ```math
+  $$
   ea_c = 1 - 0.1 \times isExternal_c
-  ```
+  $$
 * $ eo_c $: Onboarding/New Hire Adjustment Factor for consultant $ c $ (e.g., 1.0 for experienced, 0.8 for new).
-  ```math
+  $$
   eo_c = 1 - 0.2 \times isNew_c
-  ```
+  $$
 
 #### Interpreting Financial Health (using VEC and Burn)
 
@@ -121,9 +121,9 @@ Our solution addresses the core optimization challenge facing consulting organiz
 
 The optimization seeks the assignment matrix $A$ (consultant $c$, engagement $en$, hours in week $w$) that maximizes overall value, penalized by switching costs and deviations from recent staffing patterns:
 
-```math
+$$
 \max_{A} \sum_{en \in EN} \left[ w_{en} \times r_{en} \times (\alpha \times SPI_{en} + \beta \times VEC_{en}) \right] - \sum_{c,en,w} pse \times is\_switch_{c,en,w} - \sum_{en, l, pr, w} Penalty_{l,pr,en,w}
-```
+$$
 
 Where:
 
@@ -136,16 +136,16 @@ Where:
 * $is\_switch_{c,en,w}$: Binary variable: 1 if consultant $c$ is newly assigned to engagement $en$ in week $w$ compared to week $w-1$.
 * $Penalty_{l,pr,en,w}$: A penalty term discouraging significant deviations from the previous week's actual staffing mix for level $l$ and practice $pr$ on engagement $en$. Calculated as:
 
-  ```math
+  $$
   Penalty_{l,pr,en,w} = \gamma_{l,pr,en} \times \left| \frac{\sum_{c \in C_{l,pr}} Hours_{c,en,w}}{\sum_{c \in C} Hours_{c,en,w}} - ActualRatio_{l,pr,en,w-1} \right|
-  ```
+  $$
 
   * $\gamma_{l,pr,en}$: A configurable penalty weight. Higher values enforce stricter adherence to the previous week's ratio for that level/practice/engagement.
   * $Hours_{c,en,w}$: The *planned* hours for consultant $c$ on engagement $en$ in week $w$ (part of the decision variable $A$).
   * $ActualRatio_{l,pr,en,w-1}$: The *actual* ratio of hours worked by consultants of level $l$ and practice $pr$ on engagement $en$ during the *previous* week ($w-1$), calculated dynamically from the `timesheets` data:
-    ```math
+    $$
     ActualRatio_{l,pr,en,w-1} = \frac{\sum_{c \in C_{l,pr}} ActualHours_{c,en,w-1}}{\sum_{c \in C} ActualHours_{c,en,w-1}}
-    ```
+    $$
 
 Unsuccessful attempts were made using linear programming: ![linear programming visual](./Documentation/lp_optimization_visualization.png)n.png)
 
@@ -202,9 +202,10 @@ Incorporates a dedicated `vacations` table:
 - Designed for integration with HR systems (uses synthetic data in PoC).
 - Helps avoid resource conflicts due to unaccounted absences.
 
-## 🏢 Business Plan
+## 🏢 Business Reccomendations
 
-TODO, insert gantt chart and financials
+![1743306607583](image/README/1743306607583.png)
+![1743306655040](image/README/1743306655040.png)
 
 ## 🛣️ Production Deployment and Dashboard Improvements Suggestions
 
@@ -303,29 +304,29 @@ This section details the algorithmic approach for solving the resource optimizat
 
      * **Note:** For this demo implementation using MILP, we are **using a hard boundary constraint** (with tolerance $\delta$, detailed below) to manage staffing ratios, **instead of the non-linear penalty term** ($\sum \text{Penalty}_{l,pr,en,w}$) described conceptually earlier in the document. Therefore, the objective function optimized in this demo is:
 
-     ```math
+     $$
      \max \sum_{en \in EN} \left[ w_{en} \times r_{en} \times (\alpha \times \text{Proj\_SPI\_Contrib}_{en} + \beta \times \text{Proj\_VEC\_Contrib}_{en}) \right] - \sum_{c,en,w} \text{pse} \times \text{is\_switch}_{c,en,w}
-     ```
+     $$
 
      * *Linearity Requirement:* For this MILP model, $\text{Proj\_SPI\_Contrib}_{en}$ and $\text{Proj\_VEC\_Contrib}_{en}$ must be defined as linear functions of the $Hours_{c,en,w}$ variables. Simplifications (e.g., assuming contribution is proportional to hours assigned relative to a target) may be necessary.
    * **Constraints (Linear):**
 
      * **Consultant Capacity:** Total planned hours for each consultant cannot exceed their adjusted weekly availability:
-       ```math
+       $$
        \sum_{en \in EN} Hours_{c,en,w} \leq \text{AdjustedCapacity}_c \quad \forall c, w
-       ```
+       $$
      * **Staffing Ratio Tolerance (Linearized Hard Constraint):** Enforces that the planned staffing mix for the target week ($w$) stays within the tolerance ($\delta$) of the *previous week's actual ratio* ($ActualRatio_{l,pr,en,w-1}$). For each engagement $en$, level $l$, practice $pr$, and week $w$:
        * Let $\text{TargetRatio} = ActualRatio_{l,pr,en,w-1}$ (pre-calculated constant).
        * Let $\text{SumHours}_{l,pr} = \sum_{c \in C_{l,pr}} Hours_{c,en,w}$.
        * Let $\text{SumHours}_{\text{other}} = \sum_{c \notin C_{l,pr}} Hours_{c,en,w}$.
        * Constraint 1 (Lower Bound): Ensures $\text{PlannedRatio} \ge \text{TargetRatio} \times (1-\delta)$
-         ```math
+         $$
          (\text{TargetRatio} \times (1-\delta) - 1) \times \text{SumHours}_{l,pr} + \text{TargetRatio} \times (1-\delta) \times \text{SumHours}_{\text{other}} \leq 0
-         ```
+         $$
        * Constraint 2 (Upper Bound): Ensures $\text{PlannedRatio} \le \text{TargetRatio} \times (1+\delta)$
-         ```math
+         $$
          (1 - \text{TargetRatio} \times (1+\delta)) \times \text{SumHours}_{l,pr} - \text{TargetRatio} \times (1+\delta) \times \text{SumHours}_{\text{other}} \leq 0
-         ```
+         $$
      * **Performance Thresholds (Simplified/Linearized):** If required, constraints like $SPI_{en} \ge 0.85$ must be represented linearly or checked post-optimization.
      * **Benching Rate:** A constraint limiting total unassigned internal consultant hours relative to their total capacity.
      * **Internal Priority:** Constraints ensuring $Hours_{c,en,w} = 0$ for external consultants unless specific internal consultants are fully assigned.
@@ -434,9 +435,9 @@ This section provides the specific database field mappings for metrics described
 
 - **Formula**:
 
-```math
+$$
 Weighted Rate_{ph} = \sum_{l=1}^{m} (charge\_out\_rates.standard\_chargeout\_rate_{l} \times \frac{\sum staffing.planned\_hours_{l}}{\sum staffing.planned\_hours})
-```
+$$
 
 - **Purpose**: PoC estimation of average rate for a phase based on planned mix.
 
@@ -444,21 +445,21 @@ Weighted Rate_{ph} = \sum_{l=1}^{m} (charge\_out\_rates.standard\_chargeout\_rat
 
 - **Formula**:
 
-```math
+$$
 StaffingRatio_{l,ph} = \frac{\sum timesheets.hours_{l,ph}}{\sum timesheets.hours_{ph}}
-```
+$$
 
 #### Hours Required / Estimated Duration (Estimation Aids)
 
 - **Formulae**:
 
-  ```math
+  $$
   Hours_{\text{required\_est},ph} = \frac{phases.budget_{ph}}{Weighted Rate_{ph}}
-  ```
+  $$
 
-  ```math
+  $$
   Duration_{\text{est},ph} = \frac{Hours_{\text{required\_est},ph}}{\sum (staff\_count_{l} \times daily\_hours)}
-  ```
+  $$
 - **Purpose**: PoC estimation of total effort/timeline for a phase.
 
 #### Days Elapsed
@@ -479,9 +480,9 @@ StaffingRatio_{l,ph} = \frac{\sum timesheets.hours_{l,ph}}{\sum timesheets.hours
 #### Value Extraction Coefficient (VEC)
 
 - **Formula**:
-  ```math
+  $$
   VEC_{ph} = \frac{1}{phases.budget_{ph}} \times \sum_{t=1}^{n} [(timesheets.std\_price_{t} + timesheets.adm\_surcharge_{t}) \times d_{t} \times ea_{c} \times eo_{c}]
-  ```
+  $$
 
 Where:
 
@@ -586,158 +587,3 @@ This pipeline is a proof of concept (POC) for automating data extraction, transf
    python DML_writer.py
    ```
 5. Execute the generated DML.sql file in SQL Server
-
-#### Pipeline Components
-
-##### 1. Data Extraction (`excel_to_csv.py`)
-
-- **excel_to_csv.py**: Utility for converting Excel files to CSV format, useful for initial data ingestion from Excel sources.
-- **Missing Component**: A direct Salesforce connector that would replace the Excel/CSV ingestion in the production implementation.
-
-##### 2. Data Transformation (`data_transformation.py`)
-
-- Processes raw data files into standardized tables matching the database schema
-- Handles data cleaning, type conversion, and foreign key validation
-- Creates proper relationships between entities (employees, clients, engagements, etc.)
-- Outputs transformed CSV files ready for database loading
-
-##### 3. Database Loading (`DML_writer.py`)
-
-- Generates SQL Server T-SQL merge statements (upsert operations) from transformed data
-- Handles batching for large datasets
-- Manages proper insertion order for foreign key constraints
-- Creates a single DML file that can be executed in SQL Server
-
-##### 4. Unified Pipeline (`pipeline.py`)
-
-- Orchestrates the entire ETL process by calling each component in sequence
-- Handles errors and ensures proper data flow between components
-- Provides a single entry point for executing the complete pipeline
-
-#### ETL Workflow
-
-1. **Data Extraction**: Raw data is retrieved from Excel files and converted to CSV
-2. **Transformation**: Data is cleaned, validated, and transformed to match database schema
-3. **SQL Generation**: T-SQL statements are generated for database loading
-4. **Database Update**: SQL scripts are executed to update the database
-
-#### Production Implementation
-
-For a production environment, this pipeline would be modified in the following ways:
-
-##### Salesforce Integration
-
-- Replace CSV input with direct Salesforce API integration
-- Use the Salesforce Bulk API for large dataset extraction
-- Implement OAuth 2.0 authentication for secure Salesforce access
-- Schedule regular syncs via cron jobs or schedulers
-
-##### Direct SQL Server Connection
-
-- Eliminate the DML file generation step
-- Use pyodbc or SQLAlchemy to execute SQL statements directly
-- Implement transaction management for atomic operations
-- Add comprehensive logging and error handling
-
-##### Power Automate Integration
-
-Advanced analyses could be triggered via Microsoft Power Automate:
-
-- Create Power Automate flows triggered by database updates
-- Connect Power BI reports to automatically refresh
-- Send notifications when key metrics change
-- Trigger downstream processes based on data changes
-
-#### Making the Pipeline Robust
-
-The current pipeline is a proof of concept. To make it production-ready and robust:
-
-1. **Error Handling & Logging**
-
-   - Implement comprehensive error handling at each stage
-   - Set up centralized logging with different verbosity levels
-   - Add monitoring for pipeline failures with alerts
-2. **Validation & Testing**
-
-   - Add data validation checks between each stage
-   - Implement unit and integration tests for all components
-   - Create test datasets for regression testing
-3. **Recovery & Resilience**
-
-   - Add checkpointing to allow restart from failure points
-   - Implement retry logic for transient failures
-   - Create backup/rollback mechanisms for critical operations
-4. **Security & Compliance**
-
-   - Implement proper authentication and authorization
-   - Add audit logging for all data access and modifications
-   - Ensure compliance with data governance policies
-5. **Deployment & Automation**
-
-   - Set up CI/CD for automated testing and deployment
-   - Containerize the pipeline for consistent deployment
-   - Implement scheduling for regular automated runs
-
-### Advanced Data Analysis
-
-#### Analysis Components
-
-##### 1. Data Fetcher (`fetcher.py`)
-
-- Provides a flexible data access layer for advanced analysis scripts
-- Automatically attempts to connect to the SQL Server database first
-- Falls back to CSV files if database connection fails
-- Offers standardized data access methods for consistent analysis
-
-##### 2. Timesheet Analysis (`analyze_time_entry.py`)
-
-- Analyzes employee time entry patterns and delays
-- Calculates average delay between work date and entry date
-- Identifies employees with the longest and shortest entry delays
-- Detects unusual time entry behavior (e.g., entries made before work date)
-
-##### 3. Anomaly Detection (`anomaly_detection.py`)
-
-- Uses machine learning (Isolation Forest) to detect unusual patterns in timesheet data
-- Identifies anomalies in hours logged and time entry delays
-- Generates summary statistics and visualizations
-- Highlights employees with significant anomaly percentages
-
-##### 4. Resource Allocation (`allocation.py`)
-
-- Calculates project performance metrics using Earned Value Management (EVM)
-- Analyzes project completion rates against schedules
-- Computes Cost Performance Index (CPI) and Schedule Performance Index (SPI)
-- Provides insights into project health and resource allocation efficiency
-
-#### Analysis Workflow
-
-1. **Data Retrieval**: The `fetcher.py` utility retrieves data from the database or CSV files
-2. **Data Processing**: Analysis scripts transform and clean the data for specific analyses
-3. **Analysis Execution**: Specialized algorithms are applied to detect patterns or anomalies
-4. **Results Generation**: Analysis results are displayed or saved for further reporting
-
-#### Using the Analysis Tools
-
-To run the advanced analysis tools:
-
-```
-## For timesheet entry analysis
-python advanced_data_analysis/analyze_time_entry.py
-
-## For anomaly detection
-python advanced_data_analysis/anomaly_detection.py
-
-## For resource allocation analysis
-python advanced_data_analysis/allocation.py
-```
-
-Each script will automatically attempt to connect to the database, fall back to CSV files if needed, and generate the appropriate analysis output.
-
-#### Next Steps
-
-- Integrate analysis scripts with Power BI for interactive dashboards
-- Create scheduled analysis jobs for regular monitoring
-- Implement alerting based on analysis results
-- Expand the analysis toolkit with additional specialized algorithms
-- Connect analysis outputs to project management and resource planning systems
