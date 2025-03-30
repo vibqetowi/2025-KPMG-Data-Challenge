@@ -32,7 +32,13 @@ This dashboard is specifically engineered to address critical business needs pre
 
 ### Platform Showcase
 
+#### Main Dashboard
+
 ![1743305777092](image/README/1743305777092.png)
+
+#### Next Week's Staffing Allocation Prediction
+
+![1743306895192](image/README/1743306895192.png)
 
 ## 🌟 Key Capabilities
 
