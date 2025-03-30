@@ -15,23 +15,36 @@ import sys
 import os
 from pathlib import Path
 
+# Set up logger
+logger = logging.getLogger(__name__)
+
 # Add utils directory to path to import evm_metrics
 current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 project_root = current_dir.parent.parent
-utils_dir = project_root / "scripts" / "advanced_data_analysis" / "utils"
-sys.path.append(str(utils_dir))
+sys.path.append(str(project_root))
 
-# Import EVM metrics functions
-from evm_metrics import (
-    calculate_spi, calculate_vec, calculate_burn, 
-    calculate_schedule_elapsed, calculate_planned_value, calculate_earned_value
-)
-
-logger = logging.getLogger(__name__)
+# Import EVM metrics functions - handle circular import issue by importing only when needed
+def import_evm_metrics():
+    """Import EVM metrics module when needed to avoid circular imports"""
+    from scripts.advanced_data_analysis.utils.evm_metrics import (
+        calculate_spi, calculate_vec, calculate_burn, 
+        calculate_schedule_elapsed, calculate_planned_value, calculate_earned_value
+    )
+    return {
+        'calculate_spi': calculate_spi,
+        'calculate_vec': calculate_vec,
+        'calculate_burn': calculate_burn,
+        'calculate_schedule_elapsed': calculate_schedule_elapsed,
+        'calculate_planned_value': calculate_planned_value,
+        'calculate_earned_value': calculate_earned_value
+    }
 
 def calculate_staffing_ratios(timesheet_data, employee_data, engagement_id=None, phase_id=None, start_date=None, end_date=None):
     """
     Calculate staffing ratios by staff level and practice for engagements.
+    
+    As defined in README Appendix 4:
+    StaffingRatio_{l,ph} = ∑timesheets.hours_{l,ph} / ∑timesheets.hours_{ph}
     
     Args:
         timesheet_data (DataFrame): Timesheet data
@@ -58,7 +71,7 @@ def calculate_staffing_ratios(timesheet_data, employee_data, engagement_id=None,
     
     # Filter by date if provided
     if start_date is not None and work_date_col in timesheet_data.columns:
-        timesheet_data[work_date_col] = pd.to_datetime(timesheet_data[work_date_col], errors='coerce')
+        timesheet_data.loc[:, work_date_col] = pd.to_datetime(timesheet_data[work_date_col], errors='coerce')
         timesheet_data = timesheet_data[timesheet_data[work_date_col] >= start_date]
     
     if end_date is not None and work_date_col in timesheet_data.columns:
@@ -136,22 +149,68 @@ def calculate_staffing_ratios(timesheet_data, employee_data, engagement_id=None,
 
 def get_week_start_date(date=None):
     """
-    Get the Monday of the week containing the given date.
+    Get the start date of the week (Monday) for a given date.
     
     Args:
-        date (datetime, optional): Date to find week start for. Defaults to today.
+        date (datetime, optional): Input date. Defaults to today if None.
         
     Returns:
-        datetime.date: Monday of the week
+        datetime: Start date of the week containing the input date
     """
     if date is None:
-        date = datetime.now().date()
-    elif isinstance(date, str):
-        date = pd.to_datetime(date).date()
-    elif isinstance(date, pd.Timestamp):
-        date = date.date()
+        date = pd.Timestamp.now()
+    else:
+        date = pd.Timestamp(date)
     
     # Calculate days to subtract to get to Monday (weekday 0)
     days_to_subtract = date.weekday()
-    monday = date - timedelta(days=days_to_subtract)
-    return monday
+    
+    # Calculate the Monday of the week
+    week_start = date - pd.Timedelta(days=days_to_subtract)
+    
+    # Reset time to 00:00:00
+    week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    return week_start
+
+def get_latest_work_date(timesheet_data):
+    """
+    Get the latest work date from timesheet data.
+    
+    Args:
+        timesheet_data (DataFrame): Timesheet data with a work_date column
+        
+    Returns:
+        datetime: Latest work date found in the timesheet data
+    """
+    # Handle different column names
+    work_date_col = 'work_date'
+    if work_date_col not in timesheet_data.columns and 'Work Date' in timesheet_data.columns:
+        work_date_col = 'Work Date'
+    
+    # Ensure work date is datetime
+    if work_date_col in timesheet_data.columns:
+        dates = pd.to_datetime(timesheet_data[work_date_col], errors='coerce')
+        if not dates.empty and dates.notna().any():
+            return dates.max()
+    
+    # Fallback to today if no valid dates found
+    logger.warning("No valid work dates found in timesheet data. Using current date.")
+    return pd.Timestamp.now().normalize()
+
+def get_reference_week_start(timesheet_data=None):
+    """
+    Get the reference week start date based on the latest timesheet data.
+    
+    Args:
+        timesheet_data (DataFrame, optional): Timesheet data with work_date column
+        
+    Returns:
+        datetime: Monday of the week containing the latest timesheet date
+    """
+    if timesheet_data is not None:
+        latest_date = get_latest_work_date(timesheet_data)
+    else:
+        latest_date = pd.Timestamp.now()
+    
+    return get_week_start_date(latest_date)

@@ -1,0 +1,97 @@
+=== MILP MODEL VISUALIZATION ===
+
+Problem name: Resource_Allocation
+Optimization direction: -1
+Number of variables: 30
+Number of constraints: 50
+
+=== VARIABLES ===
+
+Hours variables: 15
+Switch variables: 15
+Other variables: 0
+
+Sample of Hours variables:
+  Hours_14523_2001920365_10: 0 <= x <= 40.0, Category=Continuous
+  Hours_14524_2001920365_10: 0 <= x <= 40.0, Category=Continuous
+  Hours_14525_2001920365_10: 0 <= x <= 40.0, Category=Continuous
+  Hours_14526_2001920365_10: 0 <= x <= 40.0, Category=Continuous
+  Hours_14527_2001920365_10: 0 <= x <= 40.0, Category=Continuous
+
+Sample of Switch variables:
+  Switch_14523_2001920365_10: 0 <= x <= 1, Category=Integer
+  Switch_14524_2001920365_10: 0 <= x <= 1, Category=Integer
+  Switch_14525_2001920365_10: 0 <= x <= 1, Category=Integer
+  Switch_14526_2001920365_10: 0 <= x <= 1, Category=Integer
+  Switch_14527_2001920365_10: 0 <= x <= 1, Category=Integer
+
+=== CONSTRAINTS ===
+
+Capacity constraints: 15
+Level ratio constraints: 0
+Practice ratio constraints: 0
+Switch logic constraints: 26
+Internal priority constraints: 1
+Troubled project constraints: 8
+Other constraints: 0
+
+Sample of Capacity constraints:
+  Capacity_Constraint_14523:
+    Hours_14523_2001920365_10 <= 40.0
+  Capacity_Constraint_14524:
+    Hours_14524_2001920365_10 <= 40.0
+  Capacity_Constraint_14525:
+    Hours_14525_2001920365_10 <= 40.0
+
+Sample of Switch Logic constraints:
+  Switch_Continuing_14523_2001920365_10:
+    Switch_14523_2001920365_10 = 0
+  Switch_Continuing_14524_2001920365_10:
+    Switch_14524_2001920365_10 = 0
+  Switch_Continuing_14525_2001920365_10:
+    Switch_14525_2001920365_10 = 0
+
+Sample of Internal Priority constraints:
+  Internal_Priority_2001920365_10:
+    Hours_14523_2001920365_10 + Hours_14524_2001920365_10 +
+    Hours_14525_2001920365_10 + Hours_14526_2001920365_10 +
+    Hours_14527_2001920365_10 + Hours_14528_2001920365_10 +
+    Hours_14529_2001920365_10 + Hours_14530_2001920365_10 +
+    Hours_14531_2001920365_10 + Hours_14532_2001920365_10 +
+    Hours_14533_2001920365_10 + Hours_14534_2001920365_10 +
+    Hours_14535_2001920365_10 + Hours_14536_2001920365_10 +
+    Hours_14537_2001920365_10 <= 427.0
+
+Sample of Troubled Project constraints:
+  Min_Hours_For_Troubled_2001920365_10:
+    0 >= 20.0
+  Min_Hours_For_Troubled_3000512342_10:
+    0 >= 20.0
+  Min_Hours_For_Troubled_2001920365_40:
+    0 >= 20.0
+
+=== DATA SUMMARY ===
+
+Engagements: 1
+  2001920365 - Phase 10
+
+Employees: 15
+  MANAGER: 2
+  SENIOR MANAGER: 5
+  SPECIALIST/SENIOR CONSULT: 7
+  STAFF ACCOUNTANT/CONSULTA: 1
+
+Staffing Ratios: 0
+
+EVM Metrics: 8
+  Eng 2001920365, Phase 10: SPI=0.31, VEC=0.09
+  Eng 3000512342, Phase 10: SPI=0.31, VEC=0.06
+  Eng 2001920365, Phase 40: SPI=0.07, VEC=0.05
+  Eng 2002040046, Phase 10: SPI=0.09, VEC=0.06
+  Eng 2002055111, Phase 10: SPI=0.22, VEC=0.04
+
+Optimization Parameters:
+  alpha: 0.6
+  beta: 0.4
+  pse: 0.9
+  delta: 0.2

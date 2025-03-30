@@ -1,0 +1,18 @@
+=== OPTIMIZATION SPACE ANALYSIS ===
+
+Model has 50 constraints and 30 variables
+
+=== KEY VARIABLES ===
+
+Variable: Hours_14523_2001920365_10
+  Lower bound: 0
+  Upper bound: 40.0
+  Category: Continuous
+
+Variable: Hours_14524_2001920365_10
+  Lower bound: 0
+  Upper bound: 40.0
+  Category: Continuous
+
+=== CONSTRAINTS AFFECTING KEY VARIABLES ===
+
