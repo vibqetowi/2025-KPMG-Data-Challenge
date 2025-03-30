@@ -1,4 +1,4 @@
-# Predictive Resource Optimization Platform (PROP) - KPMG Case Challenge Submission
+# yPredictive Resource Optimization Platform (PROP) - KPMG Case Challenge Submission
 
 <div align="center">
 
@@ -32,8 +32,7 @@ This dashboard is specifically engineered to address critical business needs pre
 
 ### Platform Showcase
 
-![Dashboard Preview](./img/dashboard.png)
-*(A preview of the main dashboard interface)*
+![1743305777092](image/README/1743305777092.png)
 
 ## 🌟 Key Capabilities
 
@@ -196,7 +195,6 @@ Incorporates a dedicated `vacations` table:
 - Provides visual conflict indicators.
 - Designed for integration with HR systems (uses synthetic data in PoC).
 - Helps avoid resource conflicts due to unaccounted absences.
-
 
 ## 🏢 Business Plan
 
@@ -382,8 +380,8 @@ This appendix outlines the key assumptions underpinning the analysis presented i
    * **Impact:** Facilitates simplified preliminary analysis; risk differentiation should be included when data permits.
 9. **Negative Hour Logs Offset Work on Other Projects for the Same Client.**
 
-    * **Basis:** Observed data patterns suggest this correlation, aligning with common project management practices for budget adjustments.
-    * **Impact:** Negative hours are interpreted as adjustments within the client's project portfolio. Further investigation is warranted to fully validate this interpretation.
+   * **Basis:** Observed data patterns suggest this correlation, aligning with common project management practices for budget adjustments.
+   * **Impact:** Negative hours are interpreted as adjustments within the client's project portfolio. Further investigation is warranted to fully validate this interpretation.
 10. **Time Reporting Behaviours Differ Between Internal and External Consultants.**
 
     * **Basis:** Analysis revealed significant variations in timesheet submission timeliness, with delays more pronounced among certain senior internal staff.
@@ -537,7 +535,7 @@ All variables in formulas use consistent suffixes to denote the entity they refe
 | $d_t$  | Rate Efficiency Factor                | $\frac{timesheets.charge\_out\_rate_t}{charge\_out\_rates.standard\_chargeout\_rate_c}$ | Measures charge-out rate efficiency                        |
 | $ea_c$ | External Adjustment Factor            | $1 - 0.1 \times employees.is\_external_c$                                               | Accounts for external consultants' impact on profitability |
 | $eo_c$ | Onboarding/New Hire Adjustment Factor | $1 - 0.2 \times isNew_c$                                                                | Accounts for newer consultants' learning curve             |
-| $pse$  | Phase Switching Efficiency            | Assume 1 (no loss) (configurable)                                                              | Productivity loss factor when switching engagements        |
+| $pse$  | Phase Switching Efficiency            | Assume 1 (no loss) (configurable)                                                         | Productivity loss factor when switching engagements        |
 
 #### Optimization Parameters
 
@@ -548,7 +546,6 @@ All variables in formulas use consistent suffixes to denote the entity they refe
 | $w_{en}$      | Strategic weight of engagement | Default: 1.0                    | `engagements.strategic_weight`  |
 | $r_{en}$      | Risk coefficient of engagement | Default: 1.0                    | `engagements.risk_coefficient`  |
 | $r_{l,pr,en}$ | Required staffing ratio        | Calculated from historical data | Derived from timesheet data       |
-
 
 ## Appendix 6: ETL (Extract, Transform, and Load) Pipeline
 
