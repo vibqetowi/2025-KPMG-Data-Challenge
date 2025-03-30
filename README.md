@@ -28,6 +28,7 @@ This dashboard is specifically engineered to address critical business needs pre
 - Minimizing consultant bench time
 - Maintaining engagement schedules effectively
 - Maximizing profitability through efficient resource allocation
+- **Reducing management overhead by ~50%**: Significantly decreases the time managers spend on internal capacity planning, allowing them to focus on billable client work – directly improving ROI through both cost reduction and revenue enhancement
 
 ### Platform Showcase
 
@@ -193,6 +194,11 @@ Incorporates a dedicated `vacations` table:
 - Provides visual conflict indicators.
 - Designed for integration with HR systems (uses synthetic data in PoC).
 - Helps avoid resource conflicts due to unaccounted absences.
+
+
+## 🏢 Business Plan
+
+TODO, insert gantt chart and financials
 
 ## 🛣️ Production Deployment and Dashboard Improvements Suggestions
 
