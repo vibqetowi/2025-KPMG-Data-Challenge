@@ -11,12 +11,12 @@
 
 ## 🏆 Team 7
 
-| Team Member | GitHub     | Linkedin                                                                 | Background                                                                               |
-| ----------- | ---------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| Minh        | @vibqetowi | [hminh-software-eng](https://www.linkedin.com/in/hminh-software-eng)        | Software Engineering, previous experience in software development and project management |
-| Carter      | @carterj-c | [cartercameronfina](https://www.linkedin.com/in/cartercameronfina)          | Previously Mechanical Engineering now in Finance, previous experience in aerospace engineering                     |
-| Casey       | @cassius   | [casey-jussaume](https://www.linkedin.com/in/casey-jussaume)                | Finance & accounting, previous experience in financial modeling and research             |
-| Romero      | @geekpapi  | [romero-p-faustin](https://www.linkedin.com/in/romero-p-faustin-96106a179/) | Economics & Computer Science, previous experience in data analysis                       |
+| Team Member | GitHub     | Linkedin                                                                 | Background                                                                                     |
+| ----------- | ---------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Minh        | @vibqetowi | [hminh-software-eng](https://www.linkedin.com/in/hminh-software-eng)        | Software Engineering, previous experience in software development and project management       |
+| Carter      | @carterj-c | [cartercameronfina](https://www.linkedin.com/in/cartercameronfina)          | Previously Mechanical Engineering now in Finance, previous experience in aerospace engineering |
+| Casey       | @cassius   | [casey-jussaume](https://www.linkedin.com/in/casey-jussaume)                | Finance & accounting, previous experience in financial modeling and research                   |
+| Romero      | @geekpapi  | [romero-p-faustin](https://www.linkedin.com/in/romero-p-faustin-96106a179/) | Economics & Computer Science, previous experience in data analysis                             |
 
 ## 🎯 Project Overview
 
@@ -139,9 +139,9 @@ The staffing ratio constraint ensures that each engagement maintains the require
 
 Due to these business objectives, our solution focuses on the following core KPIs enabling proactive management:
 
-1. **VEC (rolling)**: Value Extraction Coefficient tracking financial realization efficiency.
-2. **Budget Burn (rolling)**: Ratio of Actual Cost to Budget ($\frac{\sum AC}{\text{BAC}}$) tracking cost control. *Used with VEC for financial health.*
-3. **SPI (rolling)**: Schedule Performance Index tracking delivery progress against plan.
+1. **VEC**: Value Extraction Coefficient tracking financial realization efficiency.
+2. **Budget Burn**: Ratio of Actual Cost to Budget ($\frac{\sum AC}{\text{BAC}}$) tracking cost control. *Used with VEC for financial health.*
+3. **SPI**: Schedule Performance Index tracking delivery progress against plan.
 4. **Benching Rate (internal/external)**: Weekly rolling percentage of available capacity *not assigned* to engagements.
 5. **Capacity Utilization Rate (internal/external)**: Weekly rolling ratio of *actual billable hours logged* versus standard capacity.
 
@@ -370,7 +370,7 @@ This section provides the specific database field mappings for metrics described
 
 #### Budget at Completion (BAC)
 
-- **Database Source**: `phases.budget` for engagement phase 
+- **Database Source**: `phases.budget` for engagement phase
 - **Purpose**: Financial baseline for a phase.
 
 #### Weighted Average Chargeout Rate (Estimation Aid)
@@ -410,9 +410,10 @@ This section provides the specific database field mappings for metrics described
   $\text{VEC}_{ph} = \frac{1}{\text{phases.budget}_{ph}} \times \sum_{t=1}^{n} [(\text{timesheets.std\_price}_{t} + \text{timesheets.adm\_surcharge}_{t}) \times d_{t} \times ea_{c} \times eo_{c}]$
 
 Where:
-  - $d_{t} = \frac{\text{timesheets.charge\_out\_rate}_{t}}{\text{charge\_out\_rates.standard\_chargeout\_rate}_{c}}$
-  - $ea_{c} = 1 - 0.1 \times \text{employees.is\_external}_{c}$
-  - $eo_{c} = 1 - 0.2 \times isNew_c$ (derived field, not in database)
+
+- $d_{t} = \frac{\text{timesheets.charge\_out\_rate}_{t}}{\text{charge\_out\_rates.standard\_chargeout\_rate}_{c}}$
+- $ea_{c} = 1 - 0.1 \times \text{employees.is\_external}_{c}$
+- $eo_{c} = 1 - 0.2 \times isNew_c$ (derived field, not in database)
 
 #### Budget Burn
 
@@ -459,53 +460,53 @@ This appendix documents the standardized notation used in formulas throughout th
 
 All variables in formulas use consistent suffixes to denote the entity they refer to:
 
-| Suffix | Entity                  | Example                          | Description                                       |
-|--------|-------------------------|----------------------------------|---------------------------------------------------|
-| `c`    | Consultant/Employee     | $ea_c$ (External Adjustment)     | Refers to a specific consultant/employee          |
-| `t`    | Transaction/Timesheet   | $AC_t$ (Actual Cost)             | Refers to a specific timesheet entry              |
-| `ph`   | Phase                   | $VEC_{ph}$ (VEC of a phase)      | Refers to a specific engagement phase             |
-| `en`   | Engagement              | $SPI_{en}$ (SPI of engagement)   | Refers to a specific engagement                   |
-| `l`    | Staff Level             | $StaffingRatio_{l,ph}$           | Refers to a specific staff level (e.g., Manager)  |
-| `pr`   | Practice                | $C_{l,pr}$ (Consultants in practice) | Refers to a practice area (e.g., SAP)        |
-| `w`    | Week                    | $Hours_{c,en,w}$ (Weekly hours)  | Refers to a specific week (time period)           |
+| Suffix | Entity                | Example                                | Description                                      |
+| ------ | --------------------- | -------------------------------------- | ------------------------------------------------ |
+| `c`  | Consultant/Employee   | $ea_c$ (External Adjustment)         | Refers to a specific consultant/employee         |
+| `t`  | Transaction/Timesheet | $AC_t$ (Actual Cost)                 | Refers to a specific timesheet entry             |
+| `ph` | Phase                 | $VEC_{ph}$ (VEC of a phase)          | Refers to a specific engagement phase            |
+| `en` | Engagement            | $SPI_{en}$ (SPI of engagement)       | Refers to a specific engagement                  |
+| `l`  | Staff Level           | $StaffingRatio_{l,ph}$               | Refers to a specific staff level (e.g., Manager) |
+| `pr` | Practice              | $C_{l,pr}$ (Consultants in practice) | Refers to a practice area (e.g., SAP)            |
+| `w`  | Week                  | $Hours_{c,en,w}$ (Weekly hours)      | Refers to a specific week (time period)          |
 
 ### Core Variables and Factors
 
 #### Financial Metrics
 
-| Variable          | Definition                                        | Formula/Source                                            |
-|-------------------|---------------------------------------------------|-----------------------------------------------------------|
-| $BAC_{ph}$        | Budget at Completion for phase                    | `phases.budget`                                           |
-| $AC_t$            | Actual Cost for transaction                       | `timesheets.std_price + timesheets.adm_surcharge`         |
-| $PV_{ph}$         | Planned Value for phase                           | $BAC_{ph} \times Schedule\%_{ph}$                         |
-| $EV_{ph}$         | Earned Value for phase                            | $\sum_t AC_t \times CPI_{proxy}$ (PoC method)             |
-| $SPI_{ph}$        | Schedule Performance Index                        | $EV_{ph} / PV_{ph}$                                       |
-| $VEC_{ph}$        | Value Extraction Coefficient                      | $\frac{1}{BAC_{ph}} \times \sum_t [AC_t \times d_t \times ea_c \times eo_c]$ |
-| $Burn_{ph}$       | Budget Burn Rate                                  | $\frac{\sum_t AC_t}{BAC_{ph}}$                            |
+| Variable      | Definition                     | Formula/Source                                                                 |
+| ------------- | ------------------------------ | ------------------------------------------------------------------------------ |
+| $BAC_{ph}$  | Budget at Completion for phase | `phases.budget`                                                              |
+| $AC_t$      | Actual Cost for transaction    | `timesheets.std_price + timesheets.adm_surcharge`                            |
+| $PV_{ph}$   | Planned Value for phase        | $BAC_{ph} \times Schedule\%_{ph}$                                            |
+| $EV_{ph}$   | Earned Value for phase         | $\sum_t AC_t \times CPI_{proxy}$ (PoC method)                                |
+| $SPI_{ph}$  | Schedule Performance Index     | $EV_{ph} / PV_{ph}$                                                          |
+| $VEC_{ph}$  | Value Extraction Coefficient   | $\frac{1}{BAC_{ph}} \times \sum_t [AC_t \times d_t \times ea_c \times eo_c]$ |
+| $Burn_{ph}$ | Budget Burn Rate               | $\frac{\sum_t AC_t}{BAC_{ph}}$                                               |
 
 #### Adjustment Factors
 
-| Factor     | Definition                                    | Formula                                      | Purpose                                         |
-|------------|-----------------------------------------------|----------------------------------------------|------------------------------------------------|
-| $d_t$      | Rate Efficiency Factor                        | $\frac{timesheets.charge\_out\_rate_t}{charge\_out\_rates.standard\_chargeout\_rate_c}$ | Measures charge-out rate efficiency |
-| $ea_c$     | External Adjustment Factor                    | $1 - 0.1 \times employees.is\_external_c$    | Accounts for external consultants' impact on profitability |
-| $eo_c$     | Onboarding/New Hire Adjustment Factor         | $1 - 0.2 \times isNew_c$                     | Accounts for newer consultants' learning curve |
-| $pse$      | Phase Switching Efficiency                    | Typically 0.9 (configurable)                 | Productivity loss factor when switching engagements |
+| Factor   | Definition                            | Formula                                                                                   | Purpose                                                    |
+| -------- | ------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| $d_t$  | Rate Efficiency Factor                | $\frac{timesheets.charge\_out\_rate_t}{charge\_out\_rates.standard\_chargeout\_rate_c}$ | Measures charge-out rate efficiency                        |
+| $ea_c$ | External Adjustment Factor            | $1 - 0.1 \times employees.is\_external_c$                                               | Accounts for external consultants' impact on profitability |
+| $eo_c$ | Onboarding/New Hire Adjustment Factor | $1 - 0.2 \times isNew_c$                                                                | Accounts for newer consultants' learning curve             |
+| $pse$  | Phase Switching Efficiency            | Typically 0.9 (configurable)                                                              | Productivity loss factor when switching engagements        |
 
 #### Optimization Parameters
 
-| Parameter        | Definition                                    | Range/Default                                 | Source                                     |
-|------------------|-----------------------------------------------|-----------------------------------------------|-------------------------------------------|
-| $\alpha$         | SPI weight in optimization                    | 0.5 (default)                                 | `optimization_parameters` table           |
-| $\beta$          | VEC weight in optimization                    | 0.5 (default)                                 | `optimization_parameters` table           |
-| $w_{en}$         | Strategic weight of engagement                | Default: 1.0                                  | `engagements.strategic_weight`            |
-| $r_{en}$         | Risk coefficient of engagement                | Default: 1.0                                  | `engagements.risk_coefficient`            |
-| $r_{l,pr,en}$    | Required staffing ratio                       | Calculated from historical data               | Derived from timesheet data               |
+| Parameter       | Definition                     | Range/Default                   | Source                            |
+| --------------- | ------------------------------ | ------------------------------- | --------------------------------- |
+| $\alpha$      | SPI weight in optimization     | 0.5 (default)                   | `optimization_parameters` table |
+| $\beta$       | VEC weight in optimization     | 0.5 (default)                   | `optimization_parameters` table |
+| $w_{en}$      | Strategic weight of engagement | Default: 1.0                    | `engagements.strategic_weight`  |
+| $r_{en}$      | Risk coefficient of engagement | Default: 1.0                    | `engagements.risk_coefficient`  |
+| $r_{l,pr,en}$ | Required staffing ratio        | Calculated from historical data | Derived from timesheet data       |
 
 #### Utilization Metrics
 
-| Metric                         | Definition                                         | Formula                                                 |
-|--------------------------------|----------------------------------------------------|----------------------------------------------------------|
-| Benching Rate                  | Percentage of capacity not assigned                 | $\left(1 - \frac{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}{employees.employment\_basis_c}\right) \times 100\%$ |
-| Capacity Utilization Rate      | Percentage of capacity utilized in billable work    | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{employees.employment\_basis_c} \times 100\%$ |
-| Assignment Realization Rate    | Ratio of actual hours to assigned hours             | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}$ |
+| Metric                      | Definition                                       | Formula                                                                                                                  |
+| --------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Benching Rate               | Percentage of capacity not assigned              | $\left(1 - \frac{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}{employees.employment\_basis_c}\right) \times 100\%$ |
+| Capacity Utilization Rate   | Percentage of capacity utilized in billable work | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{employees.employment\_basis_c} \times 100\%$                         |
+| Assignment Realization Rate | Ratio of actual hours to assigned hours          | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}$                   |
