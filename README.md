@@ -1,4 +1,4 @@
-# Predictive Resource Optimization Platform (PROP) - KPMG Case Challenge Submission
+# yPredictive Resource Optimization Platform (PROP) - KPMG Case Challenge Submission
 
 <div align="center">
 
@@ -32,8 +32,7 @@ This dashboard is specifically engineered to address critical business needs pre
 
 ### Platform Showcase
 
-![Dashboard Preview](./img/dashboard.png)
-*(A preview of the main dashboard interface)*
+![1743305777092](image/README/1743305777092.png)
 
 ## 🌟 Key Capabilities
 
