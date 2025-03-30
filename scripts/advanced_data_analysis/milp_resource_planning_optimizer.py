@@ -1,68 +1,3 @@
-# ## Appendix 2: Predicting Optimal Allocation of Employee Resources (Demo Implementation Strategy)
-
-# This section details the algorithmic approach for solving the resource optimization problem, specifically outlining the strategy for this demonstration using Mixed Integer Linear Programming (MILP) [see video.](https://www.youtube.com/embed/E72DWgKP_1Y).
-
-# ### Implementation Strategy
-
-# 1. **Data Preparation Phase (Scheduled - Weekly)**
-
-#    * **Calculate Engagement Status:** Determine current or projected statuses (SPI, VEC, Budget Burn) for active engagements using methods outlined in Appendix 4. Linear approximations may be needed if using these directly in the objective/constraints.
-#    * **Retrieve Consultant Availability:** Fetch each consultant's standard capacity (`employees.employment_basis`), adjusting for planned time off (`vacations`) for the target week(s) $w$.
-#    * **Calculate Dynamic Target Ratios:** For each active engagement ($en$), staff level ($l$), and practice ($pr$), calculate the *actual* ratio ($ActualRatio_{l,pr,en,w-1}$) based on `timesheets.hours` from the most recently completed week ($w-1$), as per the definition in Appendix 4/5. This value serves as the baseline target for the next week's optimization constraints.
-#    * **Retrieve Parameters:** Load strategic weights ($w_{en}$) and risk coefficients ($r_{en}$) from `engagements`. Fetch optimization parameters ($\alpha$, $\beta$, $pse$) and the **ratio deviation tolerance** ($\delta$) from the `optimization_parameters` table (or use defaults per Appendix 3 if table not populated).
-# 2. **Optimization Model Formulation (MILP)**
-
-#    * **Framework:** Implemented using **Python `PuLP`**, a library suitable for defining and solving MILP problems.
-#    * **Decision Variables:**
-
-#      * $Hours_{c,en,w}$: Planned hours for consultant $c$ on engagement $en$ in week $w$ (continuous).
-#      * $is\_switch_{c,en,w}$: Binary variable (0 or 1) indicating if consultant $c$ starts work on engagement $en$ in week $w$ (having not worked on it in $w-1$).
-#    * **Objective Function (Linear - Demo Implementation):**
-
-#      * **Note:** For this demo implementation using MILP, we are **using a hard boundary constraint** (with tolerance $\delta$, detailed below) to manage staffing ratios, **instead of the non-linear penalty term** ($\sum \text{Penalty}_{l,pr,en,w}$) described conceptually earlier in the document. Therefore, the objective function optimized in this demo is:
-
-#      ```math
-#      \max \sum_{en \in EN} \left[ w_{en} \times r_{en} \times (\alpha \times \text{Proj\_SPI\_Contrib}_{en} + \beta \times \text{Proj\_VEC\_Contrib}_{en}) \right] - \sum_{c,en,w} \text{pse} \times \text{is\_switch}_{c,en,w}
-#      ```
-
-#      * *Linearity Requirement:* For this MILP model, $\text{Proj\_SPI\_Contrib}_{en}$ and $\text{Proj\_VEC\_Contrib}_{en}$ must be defined as linear functions of the $Hours_{c,en,w}$ variables. Simplifications (e.g., assuming contribution is proportional to hours assigned relative to a target) may be necessary.
-#    * **Constraints (Linear):**
-
-#      * **Consultant Capacity:** Total planned hours for each consultant cannot exceed their adjusted weekly availability:
-#        ```math
-#        \sum_{en \in EN} Hours_{c,en,w} \leq \text{AdjustedCapacity}_c \quad \forall c, w
-#        ```
-#      * **Staffing Ratio Tolerance (Linearized Hard Constraint):** Enforces that the planned staffing mix for the target week ($w$) stays within the tolerance ($\delta$) of the *previous week's actual ratio* ($ActualRatio_{l,pr,en,w-1}$). For each engagement $en$, level $l$, practice $pr$, and week $w$:
-#        * Let $\text{TargetRatio} = ActualRatio_{l,pr,en,w-1}$ (pre-calculated constant).
-#        * Let $\text{SumHours}_{l,pr} = \sum_{c \in C_{l,pr}} Hours_{c,en,w}$.
-#        * Let $\text{SumHours}_{\text{other}} = \sum_{c \notin C_{l,pr}} Hours_{c,en,w}$.
-#        * Constraint 1 (Lower Bound): Ensures $\text{PlannedRatio} \ge \text{TargetRatio} \times (1-\delta)$
-#          ```math
-#          (\text{TargetRatio} \times (1-\delta) - 1) \times \text{SumHours}_{l,pr} + \text{TargetRatio} \times (1-\delta) \times \text{SumHours}_{\text{other}} \leq 0
-#          ```
-#        * Constraint 2 (Upper Bound): Ensures $\text{PlannedRatio} \le \text{TargetRatio} \times (1+\delta)$
-#          ```math
-#          (1 - \text{TargetRatio} \times (1+\delta)) \times \text{SumHours}_{l,pr} - \text{TargetRatio} \times (1+\delta) \times \text{SumHours}_{\text{other}} \leq 0
-#          ```
-#      * **Performance Thresholds (Simplified/Linearized):** If required, constraints like $SPI_{en} \ge 0.85$ must be represented linearly or checked post-optimization.
-#      * **Benching Rate:** A constraint limiting total unassigned internal consultant hours relative to their total capacity.
-#      * **Internal Priority:** Constraints ensuring $Hours_{c,en,w} = 0$ for external consultants unless specific internal consultants are fully assigned.
-#      * **Switch Logic:** Constraints defining $is\_switch_{c,en,w}$ based on $Hours_{c,en,w}$ and assignment status in week $w-1$.
-# 3. **Solver Execution**
-
-#    * The PuLP model is passed to a compatible MILP solver (e.g., CBC, GLPK, Gurobi, CPLEX). The solver finds the optimal $Hours_{c,en,w}$ values.
-# 4. **Post-Optimization Processing & Feedback Loop**
-
-#    * **Output:** Optimal assignments ($Hours_{c,en,w}$) are saved (e.g., to `staffing_prediction`).
-#    * **Visualization:** Recommendations presented on the Power BI dashboard.
-#    * **Monitoring & Tuning:** Actual performance (`timesheets`) compared to predictions. Parameters ($\alpha$, $\beta$, $pse$, $\delta$) manually adjusted based on results.
-# 5. **Demo Implementation Considerations**
-
-#    * **Linearity & Simplification:** This strategy prioritizes a solvable MILP model using PuLP. **Crucially, this involved replacing the non-linear "soft boundary" penalty approach with the linearized "hard boundary" staffing ratio constraints (allowing $\delta$ tolerance) described above.** Projections for SPI/VEC within the model might also be simplified.
-#    * **Dynamic Target:** Reliance on the previous week's actual ratio makes the plan adaptive but sensitive to past anomalies. $\delta$ provides flexibility.
-#    * **Future Enhancements:** Could involve exploring non-linear solvers, adding skills matching, improving SPI/VEC predictions, and adding stability constraints.
-
-import pulp
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -70,23 +5,24 @@ import os
 import sys
 import logging
 from pathlib import Path
+import pulp  # Make sure this import is at the top level
+import io
+import textwrap
 
 # Set up path to include shared modules
 current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 project_root = current_dir.parent.parent
-shared_dir = project_root / "scripts" / "shared"
-utils_dir = current_dir / "utils"
-sys.path.append(str(shared_dir))
-sys.path.append(str(utils_dir))
+sys.path.append(str(project_root))
 
-# Import utilities
-from fetcher import DataFetcher
-from metric_utils import calculate_staffing_ratios, get_week_start_date
-from utils.evm_metrics import (
+# Import utilities using project-root relative imports
+from scripts.advanced_data_analysis.utils.fetcher import DataFetcher
+from scripts.shared.metric_utils import calculate_staffing_ratios, get_week_start_date, get_latest_work_date, get_reference_week_start
+from scripts.advanced_data_analysis.utils.evm_metrics import (
     calculate_vec, calculate_spi, calculate_burn, 
     calculate_schedule_elapsed, calculate_planned_value, calculate_earned_value,
     compute_evm_metrics
 )
+from scripts.shared.config import OPT_PARAMS  # Import default optimization parameters
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -101,34 +37,42 @@ class MILPResourceOptimizer:
             target_week_start: The Monday date for which to optimize staffing (defaults to next Monday)
             db_connection_string: Database connection string
         """
-        # Set target week
+        # Initialize DataFetcher first to enable data loading
+        self.fetcher = DataFetcher(db_connection_string=db_connection_string)
+        
+        # Fetch timesheet data first to determine dates
+        timesheet_data = self.fetcher.fetch_data(['timesheets'], {'timesheets': {}})['timesheets']
+        
+        # Set target week based on timesheet data if none specified
         if target_week_start is None:
-            # Default to next Monday if not specified
-            today = datetime.now().date()
-            self.target_week = get_week_start_date(today + timedelta(days=7))  # Next Monday
+            # First determine the reference date based on latest timesheet data
+            reference_date = get_latest_work_date(timesheet_data)
+            
+            # Default to next Monday after the latest timesheet date
+            next_monday = get_week_start_date(reference_date + timedelta(days=7))
+            self.target_week = next_monday
+            logger.info(f"Target week automatically set to next Monday after latest data: {self.target_week}")
         else:
             self.target_week = target_week_start
             if self.target_week.weekday() != 0:  # Not a Monday
                 self.target_week = get_week_start_date(self.target_week)
+                logger.info(f"Target week adjusted to nearest Monday: {self.target_week}")
         
         # Previous weeks for historical data (3-week window for rolling ratios)
         self.previous_week1 = self.target_week - timedelta(days=7)
         self.previous_week2 = self.target_week - timedelta(days=14)
         self.previous_week3 = self.target_week - timedelta(days=21)
         
-        # Current date for filtering out future data
-        self.current_date = datetime.now().date()
+        # Current date for filtering out future data - use latest timesheet date
+        if timesheet_data is not None and not timesheet_data.empty:
+            self.current_date = get_latest_work_date(timesheet_data)
+            logger.info(f"Current date set to latest timesheet date: {self.current_date}")
+        else:
+            self.current_date = datetime.now().date()
+            logger.warning(f"No timesheet data available, using system date: {self.current_date}")
         
-        # Initialize DataFetcher
-        self.fetcher = DataFetcher(db_connection_string=db_connection_string)
-        
-        # Default optimization parameters
-        self.default_params = {
-            'alpha': 0.7,  # Weight for SPI contribution
-            'beta': 0.3,   # Weight for VEC contribution
-            'pse': 5.0,    # Penalty for switching engagements
-            'delta': 0.2   # Ratio deviation tolerance (20%)
-        }
+        # Default optimization parameters from shared config
+        self.default_params = OPT_PARAMS.copy()
         
         # Data containers
         self.employees = None
@@ -138,9 +82,12 @@ class MILPResourceOptimizer:
         self.actual_ratios = None
         self.opt_params = None
         self.previous_assignments = None
-        
-        # Add EVM metrics container
         self.evm_metrics = None
+        self.target_engagements = None  # New: optional list of (eng_no, eng_phase) tuples to optimize
+        self.using_fallback = False  # Flag to indicate if we're using fallback data
+
+        # Add new visualization flag
+        self.visualize_model = False  # Flag to control model visualization
 
     def load_data(self):
         """Load all necessary data using the DataFetcher"""
@@ -213,6 +160,23 @@ class MILPResourceOptimizer:
                 how='inner'
             )
         
+        # Filter to target engagements if specified
+        if self.target_engagements:
+            logger.info(f"Filtering to {len(self.target_engagements)} target engagement-phase combinations")
+            # Convert to set of tuples for faster lookups
+            target_set = set((str(eng_no), int(eng_phase)) for eng_no, eng_phase in self.target_engagements)
+            
+            # Filter engagements DataFrame
+            self.engagements = self.engagements[
+                self.engagements.apply(
+                    lambda row: (str(row['eng_no']), int(row['eng_phase'])) in target_set,
+                    axis=1
+                )
+            ]
+            
+            if self.engagements.empty:
+                logger.warning("No matching engagements found after filtering")
+        
         self.timesheets = data['timesheets']
         self.vacations = data['vacations']
         self.opt_params = data['optimization_parameters']
@@ -232,9 +196,11 @@ class MILPResourceOptimizer:
         
         # Ensure timesheet data has datetime type for work_date
         if 'work_date' in self.timesheets.columns:
-            self.timesheets['work_date'] = pd.to_datetime(self.timesheets['work_date'])
+            # Use .loc to avoid SettingWithCopyWarning
+            self.timesheets.loc[:, 'work_date'] = pd.to_datetime(self.timesheets['work_date'], errors='coerce')
         elif 'Work Date' in self.timesheets.columns:
-            self.timesheets['Work Date'] = pd.to_datetime(self.timesheets['Work Date'])
+            # Use .loc to avoid SettingWithCopyWarning
+            self.timesheets.loc[:, 'Work Date'] = pd.to_datetime(self.timesheets['Work Date'], errors='coerce')
         
         # Filter timesheet data by each week and collect the ratios
         weeks_data = []
@@ -265,12 +231,12 @@ class MILPResourceOptimizer:
                 week_data = self.timesheets[
                     (self.timesheets['work_date'] >= start_date) & 
                     (self.timesheets['work_date'] < end_date)
-                ]
+                ].copy()  # Create an explicit copy to avoid warnings
             elif 'Work Date' in self.timesheets.columns:
                 week_data = self.timesheets[
                     (self.timesheets['Work Date'] >= start_date) & 
                     (self.timesheets['Work Date'] < end_date)
-                ]
+                ].copy()  # Create an explicit copy to avoid warnings
             else:
                 week_data = pd.DataFrame()
             
@@ -295,14 +261,19 @@ class MILPResourceOptimizer:
         if all_ratios:
             combined_ratios = pd.concat(all_ratios, ignore_index=True)
             
-            # Calculate weighted average ratios
-            weighted_ratios = (
-                combined_ratios.groupby(['eng_no', 'eng_phase', 'staff_level', 'practice_id'])
-                .apply(lambda x: (x['ratio'] * x['weight']).sum() / x['weight'].sum())
-                .reset_index(name='ratio')
-            )
+            # Create a result list manually instead of using apply
+            result = []
+            for (eng_no, eng_phase, staff_level, practice_id), group in combined_ratios.groupby(['eng_no', 'eng_phase', 'staff_level', 'practice_id']):
+                weighted_avg = (group['ratio'] * group['weight']).sum() / group['weight'].sum()
+                result.append({
+                    'eng_no': eng_no,
+                    'eng_phase': eng_phase,
+                    'staff_level': staff_level,
+                    'practice_id': practice_id,
+                    'ratio': weighted_avg
+                })
             
-            self.actual_ratios = weighted_ratios
+            self.actual_ratios = pd.DataFrame(result)
             logger.info(f"Calculated weighted ratios across {len(all_ratios)} weeks of data")
         else:
             logger.warning("No data found in the past 3 weeks. Using default ratios.")
@@ -364,51 +335,23 @@ class MILPResourceOptimizer:
         """Calculate EVM metrics for active engagements"""
         logger.info("Calculating EVM metrics for active engagements")
         
-        # Use the compute_evm_metrics function from evm_metrics.py
         try:
-            # Get current date for calculations (target week start is appropriate)
-            current_date = self.target_week
+            # Use the actual reference date from timesheet data, not target week
+            # This ensures metrics are calculated based on available data
+            current_date = self.current_date
             
-            # Compute comprehensive EVM metrics for all projects
+            # Compute EVM metrics - no fallbacks, if this fails we exit
             self.evm_metrics = compute_evm_metrics(current_date=current_date)
             
             if self.evm_metrics.empty:
-                logger.warning("No EVM metrics calculated. Using default values.")
-                self.create_default_evm_metrics()
-            else:
-                logger.info(f"Calculated EVM metrics for {len(self.evm_metrics)} engagements")
+                logger.error("EVM metrics calculation returned empty dataset - cannot proceed")
+                return False
+                
+            logger.info(f"Successfully calculated EVM metrics for {len(self.evm_metrics)} engagements")
+            return True
         except Exception as e:
             logger.error(f"Error calculating EVM metrics: {str(e)}")
-            logger.warning("Using default EVM metrics")
-            self.create_default_evm_metrics()
-
-    def create_default_evm_metrics(self):
-        """Create default EVM metrics when calculation fails"""
-        logger.info("Creating default EVM metrics")
-        
-        # Create a dataframe with default values for each engagement
-        metrics = []
-        
-        # For each engagement in our data
-        for _, eng in self.engagements.iterrows():
-            eng_no = eng['eng_no']
-            eng_phase = eng['eng_phase']
-            
-            # Create key for lookups
-            project_key = f"{eng_no}_{eng_phase}"
-            
-            # Default values
-            metrics.append({
-                'project_key': project_key,
-                'eng_no': eng_no,
-                'eng_phase': eng_phase,
-                'spi': 1.0,  # Default SPI = 1.0 (on schedule)
-                'vec': 1.0,  # Default VEC = 1.0 (standard value extraction)
-                'burn': 0.5,  # Default Burn = 0.5 (halfway through budget)
-                'current_date': self.target_week
-            })
-        
-        self.evm_metrics = pd.DataFrame(metrics)
+            return False
 
     def calculate_adjusted_capacity(self):
         """Calculate adjusted capacity for each consultant based on vacations"""
@@ -418,18 +361,44 @@ class MILPResourceOptimizer:
         # Adjust for vacations
         if not self.vacations.empty:
             for _, vacation in self.vacations.iterrows():
-                # Simple calculation: reduce capacity proportionally to days off
+                # Get personnel_no and calculate days off from start_date and end_date
                 personnel_no = vacation['personnel_no']
-                days_off = vacation['days_off']
+                
+                # Calculate days_off from start_date and end_date
+                if 'start_date' in vacation and 'end_date' in vacation:
+                    start_date = pd.to_datetime(vacation['start_date'])
+                    end_date = pd.to_datetime(vacation['end_date'])
+                    # +1 because both start and end dates are inclusive
+                    days_off = (end_date - start_date).days + 1
+                    
+                    # Only count weekdays (assuming Monday-Friday work week)
+                    weekday_count = sum(1 for d in pd.date_range(start_date, end_date) if d.weekday() < 5)
+                    days_off = min(weekday_count, 5)  # Cap at 5 days for a single week
+                else:
+                    # Default to 0 if dates are missing
+                    days_off = 0
                 
                 # Find the employee
                 if personnel_no in self.employees['personnel_no'].values:
                     employee_idx = self.employees[self.employees['personnel_no'] == personnel_no].index[0]
                     standard_capacity = self.employees.loc[employee_idx, 'employment_basis']
                     
-                    # Reduce capacity proportionally (assuming 5-day work week)
-                    reduction = standard_capacity * (days_off / 5.0)
-                    self.employees.loc[employee_idx, 'adjusted_capacity'] = max(0, standard_capacity - reduction)
+                    # Calculate overlap with target week
+                    target_week_start = self.target_week
+                    target_week_end = target_week_start + timedelta(days=4)  # Friday
+                    
+                    # Check if vacation overlaps with target week
+                    if (start_date <= target_week_end and end_date >= target_week_start):
+                        # Calculate overlapping days
+                        overlap_start = max(start_date, target_week_start)
+                        overlap_end = min(end_date, target_week_end)
+                        
+                        # Count weekdays in the overlap
+                        weekdays_in_overlap = sum(1 for d in pd.date_range(overlap_start, overlap_end) if d.weekday() < 5)
+                        
+                        # Reduce capacity proportionally (assuming 5-day work week)
+                        reduction = standard_capacity * (weekdays_in_overlap / 5.0)
+                        self.employees.loc[employee_idx, 'adjusted_capacity'] = max(0, standard_capacity - reduction)
 
     def get_optimization_parameters(self):
         """Get optimization parameters from database or use defaults"""
@@ -449,6 +418,11 @@ class MILPResourceOptimizer:
         """Build the MILP optimization model using PuLP"""
         logger.info("Building optimization model")
         
+        # Verify that we have EVM metrics - if not, we can't build a valid model
+        if self.evm_metrics is None or self.evm_metrics.empty:
+            logger.error("Cannot build optimization model without valid EVM metrics")
+            return None, None
+            
         # Get optimization parameters
         params = self.get_optimization_parameters()
         alpha = params['alpha']
@@ -693,8 +667,10 @@ class MILPResourceOptimizer:
                 # External consultants only used if internal capacity is fully utilized
                 # Using a relaxed constraint with small tolerance
                 tolerance = 5  # Allow 5 hours of slack
+                
+                # Fix: Use simple linear constraint instead of max()
                 model += (
-                    external_hours <= max(0, internal_unused - tolerance),
+                    external_hours <= internal_unused - tolerance,
                     f"Internal_Priority_{en}_{ph}"
                 )
         
@@ -743,8 +719,288 @@ class MILPResourceOptimizer:
                     f"Min_Hours_For_Troubled_{en}_{ph}"
                 )
         
+        # If visualization is enabled, log more details about the model
+        if self.visualize_model:
+            logger.info(f"Building model with visualization for debugging")
+            logger.info(f"Engagements: {len(self.engagements)}")
+            logger.info(f"Employees: {len(self.employees)}")
+            logger.info(f"Ratio constraints: {len(self.actual_ratios)}")
+        
         return model, hours_vars
+    
+    def analyze_constraints(self, model):
+        """
+        Analyze constraints to find potential sources of infeasibility
+        
+        Args:
+            model: The PuLP LpProblem model to analyze
+            
+        Returns:
+            dict: Dictionary of potentially infeasible constraints and reasons
+        """
+        infeasible_constraints = {}
+        
+        # Check each constraint for potential infeasibility
+        for name, constraint in model.constraints.items():
+            # Extract constraint parts - use multiple approaches for better compatibility with different PuLP versions
+            try:
+                # Method 1: Try accessing through constraint's variables and coefficients
+                lhs_terms = {}
+                constant = 0
+                
+                # Get the left-hand side expression
+                if hasattr(constraint, 'expr'):
+                    expr = constraint.expr
+                    
+                    # Extract variables and coefficients from the expression
+                    if hasattr(expr, 'items'):
+                        for var, coef in expr.items():
+                            if hasattr(var, 'name'):
+                                lhs_terms[var.name] = coef
+                    
+                    # Get the constant term if available
+                    if hasattr(expr, 'constant'):
+                        constant = expr.constant
+                    
+                    # Get RHS (usually 0 since the constant is on the LHS)
+                    rhs = 0
+                
+                # Method 2: Try accessing through toDict (newer PuLP)
+                elif hasattr(constraint, 'toDict'):
+                    dict_result = constraint.toDict()
+                    if isinstance(dict_result, dict):
+                        lhs_terms = dict_result.get(0, {})
+                        rhs = dict_result.get(1, 0)
+                    elif isinstance(dict_result, tuple) and len(dict_result) == 2:
+                        lhs_terms, rhs = dict_result
+                
+                # Method 3: Use string representation parsing as last resort
+                else:
+                    logger.warning(f"Using fallback constraint parsing for {name}")
+                    constraint_str = str(constraint)
+                    # Simple parsing of PuLP constraint string (very brittle fallback)
+                    parts = constraint_str.split('=')
+                    # Skip constraints we can't parse this way
+                    lhs_terms = {}
+                    rhs = 0
+                
+                # Get constraint sense
+                sense = constraint.sense if hasattr(constraint, 'sense') else 0
+                
+                # Check for obvious issues
+                if "Level_Ratio" in name:
+                    # These are common sources of infeasibility
+                    infeasible_constraints[name] = {
+                        'reason': "Staff level ratio constraint may be infeasible",
+                        'suggestion': "Increase delta parameter to allow more flexibility in staff ratios"
+                    }
+                
+                # Check practice ratio constraints
+                if "Practice_Ratio" in name:
+                    # Another common source of infeasibility
+                    infeasible_constraints[name] = {
+                        'reason': "Practice ratio constraint may be infeasible",
+                        'suggestion': "Increase delta parameter or ensure sufficient staff from each practice"
+                    }
+                
+                # Check capacity constraints
+                if "Capacity_Constraint" in name:
+                    # This would indicate insufficient capacity
+                    employee_id = name.replace("Capacity_Constraint_", "")
+                    suggestion = "Increase capacity for this consultant or distribute work to others"
+                    
+                    infeasible_constraints[name] = {
+                        'reason': f"Consultant {employee_id} may have insufficient capacity",
+                        'suggestion': suggestion
+                    }
+                
+                # Check internal priority constraints
+                if "Internal_Priority" in name:
+                    # This could indicate conflict between internal priority and other constraints
+                    eng_info = name.replace("Internal_Priority_", "")
+                    infeasible_constraints[name] = {
+                        'reason': f"Internal priority constraint for {eng_info} conflicts with other requirements",
+                        'suggestion': "Relax internal priority constraint or increase internal capacity"
+                    }
+                    
+                # Check troubled project constraints
+                if "Min_Hours_For_Troubled" in name:
+                    # These might be infeasible if there's not enough capacity
+                    eng_info = name.replace("Min_Hours_For_Troubled_", "")
+                    infeasible_constraints[name] = {
+                        'reason': f"Minimum hours requirement for troubled project {eng_info} cannot be met",
+                        'suggestion': "Reduce minimum hours requirement or increase available capacity"
+                    }
+            except Exception as e:
+                logger.warning(f"Error analyzing constraint {name}: {str(e)}")
+                # Add a generic entry for this constraint
+                infeasible_constraints[name] = {
+                    'reason': f"Unknown - error analyzing constraint: {str(e)}",
+                    'suggestion': "Check model formulation and data"
+                }
+        
+        # If we have more than 5 potential issues, just keep the most likely ones
+        if len(infeasible_constraints) > 5:
+            # Sort by likelihood of being the actual issue
+            priority_types = ["Level_Ratio", "Practice_Ratio", "Capacity_Constraint", 
+                              "Min_Hours_For_Troubled", "Internal_Priority"]
+            
+            # Filter to the top 5 most likely issues
+            filtered_constraints = {}
+            count = 0
+            
+            for priority_type in priority_types:
+                for name, details in infeasible_constraints.items():
+                    if priority_type in name and count < 5:
+                        filtered_constraints[name] = details
+                        count += 1
+            
+            infeasible_constraints = filtered_constraints
+        
+        return infeasible_constraints
 
+    def export_model_visualization(self, model, vars_dict, output_path):
+        """
+        Export a detailed visualization of the model to help diagnose infeasibility
+        
+        Args:
+            model: The PuLP LpProblem model to visualize
+            vars_dict: Dictionary of decision variables
+            output_path: Path to save the visualization
+        """
+        output = io.StringIO()
+        
+        # Model overview
+        output.write("=== MILP MODEL VISUALIZATION ===\n\n")
+        output.write(f"Problem name: {model.name}\n")
+        output.write(f"Optimization direction: {model.sense}\n")
+        output.write(f"Number of variables: {len(model.variables())}\n")
+        output.write(f"Number of constraints: {len(model.constraints)}\n\n")
+        
+        # Variables summary
+        output.write("=== VARIABLES ===\n\n")
+        
+        # Group variables by type
+        hours_vars = [v for v in model.variables() if v.name.startswith("Hours_")]
+        switch_vars = [v for v in model.variables() if v.name.startswith("Switch_")]
+        other_vars = [v for v in model.variables() if not (v.name.startswith("Hours_") or v.name.startswith("Switch_"))]
+        
+        output.write(f"Hours variables: {len(hours_vars)}\n")
+        output.write(f"Switch variables: {len(switch_vars)}\n")
+        output.write(f"Other variables: {len(other_vars)}\n\n")
+        
+        # Sample of variables
+        output.write("Sample of Hours variables:\n")
+        for v in hours_vars[:5]:
+            output.write(f"  {v.name}: {v.lowBound} <= x <= {v.upBound}, Category={v.cat}\n")
+        
+        output.write("\nSample of Switch variables:\n")
+        for v in switch_vars[:5]:
+            output.write(f"  {v.name}: {v.lowBound} <= x <= {v.upBound}, Category={v.cat}\n")
+        
+        # Constraints
+        output.write("\n=== CONSTRAINTS ===\n\n")
+        
+        # Group constraints by type
+        capacity_constraints = [c for name, c in model.constraints.items() if "Capacity_Constraint" in name]
+        level_ratio_constraints = [c for name, c in model.constraints.items() if "Level_Ratio" in name]
+        practice_ratio_constraints = [c for name, c in model.constraints.items() if "Practice_Ratio" in name]
+        switch_constraints = [c for name, c in model.constraints.items() if "Switch" in name]
+        internal_priority_constraints = [c for name, c in model.constraints.items() if "Internal_Priority" in name]
+        troubled_project_constraints = [c for name, c in model.constraints.items() if "Min_Hours_For_Troubled" in name]
+        other_constraints = [c for name, c in model.constraints.items() 
+                             if not any(t in name for t in ["Capacity_Constraint", "Level_Ratio", "Practice_Ratio", 
+                                                            "Switch", "Internal_Priority", "Min_Hours_For_Troubled"])]
+        
+        output.write(f"Capacity constraints: {len(capacity_constraints)}\n")
+        output.write(f"Level ratio constraints: {len(level_ratio_constraints)}\n")
+        output.write(f"Practice ratio constraints: {len(practice_ratio_constraints)}\n")
+        output.write(f"Switch logic constraints: {len(switch_constraints)}\n")
+        output.write(f"Internal priority constraints: {len(internal_priority_constraints)}\n")
+        output.write(f"Troubled project constraints: {len(troubled_project_constraints)}\n")
+        output.write(f"Other constraints: {len(other_constraints)}\n\n")
+        
+        # Sample of each constraint type
+        constraint_types = [
+            ("Capacity", capacity_constraints),
+            ("Level Ratio", level_ratio_constraints),
+            ("Practice Ratio", practice_ratio_constraints),
+            ("Switch Logic", switch_constraints),
+            ("Internal Priority", internal_priority_constraints),
+            ("Troubled Project", troubled_project_constraints),
+            ("Other", other_constraints)
+        ]
+        
+        for constraint_type, constraints in constraint_types:
+            if constraints:
+                output.write(f"Sample of {constraint_type} constraints:\n")
+                for i, constraint in enumerate(constraints[:3]):
+                    constraint_name = list(model.constraints.keys())[list(model.constraints.values()).index(constraint)]
+                    constraint_text = str(constraint)
+                    # Format the constraint text for readability
+                    formatted_text = textwrap.fill(constraint_text, width=80, subsequent_indent='    ')
+                    output.write(f"  {constraint_name}:\n    {formatted_text}\n")
+                output.write("\n")
+        
+        # Data summary
+        output.write("=== DATA SUMMARY ===\n\n")
+        
+        # Engagements
+        if hasattr(self, 'engagements') and self.engagements is not None:
+            output.write(f"Engagements: {len(self.engagements)}\n")
+            if not self.engagements.empty:
+                for idx, row in self.engagements.head(5).iterrows():
+                    output.write(f"  {row['eng_no']} - Phase {row['eng_phase']}\n")
+        
+        # Employees
+        if hasattr(self, 'employees') and self.employees is not None:
+            output.write(f"\nEmployees: {len(self.employees)}\n")
+            if not self.employees.empty:
+                staff_level_counts = self.employees.groupby('staff_level').size()
+                for level, count in staff_level_counts.items():
+                    output.write(f"  {level}: {count}\n")
+        
+        # Ratios
+        if hasattr(self, 'actual_ratios') and self.actual_ratios is not None:
+            output.write(f"\nStaffing Ratios: {len(self.actual_ratios)}\n")
+            if not self.actual_ratios.empty:
+                # Sample of staff level ratios
+                staff_ratios = self.actual_ratios[pd.notna(self.actual_ratios['staff_level'])]
+                if not staff_ratios.empty:
+                    output.write("  Staff Level Ratios (sample):\n")
+                    for idx, row in staff_ratios.head(3).iterrows():
+                        output.write(f"    Eng {row['eng_no']}, Phase {row['eng_phase']}, " 
+                                    f"Level {row['staff_level']}: {row['ratio']:.2f}\n")
+                
+                # Sample of practice ratios
+                practice_ratios = self.actual_ratios[pd.notna(self.actual_ratios['practice_id'])]
+                if not practice_ratios.empty:
+                    output.write("  Practice Ratios (sample):\n")
+                    for idx, row in practice_ratios.head(3).iterrows():
+                        output.write(f"    Eng {row['eng_no']}, Phase {row['eng_phase']}, " 
+                                    f"Practice {row['practice_id']}: {row['ratio']:.2f}\n")
+        
+        # EVM metrics
+        if hasattr(self, 'evm_metrics') and self.evm_metrics is not None:
+            output.write(f"\nEVM Metrics: {len(self.evm_metrics)}\n")
+            if not self.evm_metrics.empty:
+                for idx, row in self.evm_metrics.head(5).iterrows():
+                    output.write(f"  Eng {row['eng_no']}, Phase {row['eng_phase']}: " 
+                                f"SPI={row['spi']:.2f}, VEC={row['vec']:.2f}\n")
+        
+        # Optimization parameters
+        if hasattr(self, 'get_optimization_parameters'):
+            params = self.get_optimization_parameters()
+            output.write(f"\nOptimization Parameters:\n")
+            for key, value in params.items():
+                output.write(f"  {key}: {value}\n")
+        
+        # Write to file
+        with open(output_path, 'w') as f:
+            f.write(output.getvalue())
+        
+        logger.info(f"Model visualization exported to {output_path}")
+    
     def solve_model(self):
         """Solve the optimization model"""
         logger.info("Solving optimization model...")
@@ -752,8 +1008,29 @@ class MILPResourceOptimizer:
         # Build the model
         model, hours_vars = self.build_optimization_model()
         
+        # Check if model was successfully built
+        if model is None:
+            logger.error("Failed to build optimization model")
+            return self.get_previous_week_assignments()
+        
+        # If visualization is enabled, export model details before solving
+        if self.visualize_model:
+            # Create logs directory if it doesn't exist
+            log_dir = Path(os.path.dirname(os.path.abspath(__file__))).parent.parent / "logs"
+            os.makedirs(log_dir, exist_ok=True)
+            
+            # Export model visualization
+            visualization_path = log_dir / f"model_pre_solve_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            self.export_model_visualization(model, hours_vars, visualization_path)
+            logger.info(f"Pre-solve model visualization exported to {visualization_path}")
+            
+            # Also add a detailed LP file that can be imported into other solvers
+            lp_path = log_dir / f"model_{datetime.now().strftime('%Y%m%d_%H%M%S')}.lp"
+            model.writeLP(str(lp_path))
+            logger.info(f"Model LP file exported to {lp_path}")
+        
         # Solve
-        solver = pulp.PULP_CBC_CMD(msg=False, timeLimit=600)  # 10-minute time limit
+        solver = pulp.PULP_CBC_CMD(msg=self.visualize_model, timeLimit=600)  # Show messages if visualizing
         model.solve(solver)
         
         # Check solution status
@@ -762,51 +1039,65 @@ class MILPResourceOptimizer:
             return self.process_results(hours_vars, model)
         else:
             logger.warning(f"No optimal solution found. Status: {pulp.LpStatus[model.status]}")
-            return None
-
-    def process_results(self, hours_vars, model):
-        """Process optimization results into a DataFrame"""
-        logger.info("Processing optimization results")
-        
-        results = []
-        
-        # Extract values from solution
-        for (c, en, ph), var in hours_vars.items():
-            hours = var.value()
             
-            # Only include non-zero assignments
-            if hours is not None and hours > 0:
-                hours = round(hours, 2)  # Round to 2 decimal places
+            # If visualizing, provide more detail about the infeasibility
+            if self.visualize_model:
+                logger.info("Analyzing constraint conflicts...")
+                # Try to identify conflicting constraints - an advanced analysis would use IIS (Irreducible Infeasible Subsystem)
+                # but that requires commercial solvers. Instead we'll use a simpler approach to suggest likely issues
+                infeasible_constraints = self.analyze_constraints(model)
                 
-                results.append({
-                    'personnel_no': c,
-                    'eng_no': en,
-                    'eng_phase': ph,
-                    'week_start_date': self.target_week,
-                    'planned_hours': hours
-                })
-        
-        # Create DataFrame
-        results_df = pd.DataFrame(results)
-        
-        # Calculate some metrics for logging
-        if not results_df.empty:
-            total_hours = results_df['planned_hours'].sum()
-            num_consultants = results_df['personnel_no'].nunique()
-            num_engagements = results_df[['eng_no', 'eng_phase']].drop_duplicates().shape[0]
+                if infeasible_constraints:
+                    logger.info("Potential sources of infeasibility:")
+                    for name, details in infeasible_constraints.items():
+                        logger.info(f"  - {name}: {details['reason']}")
+                        logger.info(f"    Suggestion: {details['suggestion']}")
+                else:
+                    logger.info("No obvious sources of infeasibility detected")
             
-            logger.info(f"Optimization assigned {total_hours} hours to {num_consultants} consultants across {num_engagements} engagements")
-        else:
-            logger.warning("No assignments in optimization results")
+            # Fall back to last week's assignments if optimization is infeasible
+            logger.info("Falling back to previous week's staffing allocation")
+            return self.get_previous_week_assignments()
+
+    def get_previous_week_assignments(self):
+        """Get previous week's staffing assignments to use as fallback"""
+        logger.info("Retrieving previous week's staffing allocation as fallback")
         
-        return results_df
+        if self.previous_assignments is None or self.previous_assignments.empty:
+            logger.warning("No previous week assignments available for fallback")
+            return None
+            
+        # Find the most recent week's data
+        self.previous_assignments['week_start_date'] = pd.to_datetime(self.previous_assignments['week_start_date'])
+        latest_week = self.previous_assignments['week_start_date'].max()
+        
+        # Filter to just the most recent week
+        latest_assignments = self.previous_assignments[
+            self.previous_assignments['week_start_date'] == latest_week
+        ].copy()
+        
+        if latest_assignments.empty:
+            logger.warning("Latest week assignments are empty")
+            return None
+            
+        # Update week_start_date to target week
+        latest_assignments['week_start_date'] = self.target_week
+        
+        # Set flag indicating we're using fallback data
+        self.using_fallback = True
+        
+        logger.info(f"Using {len(latest_assignments)} assignments from week of {latest_week} as fallback")
+        return latest_assignments
 
     def save_results(self, results_df):
-        """Save optimization results to the database"""
+        """Save optimization results to the database and always to CSV as backup"""
         if results_df is None or results_df.empty:
             logger.warning("No results to save")
             return False
         
+        saved_to_db = False
+        
+        # First try to save to database
         try:
             # Use a custom query to delete existing predictions and insert new ones
             # First, delete existing predictions
@@ -843,25 +1134,69 @@ class MILPResourceOptimizer:
                 conn.close()
                 
                 logger.info(f"Successfully saved {len(results_df)} staffing predictions to database")
-                return True
+                saved_to_db = True
             else:
                 logger.error("No database connection available")
-                return False
-            
         except Exception as e:
             logger.error(f"Error saving results to database: {str(e)}")
-            return False
+        
+        # Always save to CSV regardless of DB success
+        try:
+            # Save to CSV in the project's csv-dump/transformed directory
+            import os
+            from pathlib import Path
+            
+            # Get project root
+            current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+            project_root = current_dir.parent.parent
+            
+            # Create transformed directory if it doesn't exist
+            csv_dir = project_root / "csv-dump" / "transformed"
+            os.makedirs(csv_dir, exist_ok=True)
+            
+            # Save without timestamp to make consistent
+            csv_path = csv_dir / "staffing_prediction.csv"
+            
+            # Ensure week_start_date is a string for CSV
+            results_copy = results_df.copy()
+            if not isinstance(results_copy['week_start_date'].iloc[0], str):
+                results_copy['week_start_date'] = results_copy['week_start_date'].astype(str)
+            
+            # Save to CSV
+            results_copy.to_csv(csv_path, index=False)
+            logger.info(f"Successfully saved {len(results_df)} staffing predictions to CSV: {csv_path}")
+            
+            # Always return True if we saved to CSV, even if DB failed
+            return True
+        except Exception as e:
+            logger.error(f"Error saving results to CSV: {str(e)}")
+            # Only return DB save status if CSV save failed
+            return saved_to_db
 
     def run(self):
         """Run the complete optimization process"""
+        # Initialize the fallback flag to False
+        self.using_fallback = False
+        
         try:
             # 1. Load all necessary data
             self.load_data()
             
-            # 2. Build and solve the optimization model
+            # 2. Check if we have valid EVM metrics - exit early if not
+            if self.evm_metrics is None or self.evm_metrics.empty:
+                logger.error("Cannot proceed with optimization without valid EVM metrics")
+                # Try fallback to previous week's assignments
+                fallback_results = self.get_previous_week_assignments()
+                if fallback_results is not None:
+                    logger.info("Using previous week's assignments due to missing EVM metrics")
+                    self.save_results(fallback_results)
+                    return True, fallback_results
+                return False, None
+                
+            # 3. Build and solve the optimization model
             results = self.solve_model()
             
-            # 3. Save results to database
+            # 4. Save results to database and CSV if not None
             if results is not None:
                 success = self.save_results(results)
                 return success, results
@@ -870,6 +1205,15 @@ class MILPResourceOptimizer:
             
         except Exception as e:
             logger.error(f"Error in optimization process: {str(e)}")
+            # Try fallback in case of any exception
+            try:
+                fallback_results = self.get_previous_week_assignments()
+                if fallback_results is not None:
+                    logger.info("Using previous week's assignments due to exception")
+                    self.save_results(fallback_results)
+                    return True, fallback_results
+            except Exception as fallback_error:
+                logger.error(f"Error in fallback process: {str(fallback_error)}")
             return False, None
 
 

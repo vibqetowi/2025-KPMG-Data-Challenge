@@ -1,9 +1,23 @@
 import pandas as pd
 from datetime import datetime, timedelta
 import sys
+import os
+from pathlib import Path
+
+# Add parent directories to path
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+project_root = current_dir.parent.parent.parent
+sys.path.append(str(project_root))
+
+# Import shared utilities using project-root relative imports
+from scripts.shared.metric_utils import calculate_staffing_ratios
+from scripts.advanced_data_analysis.utils.evm_metrics import (
+    calculate_spi, calculate_vec, calculate_burn, 
+    calculate_schedule_elapsed, calculate_planned_value, calculate_earned_value
+)
 
 def analyze_project(eng_no, phase_code, df_budgets, df_time, df_staffing, current_week, rate_mapping, efficiency_buffer):
-    """Analyze specific project's pacing and resource requirements"""
+    """Analyze specific project's pacing and resource requirements using shared utility functions"""
     # Convert inputs to correct types
     phase_code = int(phase_code)
     eng_no = str(eng_no)  # Ensure eng_no is string
@@ -58,6 +72,24 @@ def analyze_project(eng_no, phase_code, df_budgets, df_time, df_staffing, curren
     total_billed = timesheet_data['EV'].sum()
     weekly_target = (project['BAC'] - total_billed) / weeks_remaining
     
+    # Calculate SPI and VEC using shared functions
+    # First prepare necessary input data
+    current_date = pd.Timestamp.now()
+    start_date_ts = pd.Timestamp(start_date)
+    planned_duration = (estimated_end_date - start_date_ts).days
+    
+    # Calculate schedule elapsed using shared function
+    schedule_elapsed = calculate_schedule_elapsed(start_date_ts, planned_duration, current_date)
+    
+    # Calculate planned value using shared function
+    planned_value = calculate_planned_value(project['BAC'], schedule_elapsed)
+    
+    # Calculate earned value using simplified approach 
+    earned_value = calculate_earned_value(timesheet_data, project['BAC'])
+    
+    # Calculate SPI using shared function
+    spi = calculate_spi(earned_value, planned_value)
+    
     return {
         'project_name': project['Eng. Description'],
         'phase_name': project['Phase Description'],
@@ -68,7 +100,10 @@ def analyze_project(eng_no, phase_code, df_budgets, df_time, df_staffing, curren
         'this_week_billing': this_week_billing,
         'weekly_target': weekly_target,
         'weeks_remaining': weeks_remaining,
-        'total_billed': total_billed
+        'total_billed': total_billed,
+        'spi': spi,  # Added SPI from shared function
+        'planned_value': planned_value,  # Added PV
+        'earned_value': earned_value  # Added EV
     }
 
 def calculate_bench_rates(df_staffing, current_week, weekly_commitment):
@@ -100,6 +135,24 @@ def calculate_external_needs(bench_rates):
             })])
     
     return external_needs
+
+def get_fallback_allocation(df_staffing, current_week, previous_week):
+    """Get fallback allocation from previous week if optimization fails"""
+    # Find the most recent allocation before the current week
+    df_staffing['week_date'] = pd.to_datetime(df_staffing.columns[df_staffing.columns.get_loc('Staff Level')+1:], errors='coerce')
+    
+    # Filter to the previous week's data
+    previous_allocation = df_staffing[df_staffing['week_date'] == previous_week].copy()
+    
+    if previous_allocation.empty:
+        print(f"\nNo allocation data found for previous week: {previous_week}")
+        return None
+        
+    # Update the week to current week (maintaining same allocation)
+    previous_allocation['week_date'] = current_week
+    
+    print(f"\nUsing fallback allocation from {previous_week} due to optimization failure")
+    return previous_allocation
 
 # -------------------------------
 # 1. Load & Clean Budgets.csv
@@ -271,6 +324,9 @@ if len(sys.argv) > 2:  # If project details provided
         print(f"Total Billed to Date: ${project_analysis['total_billed']:,.2f}")
         print(f"This Week's Billing: ${project_analysis['this_week_billing']:,.2f}")
         print(f"Weekly Target to Meet Deadline: ${project_analysis['weekly_target']:,.2f}")
+        print(f"SPI: {project_analysis['spi']:.2f}")
+        print(f"Planned Value: ${project_analysis['planned_value']:,.2f}")
+        print(f"Earned Value: ${project_analysis['earned_value']:,.2f}")
 
 # Calculate and display bench rates
 bench_rates = calculate_bench_rates(df_staffing, current_week, weekly_commitment)

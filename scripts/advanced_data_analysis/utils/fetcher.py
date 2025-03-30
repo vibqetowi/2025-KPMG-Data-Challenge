@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 import pyodbc
 import time
-import signal
 import threading
 import logging
 import sys
@@ -22,14 +21,13 @@ logger = logging.getLogger("fetcher")
 current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 # Calculate project root using relative path (3 levels up from utils)
 project_root = current_dir.parent.parent.parent
+sys.path.append(str(project_root))
 
-# Add the shared directory to the Python path
-shared_dir = project_root / "scripts" / "shared"
-sys.path.append(str(shared_dir))
-
-# Import from shared modules
-from config import CSV_DUMP_DIR, TRANSFORMED_DIR, RAW_FILE_MAP, COLUMN_MAPPINGS
-from config import test_db_connection, create_sqlalchemy_engine  # Updated to use config instead of db_utils
+# Import from shared modules using project-root relative imports
+from scripts.shared.config import (
+    CSV_DUMP_DIR, TRANSFORMED_DIR, RAW_FILE_MAP, COLUMN_MAPPINGS,
+    test_db_connection, create_sqlalchemy_engine, DB_CONFIG
+)
 
 # Load environment variables from .env file in root directory
 load_dotenv(project_root / '.env')
@@ -45,7 +43,7 @@ class DataFetcher:
     Utility class to fetch data from either a database or CSV files.
     """
 
-    def __init__(self, source="db", csv_base_path=None, timeout=5):
+    def __init__(self, source="db", csv_base_path=None, timeout=5, db_connection_string=None, force_csv=True):
         """
         Initialize the DataFetcher with a specified data source.
 
@@ -53,100 +51,71 @@ class DataFetcher:
             source (str): 'db' to fetch from database or 'csv' to fetch from CSV files
             csv_base_path (str): Base path for CSV files if source is 'csv'
             timeout (int): Timeout in seconds for database connection attempt
+            db_connection_string (str): Optional custom connection string to override config
+            force_csv (bool): If True, always use CSV files regardless of source parameter
         """
-        self.source = source
+        if force_csv:
+            self.source = "csv"
+        else:
+            self.source = source
+            
         self.timeout = timeout
         self.db_connection_tested = False
 
-        # Default CSV path relative to project root if not provided
+        # Set CSV base path
         if csv_base_path is None:
-            self.csv_base_path = project_root / "csv-dump"
+            self.csv_base_path = CSV_DUMP_DIR
         else:
             self.csv_base_path = Path(csv_base_path)
 
         logger.info(f"CSV base path set to: {self.csv_base_path}")
 
-        # Database connection details
-        if self.source == "db":
-            # Get database connection details from environment variables
-            self.server = os.getenv("SQL_SERVER")
-            self.database = os.getenv("SQL_DATABASE", "KPMG_Data_Challenge")
-            self.username = os.getenv("SQL_USERNAME")
-            self.password = os.getenv("SQL_PASSWORD")
-            self.driver = os.getenv("SQL_DRIVER", "{ODBC Driver 17 for SQL Server}")
-
-            # Check if all required environment variables are set
-            if not all([self.server, self.database, self.username, self.password, self.driver]):
-                logger.error("Database connection details missing in .env file")
-                logger.info("Falling back to CSV files")
-                self.source = "csv"
+        # Only initialize database connection if not forcing CSV mode
+        if self.source == "db" and not force_csv:
+            if db_connection_string:
+                self.conn_str = db_connection_string
+                logger.info("Using provided database connection string")
             else:
-                # Create connection string (same format as in pipeline.py)
-                self.conn_str = f"DRIVER={self.driver};SERVER={self.server};DATABASE={self.database};UID={self.username};PWD={self.password}"
-                
-                # Create SQLAlchemy engine
-                try:
-                    self.engine = create_engine(f"mssql+pyodbc:///?odbc_connect={self.conn_str}")
-                    logger.info("Database connection initialized. Will test actual connection when fetching data.")
-                except Exception as e:
-                    logger.error(f"Error initializing database connection: {e}")
+                # Use connection string from config
+                self.conn_str = DB_CONFIG.get("connection_string")
+                if not self.conn_str:
+                    logger.error("No connection string available in config")
                     logger.info("Falling back to CSV files")
                     self.source = "csv"
+                    return
+                
+                # Get other DB config for SQLAlchemy
+                self.server = DB_CONFIG.get("server")
+                self.database = DB_CONFIG.get("database")
+                self.username = DB_CONFIG.get("username")
+                self.password = DB_CONFIG.get("password")
+                self.driver = DB_CONFIG.get("driver")
+            
+            # Create SQLAlchemy engine
+            try:
+                self.engine = create_sqlalchemy_engine()
+                if self.engine:
+                    logger.info("Database connection initialized. Will test actual connection when fetching data.")
+                else:
+                    raise Exception("Failed to create SQLAlchemy engine")
+            except Exception as e:
+                logger.error(f"Error initializing database connection: {e}")
+                logger.info("Falling back to CSV files")
+                self.source = "csv"
 
     def _test_db_connection(self):
-        """
-        Test database connection with timeout.
-
-        Returns:
-            bool: True if connection successful, False otherwise
-        """
+        """Use shared test_db_connection function for consistency"""
         if not self.source == "db":
             return False
 
         if self.db_connection_tested:
             return True
 
-        logger.info(f"Testing database connection with {self.timeout}s timeout...")
-
-        # Define a function to test the connection
-        def test_connection():
-            try:
-                # Use pyodbc directly as in pipeline.py
-                conn = pyodbc.connect(self.conn_str, timeout=self.timeout)
-                cursor = conn.cursor()
-                cursor.execute("SELECT 1")
-                cursor.close()
-                conn.close()
-                return True
-            except Exception as e:
-                logger.error(f"Database connection test failed: {e}")
-                return False
-
-        # Use threading with a timeout
-        connection_thread = threading.Thread(
-            target=lambda: setattr(self, "_connection_result", test_connection())
-        )
-        connection_thread.daemon = True
-
-        start_time = time.time()
-        connection_thread.start()
-        connection_thread.join(timeout=self.timeout)
-
-        # Check if the thread completed within the timeout
-        if connection_thread.is_alive():
-            logger.error(f"Database connection timed out after {self.timeout} seconds")
-            self.source = "csv"
-            return False
-
-        elapsed = time.time() - start_time
-
-        # Get the result from the thread
-        if getattr(self, "_connection_result", False):
-            logger.info(f"Database connection successful in {elapsed:.2f} seconds")
+        result = test_db_connection(self.timeout)
+        if result:
             self.db_connection_tested = True
             return True
         else:
-            logger.error("Database connection failed, falling back to CSV")
             self.source = "csv"
             return False
 
@@ -288,19 +257,20 @@ class DataFetcher:
                         "phases": "KPMG Case Data_Budget.csv",
                         "budget": "KPMG Case Data_Budget.csv",
                         "staffing": "KPMG Case Data_Staffing___2024.csv",
+                        "staffing_2025": "KPMG Case Data_Staffing___2025.csv",
                         "practices": None,  # Might be internal only
                         "dictionary": "KPMG Case Data_Dictionnaire___Dictionary_.csv",
                         "vacations": None,  # Generated internally, no raw file
                         "charge_out_rates": None,  # Generated internally from timesheets
-                        "optimization_parameters": None,  # Generated internally, no raw file
+                        "optimization_parameters": None  # Generated internally, no raw file
                     }
-
+                    
                     if table_name in raw_file_map and raw_file_map[table_name]:
                         csv_path = self.csv_base_path / raw_file_map[table_name]
                     else:
                         raise FileNotFoundError(f"No CSV file mapping for {table_name}")
 
-                # Check if file exists
+                # Check if file exists and try to read it
                 if not os.path.exists(csv_path):
                     logger.error(f"CSV file not found: {csv_path}")
                     return pd.DataFrame()
@@ -311,11 +281,11 @@ class DataFetcher:
                         df = pd.read_csv(csv_path, encoding=encoding)
                         logger.info(f"Successfully loaded {len(df)} records from {table_name} CSV using {encoding} encoding.")
 
-                        # For raw files, we may need to select/transform columns to match table schema
+                        # Transform raw files to match table schema if needed
                         if "transformed" not in str(csv_path):
                             df = self._transform_raw_csv_to_table(df, table_name)
 
-                        # Apply filters in memory if using CSV
+                        # Apply filters in memory
                         if filters and 'where_clause' not in filters:
                             for column, value in filters.items():
                                 if isinstance(value, (list, tuple)):
@@ -324,18 +294,19 @@ class DataFetcher:
                                     df = df[df[column].isna()]
                                 else:
                                     df = df[df[column] == value]
-                        
-                        break
+
+                        return df
+
                     except Exception as e:
                         if encoding == "cp1252":  # Last encoding to try
                             logger.error(f"Error loading {table_name} with encoding {encoding}: {e}")
                         continue
 
-                return df
+                return pd.DataFrame()
 
             except Exception as e:
                 logger.error(f"Error loading {table_name} CSV data: {e}")
-                return pd.DataFrame()  # Return empty DataFrame if all methods fail
+                return pd.DataFrame()
 
     def execute_query(self, query, params=None):
         """
@@ -424,7 +395,6 @@ class DataFetcher:
                 )
                 df = df.dropna(subset=["client_no", "client_name"])
 
-        # Add more transformations for other tables as needed
         elif table_name == 'phases':
            column_mapping = {
            "Eng. No.": "eng_no",
@@ -432,41 +402,7 @@ class DataFetcher:
            "Budget": "budget"
            }
            df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
-           
-        elif table_name == 'staffing':
-           column_mapping = {
-           "Eng. No.": "eng_no",
-           "Eng. Phase": "eng_phase",
-           "Personnel No.": "personnel_no"
-           }
-           df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
-           
-        elif table_name == "budget":
-            if all(col in df.columns for col in ["Code projet", "Code phase", "Budget"]):
-                df = df[["Code projet", "Code phase", "Budget"]].dropna()
-                df = df.rename(columns={
-                    "Code projet": "eng_no",
-                    "Code phase": "eng_phase",
-                    "Budget": "budget"
-                })
 
-                # Clean up numeric budget values if needed
-                df["budget"] = (
-                    df["budget"]
-                    .astype(str)
-                    .str.replace(r"[^\d]", "", regex=True)  # Remove commas, spaces
-                    .astype(float)
-                )
-
-        elif table_name == 'phases':
-            column_mapping = {
-                "Code projet": "eng_no",
-                "Code phase": "eng_phase",
-                "Phase Projet": "phase_description",
-                "Budget": "budget"
-            }
-            df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
-           
         elif table_name == 'staffing':
             column_mapping = {
                 "Eng. No.": "eng_no",
@@ -481,7 +417,6 @@ class DataFetcher:
                     'Eng. No.', 'Eng. Description', 'Eng. Phase', 'Phase Description',
                     'Client No.', 'Client Name', 'Personnel No.', 'Employee Name', 'Staff Level'
                 ]]
-                
                 # Reshape to long format with each row containing a week date
                 if date_columns:
                     long_df = []
@@ -505,7 +440,6 @@ class DataFetcher:
                                     'week_start_date': week_date,
                                     'planned_hours': float(hours)
                                 })
-                    
                     if long_df:
                         df = pd.DataFrame(long_df)
            
@@ -515,7 +449,7 @@ class DataFetcher:
                     "Clé": "key",
                     "Description": "description"
                 })
-            
+
         elif table_name == "engagements":
             column_mapping = {
                 "Code projet": "eng_no",
@@ -536,7 +470,6 @@ class DataFetcher:
                     "Code phase": "eng_phase",
                     "Budget": "budget"
                 })
-
                 # Clean up numeric budget values if needed
                 df["budget"] = (
                     df["budget"]
@@ -584,7 +517,7 @@ class DataFetcher:
             
             if where_clauses:
                 where_clause = " WHERE " + " AND ".join(where_clauses)
-        
+
         if self.source == "db":
             try:
                 # SQL query to get the required data from timesheets and employees tables
@@ -604,7 +537,6 @@ class DataFetcher:
                     employees e ON t.personnel_no = e.personnel_no
                 {where_clause}
                 """
-
                 # Read data from database into pandas DataFrame
                 conn = pyodbc.connect(self.conn_str)
                 if params:
@@ -663,7 +595,7 @@ class DataFetcher:
         """
         where_clause = ""
         params = []
-        
+
         if filters and self.source == "db":
             where_clauses = []
             for column, value in filters.items():
@@ -679,7 +611,7 @@ class DataFetcher:
             
             if where_clauses:
                 where_clause = " WHERE " + " AND ".join(where_clauses)
-        
+
         if self.source == "db":
             try:
                 # SQL query to get the required data from database
@@ -698,7 +630,6 @@ class DataFetcher:
                     timesheets t
                 {where_clause}
                 """
-
                 # Read data from database into pandas DataFrame
                 conn = pyodbc.connect(self.conn_str)
                 if params:
@@ -749,7 +680,7 @@ class DataFetcher:
         """
         where_clause = ""
         params = []
-        
+
         if filters and self.source == "db":
             where_clauses = []
             for column, value in filters.items():
@@ -765,7 +696,7 @@ class DataFetcher:
             
             if where_clauses:
                 where_clause = " WHERE " + " AND ".join(where_clauses)
-        
+
         if self.source == "db":
             try:
                 # SQL query to get the required data
@@ -778,7 +709,6 @@ class DataFetcher:
                     timesheets
                 {where_clause}
                 """
-
                 # Read data from database into pandas DataFrame
                 conn = pyodbc.connect(self.conn_str)
                 if params:
@@ -804,17 +734,15 @@ class DataFetcher:
                 if not os.path.exists(csv_path):
                     csv_path = self.csv_base_path / "KPMG Case Data_TIME.csv"
                     df = pd.read_csv(csv_path, encoding="latin-1")
-                    # Rename columns to match the expected format
-                    df = df.rename(
-                        columns={
-                            "Personnel No.": "personnel_no",
-                            "Work Date": "work_date",
-                            "Time Entry Date": "time_entry_date",
-                        }
-                    )
-                else:
-                    df = pd.read_csv(csv_path)
 
+                # Rename columns to match the expected format
+                df = df.rename(
+                    columns={
+                        "Personnel No.": "personnel_no",
+                        "Work Date": "work_date",
+                        "Time Entry Date": "time_entry_date",
+                    }
+                )
                 print(f"Successfully loaded {len(df)} records from CSV file.")
                 return df
 

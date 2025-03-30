@@ -8,9 +8,31 @@ SPI (Schedule Performance Index), and other related metrics.
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import logging
+import sys
+import os
+from pathlib import Path
 
-# Import DataFetcher for retrieving data
-from utils.fetcher import DataFetcher
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("evm_metrics")
+
+# Add proper paths to system path
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+project_root = current_dir.parent.parent.parent
+sys.path.append(str(project_root))
+
+# Import from shared modules using project-root relative imports
+from scripts.shared.metric_utils import get_week_start_date, get_latest_work_date, calculate_staffing_ratios
+from scripts.shared.config import OPT_PARAMS
+
+# Import fetcher with proper exception handling - using relative import within package
+try:
+    from scripts.advanced_data_analysis.utils.fetcher import DataFetcher
+except ImportError as e:
+    logger.warning(f"Couldn't import DataFetcher: {e}")
+    logger.warning("Some functions requiring database access may not work properly")
+    DataFetcher = None
 
 def calculate_rate_efficiency_factor(actual_chargeout, standard_chargeout):
     """
@@ -58,13 +80,20 @@ def calculate_vec(transactions_df, bac, employees_df=None):
     
     VEC_ph = (1/BAC_ph) × ∑[AC_i × d_i × ea_j × eo_j]
     
+    Where:
+    * BAC_ph: Budget At Completion for phase ph
+    * AC_i: Actual Billed Amount (or Cost equivalent) for transaction i
+    * d_i: Rate Efficiency Factor for transaction i (actual chargeout / standard chargeout)
+    * ea_j: External Adjustment Factor for consultant j (1.0 for internal, 0.9 for external)
+    * eo_j: Onboarding Adjustment Factor for consultant j (1.0 for experienced, 0.8 for new)
+    
     Parameters:
         transactions_df (pd.DataFrame): DataFrame containing timesheet data with columns:
                                         'personnel_no', 'charge_out_rate', 'std_price',
                                         'adm_surcharge'
         bac (float): Budget at Completion for the phase/engagement (from phases.budget)
         employees_df (pd.DataFrame, optional): DataFrame with employee information including
-                                              'personnel_no', 'is_external'
+                                              'personnel_no', 'is_external', 'is_new'
                                                
     Returns:
         float: Value Extraction Coefficient (VEC)
@@ -75,9 +104,13 @@ def calculate_vec(transactions_df, bac, employees_df=None):
     # If employees_df not provided, fetch it or create default
     if employees_df is None:
         try:
-            fetcher = DataFetcher()
-            employees_df = fetcher.fetch_data(['employees'])['employees']
-        except:
+            if DataFetcher is not None:
+                fetcher = DataFetcher()
+                employees_df = fetcher.fetch_data(['employees'])['employees']
+            else:
+                raise ImportError("DataFetcher not available")
+        except Exception as e:
+            logger.warning(f"Could not fetch employee data: {e}")
             # Create default if fetcher fails
             employees_df = pd.DataFrame({
                 'personnel_no': transactions_df['personnel_no'].unique(),
@@ -87,16 +120,20 @@ def calculate_vec(transactions_df, bac, employees_df=None):
     
     # Get standard charge-out rates if available
     try:
-        fetcher = DataFetcher()
-        charge_rates_df = fetcher.fetch_data(['charge_out_rates'])['charge_out_rates']
-        # Merge to get standard rates for each personnel and engagement
-        transactions_df = pd.merge(
-            transactions_df,
-            charge_rates_df,
-            on=['personnel_no', 'eng_no'],
-            how='left'
-        )
-    except:
+        if DataFetcher is not None:
+            fetcher = DataFetcher()
+            charge_rates_df = fetcher.fetch_data(['charge_out_rates'])['charge_out_rates']
+            # Merge to get standard rates for each personnel and engagement
+            transactions_df = pd.merge(
+                transactions_df,
+                charge_rates_df,
+                on=['personnel_no', 'eng_no'],
+                how='left'
+            )
+        else:
+            raise ImportError("DataFetcher not available")
+    except Exception as e:
+        logger.warning(f"Could not fetch standard charge-out rates: {e}")
         # If can't get standard rates, use actual as proxy
         transactions_df['standard_chargeout_rate'] = transactions_df['charge_out_rate']
     
@@ -125,13 +162,13 @@ def calculate_vec(transactions_df, bac, employees_df=None):
     merged_df['ea_j'] = merged_df['is_external'].apply(calculate_external_adjustment_factor)
     merged_df['eo_j'] = merged_df['is_new'].apply(calculate_onboarding_adjustment_factor)
     
-    # Calculate actual cost from timesheet data
+    # Make sure actual cost calculation matches the README definition of AC_i
     merged_df['actual_cost'] = merged_df['std_price'] + merged_df['adm_surcharge']
     
-    # Calculate the sum component of VEC
+    # Calculate the VEC components per the formula: AC_i × d_i × ea_j × eo_j
     merged_df['vec_component'] = merged_df['actual_cost'] * merged_df['d_i'] * merged_df['ea_j'] * merged_df['eo_j']
     
-    # Calculate VEC
+    # Calculate VEC per the formula: (1/BAC_ph) × ∑[AC_i × d_i × ea_j × eo_j]
     vec = merged_df['vec_component'].sum() / bac
     
     return vec
@@ -333,95 +370,141 @@ def compute_evm_metrics(eng_no=None, eng_phase=None, current_date=None):
     if current_date is None:
         current_date = pd.Timestamp.now()
     
+    if DataFetcher is None:
+        logger.error("DataFetcher is not available. Cannot compute EVM metrics.")
+        raise ImportError("DataFetcher module is required for EVM metrics calculation")
+    
     # Use DataFetcher to get necessary data
-    fetcher = DataFetcher()
-    data = fetcher.fetch_data(['timesheets', 'phases', 'employees', 'charge_out_rates'])
-    
-    df_time = data['timesheets']
-    df_phases = data['phases']
-    df_employees = data['employees']
-    df_charge_rates = data['charge_out_rates']
-    
-    # Filter for specific engagement/phase if provided
-    if eng_no is not None:
-        df_time = df_time[df_time['eng_no'] == eng_no]
-        df_phases = df_phases[df_phases['eng_no'] == eng_no]
+    try:
+        fetcher = DataFetcher()
+        data = fetcher.fetch_data(['timesheets', 'phases', 'employees', 'charge_out_rates'])
         
-        if eng_phase is not None:
-            df_time = df_time[df_time['eng_phase'] == eng_phase]
-            df_phases = df_phases[df_phases['eng_phase'] == eng_phase]
-    
-    # Ensure date columns are datetime
-    df_time['work_date'] = pd.to_datetime(df_time['work_date'])
-    df_phases['start_date'] = pd.to_datetime(df_phases['start_date'])
-    df_phases['end_date'] = pd.to_datetime(df_phases['end_date'])
-    
-    # Create project key
-    df_time['project_key'] = df_time['eng_no'].astype(str) + '_' + df_time['eng_phase'].astype(str)
-    df_phases['project_key'] = df_phases['eng_no'].astype(str) + '_' + df_phases['eng_phase'].astype(str)
-    
-    # Get project-level data
-    projects = []
-    
-    # For each unique project phase
-    for project_key in df_time['project_key'].unique():
-        # Filter data for this project
-        project_data = df_time[df_time['project_key'] == project_key].copy()
-        
-        # Extract eng_no and eng_phase
-        eng_no, eng_phase = project_key.split('_')
-        
-        # Get phase data including budget (BAC)
-        phase_data = df_phases[df_phases['project_key'] == project_key]
-        
-        if phase_data.empty:
-            # Skip if no phase data found
-            continue
+        # Validate required data exists
+        if 'timesheets' not in data or data['timesheets'].empty:
+            raise ValueError("No timesheet data available for EVM calculation")
             
-        # Get BAC and dates from phases table
-        bac = phase_data['budget'].iloc[0]
-        start_date = phase_data['start_date'].iloc[0]
-        planned_end_date = phase_data['end_date'].iloc[0]
+        if 'phases' not in data or data['phases'].empty:
+            raise ValueError("No phase data available for EVM calculation")
         
-        # Calculate planned duration in days
-        if pd.notna(start_date) and pd.notna(planned_end_date):
-            planned_duration = (planned_end_date - start_date).days
-        else:
-            # Fallback calculation if dates not available
-            total_hours = project_data['hours'].sum()
-            avg_daily_hours = 8 * 5  # Assumption: 5 people working 8 hours/day
-            planned_duration = max(1, total_hours / avg_daily_hours)  # in days, minimum 1
+        df_time = data['timesheets']
+        df_phases = data['phases']
+        df_employees = data['employees']
+        df_charge_rates = data['charge_out_rates']
         
-        # Calculate EVM metrics
-        schedule_elapsed = calculate_schedule_elapsed(start_date, planned_duration, current_date)
-        planned_value = calculate_planned_value(bac, schedule_elapsed)
-        earned_value = calculate_earned_value(project_data, bac)
-        spi = calculate_spi(earned_value, planned_value)
+        # Ensure we have required columns for actual cost calculation
+        if 'std_price' not in df_time.columns or 'adm_surcharge' not in df_time.columns:
+            raise ValueError("Timesheet data missing required cost columns")
+            
+        # Calculate actual cost following DDL schema
+        df_time = calculate_actual_cost(df_time)
         
-        # Calculate VEC and Burn
-        vec = calculate_vec(project_data, bac, df_employees)
-        burn = calculate_burn(project_data, bac)
+        # Filter for specific engagement/phase if provided
+        if eng_no is not None:
+            df_time = df_time[df_time['eng_no'] == eng_no]
+            df_phases = df_phases[df_phases['eng_no'] == eng_no]
+            
+            if eng_phase is not None:
+                df_time = df_time[df_time['eng_phase'] == eng_phase]
+                df_phases = df_phases[df_phases['eng_phase'] == eng_phase]
         
-        # Add to projects list
-        projects.append({
-            'project_key': project_key,
-            'eng_no': eng_no,
-            'eng_phase': eng_phase,
-            'phase_description': phase_data['phase_description'].iloc[0] if 'phase_description' in phase_data else '',
-            'bac': bac,
-            'start_date': start_date,
-            'planned_end_date': planned_end_date,
-            'planned_duration': planned_duration,
-            'actual_hours': project_data['hours'].sum(),
-            'actual_cost': (project_data['std_price'] + project_data['adm_surcharge']).sum(),
-            'schedule_elapsed': schedule_elapsed,
-            'planned_value': planned_value,
-            'earned_value': earned_value,
-            'spi': spi,
-            'vec': vec,
-            'burn': burn,
-            'current_date': current_date
-        })
+        # Ensure date columns are datetime
+        df_time['work_date'] = pd.to_datetime(df_time['work_date'])
+        df_phases['start_date'] = pd.to_datetime(df_phases['start_date'])
+        df_phases['end_date'] = pd.to_datetime(df_phases['end_date'])
+        
+        # Create project key
+        df_time['project_key'] = df_time['eng_no'].astype(str) + '_' + df_time['eng_phase'].astype(str)
+        df_phases['project_key'] = df_phases['eng_no'].astype(str) + '_' + df_phases['eng_phase'].astype(str)
+        
+        # Get project-level data
+        projects = []
+        
+        # For each unique project phase
+        for project_key in df_time['project_key'].unique():
+            # Filter data for this project
+            project_data = df_time[df_time['project_key'] == project_key].copy()
+            
+            # Extract eng_no and eng_phase
+            eng_no, eng_phase = project_key.split('_')
+            
+            # Get phase data including budget (BAC)
+            phase_data = df_phases[df_phases['project_key'] == project_key]
+            
+            if phase_data.empty:
+                # Skip if no phase data found
+                continue
+                
+            # Get BAC and dates from phases table
+            bac = phase_data['budget'].iloc[0]
+            start_date = phase_data['start_date'].iloc[0]
+            planned_end_date = phase_data['end_date'].iloc[0]
+            
+            # Calculate planned duration in days
+            if pd.notna(start_date) and pd.notna(planned_end_date):
+                planned_duration = (planned_end_date - start_date).days
+            else:
+                # Fallback calculation if dates not available
+                total_hours = project_data['hours'].sum()
+                avg_daily_hours = 8 * 5  # Assumption: 5 people working 8 hours/day
+                planned_duration = max(1, total_hours / avg_daily_hours)  # in days, minimum 1
+            
+            # Calculate EVM metrics
+            schedule_elapsed = calculate_schedule_elapsed(start_date, planned_duration, current_date)
+            planned_value = calculate_planned_value(bac, schedule_elapsed)
+            earned_value = calculate_earned_value(project_data, bac)
+            spi = calculate_spi(earned_value, planned_value)
+            
+            # Calculate VEC and Burn
+            vec = calculate_vec(project_data, bac, df_employees)
+            burn = calculate_burn(project_data, bac)
+            
+            # Add to projects list
+            projects.append({
+                'project_key': project_key,
+                'eng_no': eng_no,
+                'eng_phase': eng_phase,
+                'phase_description': phase_data['phase_description'].iloc[0] if 'phase_description' in phase_data else '',
+                'bac': bac,
+                'start_date': start_date,
+                'planned_end_date': planned_end_date,
+                'planned_duration': planned_duration,
+                'actual_hours': project_data['hours'].sum(),
+                'actual_cost': (project_data['std_price'] + project_data['adm_surcharge']).sum(),
+                'schedule_elapsed': schedule_elapsed,
+                'planned_value': planned_value,
+                'earned_value': earned_value,
+                'spi': spi,
+                'vec': vec,
+                'burn': burn,
+                'current_date': current_date
+            })
+        
+        # Convert to DataFrame
+        result_df = pd.DataFrame(projects)
+        if result_df.empty:
+            logger.error("No valid EVM metrics could be calculated")
+            raise ValueError("Failed to calculate any valid EVM metrics")
+            
+        return result_df
+    except Exception as e:
+        logger.error(f"Error in EVM metrics calculation: {e}")
+        raise  # Re-raise the exception to ensure proper handling
+
+def calculate_actual_cost(timesheet_data):
+    """
+    Calculate actual costs from timesheet data according to DDL schema.
     
-    # Convert to DataFrame
-    return pd.DataFrame(projects)
+    Args:
+        timesheet_data (DataFrame): Timesheet data with std_price and adm_surcharge
+        
+    Returns:
+        DataFrame: Timesheet data with actual_cost column
+    """
+    # Check for required columns - strictly follow DDL schema
+    if 'std_price' not in timesheet_data.columns or 'adm_surcharge' not in timesheet_data.columns:
+        logger.error("Missing required columns for actual cost calculation")
+        raise ValueError("Timesheet data must contain 'std_price' and 'adm_surcharge' columns")
+        
+    # Calculate actual cost following exact schema definition
+    timesheet_data['actual_cost'] = timesheet_data['std_price'] + timesheet_data['adm_surcharge']
+    return timesheet_data
