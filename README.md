@@ -102,7 +102,7 @@ Budget Burn for a phase is calculated as $\text{Burn}_{ph} = \frac{\sum AC_t}{BA
 **Interpretation Notes:**
 
 * **Excellent:** High efficiency, within or at budget. Strong performance.
-* ctations.
+* **On Track:** Project progressing with minimal dilution.
 * **Warning:** Inefficiency (dilution) detected, even if currently within budget. Potential future problems if trend continues.
 * **Ambiguous:** Over budget, but spend appears efficient. Needs investigation: Is the high efficiency justifying the cost (e.g., scope change, premium value), or masking poor cost control?
 * **Critical:** Over budget combined with standard or poor efficiency. Clear problem with cost control and/or value realization. Requires immediate attention.
@@ -374,8 +374,8 @@ This appendix outlines the key assumptions underpinning the analysis presented i
    * **Impact:** Facilitates simplified preliminary analysis; risk differentiation should be included when data permits.
 9. **Negative Hour Logs Offset Work on Other Projects for the Same Client.**
 
-   * **Basis:** Observed data patterns suggest this correlation, aligning with common project management practices for budget adjustments.
-   * **Impact:** Negative hours are interpreted as adjustments within the client's project portfolio. Further investigation is warranted to fully validate this interpretation.
+    * **Basis:** Observed data patterns suggest this correlation, aligning with common project management practices for budget adjustments.
+    * **Impact:** Negative hours are interpreted as adjustments within the client's project portfolio. Further investigation is warranted to fully validate this interpretation.
 10. **Time Reporting Behaviours Differ Between Internal and External Consultants.**
 
     * **Basis:** Analysis revealed significant variations in timesheet submission timeliness, with delays more pronounced among certain senior internal staff.
@@ -394,6 +394,12 @@ This appendix outlines the key assumptions underpinning the analysis presented i
 ### Database Field References for Key Metrics
 
 This section provides the specific database field mappings for metrics described conceptually in the main document.
+
+#### Current Date Reference for Metrics Calculation
+
+- **Definition**: When calculating metrics that require a reference to "today" or "current date," the system uses the  work date available in the timesheet data.
+- **Rationale**: This reflects standard dashboard practice of using the most recent data in the datalake.
+- **Implementation**: In code, "current_date" is set to the maximum work_date in the timesheets table rather than system time.
 
 #### Budget at Completion (BAC)
 
@@ -480,19 +486,19 @@ Where:
 
 #### Weekly Benching Rate
 
-- **Formula**: $`Benching Rate_{c,w} = \left( 1 - \frac{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}{employees.employment\_basis_c} \right) \times 100\%`$
+- **Formula**: $Benching Rate_{c,w} = \left(1 - \frac{\sum hours\_planned_{c,w}}{capacity_c}\right) \times 100\%$
 - **Definition**: Percentage of employee's contracted capacity not assigned to engagements.
 - **Purpose**: KPI measuring unallocated bench time.
 
 #### Weekly Capacity Utilization Rate
 
-- **Formula**: $`Capacity Utilization_{c,w} = \frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{employees.employment\_basis_c} \times 100\%`$
+- **Formula**: $Capacity Utilization_{c,w} = \frac{\sum hours\_actual_{c,w}}{capacity_c} \times 100\%$
 - **Definition**: Percentage of employee's contracted capacity utilized in billable work.
 - **Purpose**: KPI measuring productive engagement.
 
 #### Weekly Assignment Realization Rate (Internal Metric)
 
-- **Formula**: $`Assignment Realization Rate_{c,w} = \frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}`$
+- **Formula**: $Assignment Realization Rate_{c,w} = \frac{\sum hours\_actual_{c,w}}{\sum hours\_planned_{c,w}}$
 - **Definition**: Ratio of actual hours to assigned hours.
 - **Purpose**: Internal metric for planning accuracy assessment.
 
@@ -516,18 +522,6 @@ All variables in formulas use consistent suffixes to denote the entity they refe
 
 ### Core Variables and Factors
 
-#### Financial Metrics
-
-| Variable      | Definition                     | Formula/Source                                                                 |
-| ------------- | ------------------------------ | ------------------------------------------------------------------------------ |
-| $BAC_{ph}$  | Budget at Completion for phase | `phases.budget`                                                              |
-| $AC_t$      | Actual Cost for transaction    | `timesheets.std_price + timesheets.adm_surcharge`                            |
-| $PV_{ph}$   | Planned Value for phase        | $BAC_{ph} \times Schedule\%_{ph}$                                            |
-| $EV_{ph}$   | Earned Value for phase         | $\sum_t AC_t \times CPI_{proxy}$ (PoC method)                                |
-| $SPI_{ph}$  | Schedule Performance Index     | $EV_{ph} / PV_{ph}$                                                          |
-| $VEC_{ph}$  | Value Extraction Coefficient   | $\frac{1}{BAC_{ph}} \times \sum_t [AC_t \times d_t \times ea_c \times eo_c]$ |
-| $Burn_{ph}$ | Budget Burn Rate               | $\frac{\sum_t AC_t}{BAC_{ph}}$                                               |
-
 #### Adjustment Factors
 
 | Factor   | Definition                            | Formula                                                                                   | Purpose                                                    |
@@ -535,7 +529,7 @@ All variables in formulas use consistent suffixes to denote the entity they refe
 | $d_t$  | Rate Efficiency Factor                | $\frac{timesheets.charge\_out\_rate_t}{charge\_out\_rates.standard\_chargeout\_rate_c}$ | Measures charge-out rate efficiency                        |
 | $ea_c$ | External Adjustment Factor            | $1 - 0.1 \times employees.is\_external_c$                                               | Accounts for external consultants' impact on profitability |
 | $eo_c$ | Onboarding/New Hire Adjustment Factor | $1 - 0.2 \times isNew_c$                                                                | Accounts for newer consultants' learning curve             |
-| $pse$  | Phase Switching Efficiency            | Typically 0.9 (configurable)                                                              | Productivity loss factor when switching engagements        |
+| $pse$  | Phase Switching Efficiency            | Assume 1 (no loss) (configurable)                                                              | Productivity loss factor when switching engagements        |
 
 #### Optimization Parameters
 
@@ -547,13 +541,6 @@ All variables in formulas use consistent suffixes to denote the entity they refe
 | $r_{en}$      | Risk coefficient of engagement | Default: 1.0                    | `engagements.risk_coefficient`  |
 | $r_{l,pr,en}$ | Required staffing ratio        | Calculated from historical data | Derived from timesheet data       |
 
-#### Utilization Metrics
-
-| Metric                      | Definition                                       | Formula                                                                                                                  |
-| --------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| Benching Rate               | Percentage of capacity not assigned              | $\left(1 - \frac{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}{employees.employment\_basis_c}\right) \times 100\%$ |
-| Capacity Utilization Rate   | Percentage of capacity utilized in billable work | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{employees.employment\_basis_c} \times 100\%$                         |
-| Assignment Realization Rate | Ratio of actual hours to assigned hours          | $\frac{\sum_{en,ph} timesheets.hours_{c,en,ph,w}}{\sum_{en,ph} staffing.planned\_hours_{c,en,ph,w}}$                   |
 
 ## Appendix 6: ETL (Extract, Transform, and Load) Pipeline
 

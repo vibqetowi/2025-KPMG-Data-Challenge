@@ -29,7 +29,7 @@ sys.path.append(str(shared_dir))
 
 # Import from shared modules
 from config import CSV_DUMP_DIR, TRANSFORMED_DIR, RAW_FILE_MAP, COLUMN_MAPPINGS
-from db_utils import test_db_connection, create_sqlalchemy_engine
+from config import test_db_connection, create_sqlalchemy_engine  # Updated to use config instead of db_utils
 
 # Load environment variables from .env file in root directory
 load_dotenv(project_root / '.env')
@@ -150,13 +150,15 @@ class DataFetcher:
             self.source = "csv"
             return False
 
-    def fetch_data(self, tables=None):
+    def fetch_data(self, tables=None, filters=None):
         """
-        Fetch data from specified tables.
+        Fetch data from specified tables with optional filtering.
 
         Args:
             tables (list): List of table names to fetch. If None, fetches all tables.
                           Can include special joined tables like 'timesheets_employees'
+            filters (dict): Dictionary of filters in format {table_name: {column: value}}
+                           or {table_name: {'where_clause': 'custom SQL WHERE clause'}}
 
         Returns:
             dict: Dictionary of table_name -> DataFrame
@@ -185,40 +187,83 @@ class DataFetcher:
         if isinstance(tables, str):
             tables = [tables]
 
+        # Initialize filters if None
+        if filters is None:
+            filters = {}
+
         results = {}
 
         # Process each requested table
         for table in tables:
             # Check for special joined tables
             if table == "timesheets_employees":
-                results[table] = self.fetch_timesheets_and_employees()
+                results[table] = self.fetch_timesheets_and_employees(filters.get(table, {}))
             elif table == "employee_timesheet_data":
-                results[table] = self.fetch_employee_timesheet_data()
+                results[table] = self.fetch_employee_timesheet_data(filters.get(table, {}))
             elif table == "timesheet_data":
-                results[table] = self.fetch_timesheet_data()
+                results[table] = self.fetch_timesheet_data(filters.get(table, {}))
             else:
-                # Standard table fetch
-                results[table] = self.fetch_table(table)
+                # Standard table fetch with filters
+                results[table] = self.fetch_table(table, filters.get(table, {}))
 
         return results
 
-    def fetch_table(self, table_name):
+    def fetch_table(self, table_name, filters=None):
         """
-        Fetch a single table by name.
+        Fetch a single table by name with optional filtering.
 
         Args:
             table_name (str): Name of the table to fetch
+            filters (dict): Dictionary of column-value pairs to filter by (AND condition),
+                          or {'where_clause': 'custom SQL WHERE clause'}
 
         Returns:
             pandas.DataFrame: Data from the requested table
         """
         if self.source == "db" and self._test_db_connection():
             try:
-                # Construct a simple SELECT query
+                # Construct a SELECT query with filters
                 query = f"SELECT * FROM {table_name}"
-
+                
+                # Apply filters if provided
+                if filters:
+                    where_clauses = []
+                    
+                    # Check if a custom WHERE clause is provided
+                    if 'where_clause' in filters:
+                        where_clauses.append(filters['where_clause'])
+                    else:
+                        # Build WHERE clause from column-value pairs
+                        for column, value in filters.items():
+                            if isinstance(value, (list, tuple)):
+                                placeholders = ', '.join(['?'] * len(value))
+                                where_clauses.append(f"{column} IN ({placeholders})")
+                            elif value is None:
+                                where_clauses.append(f"{column} IS NULL")
+                            else:
+                                where_clauses.append(f"{column} = ?")
+                    
+                    if where_clauses:
+                        query += " WHERE " + " AND ".join(where_clauses)
+                
                 # Read data from database into pandas DataFrame
-                df = pd.read_sql(query, self.engine)
+                if filters and 'where_clause' not in filters:
+                    # Extract values for parameterized query
+                    params = []
+                    for column, value in filters.items():
+                        if isinstance(value, (list, tuple)):
+                            params.extend(value)
+                        elif value is not None:
+                            params.append(value)
+                    
+                    # Execute with parameters
+                    conn = pyodbc.connect(self.conn_str)
+                    df = pd.read_sql(query, conn, params=params)
+                    conn.close()
+                else:
+                    # Execute direct query
+                    df = pd.read_sql(query, self.engine)
+                
                 logger.info(f"Successfully loaded {len(df)} records from {table_name} table in database.")
                 return df
 
@@ -270,6 +315,16 @@ class DataFetcher:
                         if "transformed" not in str(csv_path):
                             df = self._transform_raw_csv_to_table(df, table_name)
 
+                        # Apply filters in memory if using CSV
+                        if filters and 'where_clause' not in filters:
+                            for column, value in filters.items():
+                                if isinstance(value, (list, tuple)):
+                                    df = df[df[column].isin(value)]
+                                elif value is None:
+                                    df = df[df[column].isna()]
+                                else:
+                                    df = df[df[column] == value]
+                        
                         break
                     except Exception as e:
                         if encoding == "cp1252":  # Last encoding to try
@@ -281,6 +336,34 @@ class DataFetcher:
             except Exception as e:
                 logger.error(f"Error loading {table_name} CSV data: {e}")
                 return pd.DataFrame()  # Return empty DataFrame if all methods fail
+
+    def execute_query(self, query, params=None):
+        """
+        Execute a custom SQL query.
+        
+        Args:
+            query (str): SQL query to execute
+            params (list or dict): Parameters for the query
+            
+        Returns:
+            pandas.DataFrame: Result of the query
+        """
+        if self.source == "db" and self._test_db_connection():
+            try:
+                conn = pyodbc.connect(self.conn_str)
+                if params:
+                    df = pd.read_sql(query, conn, params=params)
+                else:
+                    df = pd.read_sql(query, conn)
+                conn.close()
+                logger.info(f"Successfully executed custom query: {len(df)} records retrieved")
+                return df
+            except Exception as e:
+                logger.error(f"Error executing custom query: {e}")
+                return pd.DataFrame()
+        else:
+            logger.error("Custom queries are only supported with database source")
+            return pd.DataFrame()
 
     def _transform_raw_csv_to_table(self, df, table_name):
         """
@@ -470,17 +553,42 @@ class DataFetcher:
         return df
 
     # Backward compatibility methods below
-    def fetch_timesheets_and_employees(self):
+    def fetch_timesheets_and_employees(self, filters=None):
         """
         Fetch timesheet and employee data either from database or CSV files.
+
+        Args:
+            filters (dict): Filters to apply to the query
 
         Returns:
             pandas.DataFrame: Timesheet data joined with employee names
         """
+        where_clause = ""
+        params = []
+        
+        if filters and self.source == "db":
+            where_clauses = []
+            for column, value in filters.items():
+                table_prefix = 't' if column in ['work_date', 'time_entry_date', 'hours', 
+                                                'charge_out_rate', 'std_price', 'adm_surcharge', 
+                                                'personnel_no'] else 'e'
+                if isinstance(value, (list, tuple)):
+                    placeholders = ', '.join(['?'] * len(value))
+                    where_clauses.append(f"{table_prefix}.{column} IN ({placeholders})")
+                    params.extend(value)
+                elif value is None:
+                    where_clauses.append(f"{table_prefix}.{column} IS NULL")
+                else:
+                    where_clauses.append(f"{table_prefix}.{column} = ?")
+                    params.append(value)
+            
+            if where_clauses:
+                where_clause = " WHERE " + " AND ".join(where_clauses)
+        
         if self.source == "db":
             try:
                 # SQL query to get the required data from timesheets and employees tables
-                query = """
+                query = f"""
                 SELECT 
                     t.work_date AS 'Work Date',
                     t.time_entry_date AS 'Time Entry Date',
@@ -494,10 +602,16 @@ class DataFetcher:
                     timesheets t
                 JOIN 
                     employees e ON t.personnel_no = e.personnel_no
+                {where_clause}
                 """
 
                 # Read data from database into pandas DataFrame
-                df_time = pd.read_sql(query, self.engine)
+                conn = pyodbc.connect(self.conn_str)
+                if params:
+                    df_time = pd.read_sql(query, conn, params=params)
+                else:
+                    df_time = pd.read_sql(query, conn)
+                conn.close()
                 print(f"Successfully loaded {len(df_time)} records from database.")
                 return df_time
 
@@ -537,17 +651,39 @@ class DataFetcher:
                 print(f"Error loading CSV data: {e}")
                 return pd.DataFrame()  # Return empty DataFrame if all methods fail
 
-    def fetch_timesheet_data(self):
+    def fetch_timesheet_data(self, filters=None):
         """
         Fetch timesheet data for project allocation analysis.
+
+        Args:
+            filters (dict): Filters to apply to the query
 
         Returns:
             pandas.DataFrame: Timesheet data with project information
         """
+        where_clause = ""
+        params = []
+        
+        if filters and self.source == "db":
+            where_clauses = []
+            for column, value in filters.items():
+                if isinstance(value, (list, tuple)):
+                    placeholders = ', '.join(['?'] * len(value))
+                    where_clauses.append(f"{column} IN ({placeholders})")
+                    params.extend(value)
+                elif value is None:
+                    where_clauses.append(f"{column} IS NULL")
+                else:
+                    where_clauses.append(f"{column} = ?")
+                    params.append(value)
+            
+            if where_clauses:
+                where_clause = " WHERE " + " AND ".join(where_clauses)
+        
         if self.source == "db":
             try:
                 # SQL query to get the required data from database
-                query = """
+                query = f"""
                 SELECT 
                     t.eng_no AS 'Eng. No.',
                     t.eng_phase AS 'Eng. Phase',
@@ -560,10 +696,16 @@ class DataFetcher:
                     t.personnel_no
                 FROM 
                     timesheets t
+                {where_clause}
                 """
 
                 # Read data from database into pandas DataFrame
-                df_time = pd.read_sql(query, self.engine)
+                conn = pyodbc.connect(self.conn_str)
+                if params:
+                    df_time = pd.read_sql(query, conn, params=params)
+                else:
+                    df_time = pd.read_sql(query, conn)
+                conn.close()
                 print(f"Successfully loaded {len(df_time)} records from database.")
                 return df_time
 
@@ -595,27 +737,55 @@ class DataFetcher:
                 print(f"Error loading CSV data: {e}")
                 return pd.DataFrame()  # Return empty DataFrame if all methods fail
 
-    def fetch_employee_timesheet_data(self):
+    def fetch_employee_timesheet_data(self, filters=None):
         """
         Fetch timesheet data for time entry analysis.
+
+        Args:
+            filters (dict): Filters to apply to the query
 
         Returns:
             pandas.DataFrame: Timesheet data for time entry analysis
         """
+        where_clause = ""
+        params = []
+        
+        if filters and self.source == "db":
+            where_clauses = []
+            for column, value in filters.items():
+                if isinstance(value, (list, tuple)):
+                    placeholders = ', '.join(['?'] * len(value))
+                    where_clauses.append(f"{column} IN ({placeholders})")
+                    params.extend(value)
+                elif value is None:
+                    where_clauses.append(f"{column} IS NULL")
+                else:
+                    where_clauses.append(f"{column} = ?")
+                    params.append(value)
+            
+            if where_clauses:
+                where_clause = " WHERE " + " AND ".join(where_clauses)
+        
         if self.source == "db":
             try:
                 # SQL query to get the required data
-                query = """
+                query = f"""
                 SELECT 
                     personnel_no,
                     work_date,
                     time_entry_date
                 FROM 
                     timesheets
+                {where_clause}
                 """
 
                 # Read data from database into pandas DataFrame
-                df = pd.read_sql(query, self.engine)
+                conn = pyodbc.connect(self.conn_str)
+                if params:
+                    df = pd.read_sql(query, conn, params=params)
+                else:
+                    df = pd.read_sql(query, conn)
+                conn.close()
                 print(f"Successfully loaded {len(df)} records from database.")
                 return df
 

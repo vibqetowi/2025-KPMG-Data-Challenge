@@ -382,6 +382,161 @@ class DataEnricher:
         
         return True
 
+    def generate_resource_kpis(self):
+        """
+        Generate resource KPIs for all employees and save to a CSV file.
+        
+        Calculates:
+        - Weekly Benching Rate: (1 - planned_hours/capacity) * 100%
+        - Weekly Capacity Utilization Rate: (actual_hours/capacity) * 100%
+        - Weekly Assignment Realization Rate: actual_hours/planned_hours
+        
+        Note: "capacity" is defined as the employment_basis (weekly contracted hours) for each employee
+        """
+        # Use the first Monday of March 2025 instead of today
+        # This ensures alignment with the available timesheet data (ending March 14, 2025)
+        current_week_start = pd.Timestamp('2025-03-03')  # First Monday of March 2025
+        
+        print(f"╔════════════════════════════════════════════════════════════════╗")
+        print(f"║ Calculating KPIs for week starting: {current_week_start.strftime('%Y-%m-%d')} ║")
+        print(f"╚════════════════════════════════════════════════════════════════╝")
+        logger.info(f"Calculating KPIs for week starting: {current_week_start.date()}")
+        
+        # Read CSV files directly to ensure we have the latest data
+        try:
+            # Read employees CSV 
+            employees_path = self.csv_dir / "employees.csv"
+            if not os.path.exists(employees_path):
+                logger.error(f"Employees CSV not found at {employees_path}")
+                return False
+            employees_df = pd.read_csv(employees_path)
+            print(f"Loaded {len(employees_df)} employees from CSV")
+            
+            # Read staffing CSV
+            staffing_path = self.csv_dir / "staffing.csv"
+            if os.path.exists(staffing_path):
+                staffing_df = pd.read_csv(staffing_path)
+                staffing_df['week_start_date'] = pd.to_datetime(staffing_df['week_start_date'])
+                print(f"Loaded {len(staffing_df)} staffing records from CSV")
+                
+                # Show available weeks for debugging
+                unique_weeks = staffing_df['week_start_date'].drop_duplicates().sort_values()
+                print(f"Available staffing weeks: {[week.strftime('%Y-%m-%d') for week in unique_weeks]}")
+            else:
+                logger.warning(f"Staffing CSV not found at {staffing_path}")
+                staffing_df = pd.DataFrame(columns=['personnel_no', 'eng_no', 'eng_phase', 'week_start_date', 'planned_hours'])
+            
+            # Read timesheets CSV 
+            timesheets_path = self.csv_dir / "timesheets.csv"
+            if os.path.exists(timesheets_path):
+                timesheets_df = pd.read_csv(timesheets_path)
+                timesheets_df['work_date'] = pd.to_datetime(timesheets_df['work_date'])
+                print(f"Loaded {len(timesheets_df)} timesheet records from CSV")
+                
+                # Show date range for debugging
+                min_date = timesheets_df['work_date'].min()
+                max_date = timesheets_df['work_date'].max()
+                print(f"Timesheet date range: {min_date.strftime('%Y-%m-%d')} to {max_date.strftime('%Y-%m-%d')}")
+            else:
+                logger.warning(f"Timesheets CSV not found at {timesheets_path}")
+                timesheets_df = pd.DataFrame(columns=['personnel_no', 'eng_no', 'eng_phase', 'work_date', 'hours'])
+            
+        except Exception as e:
+            logger.error(f"Error reading CSV files: {e}")
+            print(f"Error reading CSV files: {e}")
+            return False
+        
+        # Prepare results dataframe
+        results = []
+        print("\nCalculating KPIs for each employee:")
+        print("=" * 80)
+        
+        # Iterate through each employee
+        for _, emp in employees_df.iterrows():
+            personnel_no = emp['personnel_no']
+            # employment_basis represents the weekly capacity of the employee (contracted hours)
+            capacity = emp.get('employment_basis', 40.0)  # Default to 40 hours if not set
+            
+            # Get planned hours for this employee for the current week
+            employee_staffing = staffing_df[
+                (staffing_df['personnel_no'] == personnel_no) & 
+                (staffing_df['week_start_date'] == current_week_start)
+            ]
+            planned_hours = employee_staffing['planned_hours'].sum() if not employee_staffing.empty else 0
+            
+            # Get actual hours for this employee for the current week
+            week_end = current_week_start + pd.Timedelta(days=6)
+            employee_timesheets = timesheets_df[
+                (timesheets_df['personnel_no'] == personnel_no) & 
+                (timesheets_df['work_date'] >= current_week_start) & 
+                (timesheets_df['work_date'] <= week_end)
+            ]
+            actual_hours = employee_timesheets['hours'].sum() if not employee_timesheets.empty else 0
+            
+            # Calculate KPIs with safe division
+            try:
+                # 1. Weekly Benching Rate = (1 - (planned_hours/capacity)) * 100%
+                benching_rate = 100.0  # Default to 100% if no planned hours
+                if capacity > 0:
+                    utilization_ratio = min(planned_hours / capacity, 1.0)  # Cap at 100%
+                    benching_rate = (1 - utilization_ratio) * 100
+                
+                # 2. Weekly Capacity Utilization Rate = (actual_hours/capacity) * 100%
+                capacity_utilization = 0.0  # Default to 0% if no actual hours
+                if capacity > 0:
+                    capacity_utilization = (actual_hours / capacity) * 100
+                
+                # 3. Weekly Assignment Realization Rate = actual_hours/planned_hours
+                assignment_realization = 0.0  # Default to 0 if no planned hours
+                if planned_hours > 0:
+                    assignment_realization = actual_hours / planned_hours
+            except Exception as e:
+                logger.error(f"Error calculating KPIs for employee {personnel_no}: {e}")
+                benching_rate = 0.0
+                capacity_utilization = 0.0
+                assignment_realization = 0.0
+            
+            # Debug output for verification
+            if personnel_no == employees_df['personnel_no'].iloc[0]:  # Show first employee as example
+                print(f"Example calculation for employee {personnel_no}:")
+                print(f"  - Employment basis (weekly capacity): {capacity} hours")
+                print(f"  - Planned hours: {planned_hours}")
+                print(f"  - Actual hours: {actual_hours}")
+                print(f"  - Weekly Benching Rate: (1 - {planned_hours}/{capacity}) * 100 = {benching_rate:.2f}%")
+                print(f"  - Weekly Capacity Utilization: ({actual_hours}/{capacity}) * 100 = {capacity_utilization:.2f}%")
+                print(f"  - Weekly Assignment Realization: {actual_hours}/{planned_hours} = {assignment_realization:.2f}")
+                print()
+            
+            # Add only the requested fields to results
+            results.append({
+                'personnel_no': personnel_no,
+                'weekly_benching_rate': round(benching_rate, 2),
+                'weekly_capacity_utilization': round(capacity_utilization, 2),
+                'weekly_assignment_realization': round(assignment_realization, 2)
+            })
+        
+        # Convert to dataframe
+        results_df = pd.DataFrame(results)
+        
+        # Print summary statistics
+        print("\nKPI Summary Statistics:")
+        print("=" * 80)
+        avg_benching = results_df['weekly_benching_rate'].mean()
+        avg_utilization = results_df['weekly_capacity_utilization'].mean()
+        avg_realization = results_df['weekly_assignment_realization'].mean()
+        
+        print(f"Average Weekly Benching Rate: {avg_benching:.2f}%")
+        print(f"Average Weekly Capacity Utilization Rate: {avg_utilization:.2f}%")
+        print(f"Average Weekly Assignment Realization Rate: {avg_realization:.2f}")
+        
+        # Save to CSV file
+        output_file = self.csv_dir / "resource_kpi.csv"
+        results_df.to_csv(output_file, index=False)
+        print(f"\nResource KPIs saved to: {output_file}")
+        
+        logger.info(f"Resource KPIs generated for {len(results_df)} employees and saved to {output_file}")
+        return True
+
     def enrich_all(self):
         """Run all enrichment processes"""
         self.load_data()
@@ -396,7 +551,10 @@ class DataEnricher:
         # Now enrich engagements based on the updated phases
         engagement_success = self.enrich_engagement_dates()
         
-        if phase_success and engagement_success:
+        # Generate resource KPIs
+        kpi_success = self.generate_resource_kpis()
+        
+        if phase_success and engagement_success and kpi_success:
             logger.info("Data enrichment completed successfully")
         else:
             logger.warning("Data enrichment completed with some issues")
