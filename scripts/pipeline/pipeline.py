@@ -20,7 +20,6 @@ import sys
 import argparse
 import logging
 import time
-import pyodbc
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -68,7 +67,7 @@ sys.path.append(str(shared_dir))
 
 # Import from shared modules
 from config import EXCEL_FILE, CSV_DUMP_DIR, TRANSFORMED_DIR, DATABASE_DIR, DDL_FILE, DML_FILE
-from db_utils import test_db_connection, execute_sql_file
+from config import test_db_connection, execute_sql_file  # Updated to use config instead of db_utils
 
 def parse_arguments():
     """Parse command line arguments."""
