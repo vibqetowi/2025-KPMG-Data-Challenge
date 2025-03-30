@@ -1,6 +1,8 @@
-@startuml Banking Chatbot Service
+@enduml
 
-title Banking Chatbot Service Architecture
+@startuml KPMG Data ETL Flow
+
+title KPMG Data Challenge - Simplified Data Flow
 
 ' Styling
 skinparam linetype ortho
@@ -9,148 +11,30 @@ skinparam BorderColor 00338D
 skinparam noteBackgroundColor 0091DA
 skinparam noteFontColor White
 
-' Actors
-actor User
-
 ' Core Components
-[Gemma 3.0 27B] as chatbot
-note bottom of chatbot: Multimodal LLM Architecture\nSingle-GPU Deployment
-[Frontend] as frontend
-[Gemma 3.0 1B] as smallLLM
-note bottom of smallLLM: Embedding Generation Model\nOptimized for RAG Query Processing
+cloud "Salesforce" as sf
+note bottom: Future Data Source
 
-[Service Layer] as svc
-note top of svc: Performs sentiment analysis\n and intent recognition\nto facilitate menu navigation\n and customer service routing \n verifies LLM output for compliance
+[KPMG Case Data.xlsx] as excel
+note bottom: Current Data Source
 
-' External Services
-cloud {
-database "Vector Database" as vdb
+[ETL Pipeline] as pipeline
+note bottom: Data Processing\nand Transformation
 
+database "SQL Server DB" as db
+
+[Power BI] as powerbi
+
+package "Advanced Analysis" {
+    [Resource Optimization] as analysis
+    note bottom: MILP Optimization\nEVM Analysis
 }
 
-' Flow - Updated sequence
-User --> frontend: Sends query
-frontend --> svc: User input
-svc --> smallLLM: Processed query
-smallLLM --> vdb: Search vectors
-vdb --> chatbot: Knowledge context
-chatbot --> svc: Raw response
-svc --> frontend: Processed response
-
-
-@enduml
-
-@startuml Personalized Banking Offers
-
-title Personalized Banking Offers System
-
-' Styling
-skinparam linetype ortho
-skinparam ArrowColor 00338D
-skinparam BorderColor 00338D
-skinparam noteBackgroundColor 0091DA
-skinparam noteFontColor White
-
-' Actors
-actor User
-actor "Bank Employee" as employee
-
-' Core Components
-[Offer Model] as offerModel
-note bottom of offerModel: AI-based recommendation engine\nGenerates personalized offers
-
-[Fine Tuner] as fineTuner
-note left of fineTuner: Periodically updates model\nfrom customer response data
-
-[Validation Engine] as validationEngine
-note right of validationEngine: Rule-based verification system\nChecks compliance and eligibility\n(Non-AI component)
-
-[Offer System] as offerSystem
-note right of offerSystem: Internal management interface\nfor offer parameters and rules
-
-[Frontend] as frontend
-[Backend] as backend
-[Data Cleaner] as dataCleaner
-note bottom of dataCleaner: Processes customer response data\nfor analytics and storage
-
-' Databases
-database "Offer DB" as offerDB
-
-database "Validation DB" as validationDB
-
-' Flow - Offer Generation
-offerDB --> offerModel: Customer analytics
-offerDB --> fineTuner: Training data
-fineTuner --> offerModel: Model updates
-offerModel --> validationEngine: Generated offers
-validationEngine --> validationDB
-validationDB --> validationEngine: Compliance check
-
-' Flow - Validated Offers to Customer
-validationEngine --> frontend: Validated offers
-frontend --> User: Offers
-
-' Flow - Employee Management (Internal)
-employee --> offerSystem: Edit offer parameters
-offerSystem --> validationEngine: Updated rules
-offerSystem --> validationDB: Edit validation rules
-
-' Flow - Customer Response
-User --> frontend
-frontend --> backend: Response data
-backend --> dataCleaner: Raw response data
-dataCleaner --> offerDB
-
-@enduml
-
-@startuml Fraud Detection System
-
-title Banking Fraud Detection System
-
-' Styling
-skinparam linetype ortho
-skinparam ArrowColor 00338D
-skinparam BorderColor 00338D
-skinparam noteBackgroundColor 0091DA
-skinparam noteFontColor White
-
-' Actors
-actor User
-actor "Fraud Analyst" as analyst
-
-' Core Components
-[Transaction Processor] as processor
-[Autoencoder Model] as autoencoder
-note bottom of autoencoder: Deep learning model trained\nto extract features from\nnormal and fraudulent transactions
-[Fine Tuner] as fineTuner
-note left of fineTuner: Periodically retrains\nthe autoencoder model\nwith new transaction data
-[Scoring Engine] as scoring
-note right of scoring: Places transactions on\na fraud distribution using\nweighted feature approach
-[Alert System] as alert
-[Manual Review Interface] as review
-note top of review: For transactions requiring\nhuman investigation
-
-' Databases
-database "Transaction DB" as transactionDB
-note top of transactionDB: Historical legitimate\ntransactions
-database "Fraud DB" as fraudDB
-
-' Flow - Transaction Processing
-User --> processor: Makes transaction
-processor --> transactionDB: Log transaction
-autoencoder --> scoring: Extracted features
-scoring --> alert: Position on fraud distribution
-
-' Flow - Alert Handling
-alert --> processor
-alert --> review
-review --> analyst: Notification
-analyst --> review: Investigation
-review --> processor: Decision (Allow/Block)
-
-' Training Flow
-transactionDB --> fineTuner: Legitimate transactions
-fraudDB --> fineTuner: Fraud patterns
-fineTuner --> autoencoder: Model updates
+' Flow
+sf ...> pipeline : Future
+excel --> pipeline
+pipeline --> db
+db --> powerbi
+db <--> analysis
 
 @enduml

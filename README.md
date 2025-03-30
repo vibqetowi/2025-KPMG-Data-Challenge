@@ -142,7 +142,7 @@ Where:
     ActualRatio_{l,pr,en,w-1} = \frac{\sum_{c \in C_{l,pr}} ActualHours_{c,en,w-1}}{\sum_{c \in C} ActualHours_{c,en,w-1}}
     ```
 
-Attempts were made using linear programming: ![linear programming visual](./Documentation/lp_optimization_visualization.png)
+Unsuccessful attempts were made using linear programming: ![linear programming visual](./Documentation/lp_optimization_visualization.png)n.png)
 
 **Implementation Notes:**
 
@@ -162,7 +162,7 @@ Due to these business objectives, our solution focuses on the following core KPI
 
 ## 🏗️ Architecture
 
-![solution_architecture](./Documentation/solution_architecture.png)
+![solution_architecture](./Documentation/KPMG%20Data%20ETL%20Flow.png)
 
 ### Technology Stack
 
@@ -196,7 +196,6 @@ Incorporates a dedicated `vacations` table:
 - Provides visual conflict indicators.
 - Designed for integration with HR systems (uses synthetic data in PoC).
 - Helps avoid resource conflicts due to unaccounted absences.
-
 
 ## 🏢 Business Plan
 
@@ -340,6 +339,18 @@ This section details the algorithmic approach for solving the resource optimizat
    * **Dynamic Target:** Reliance on the previous week's actual ratio makes the plan adaptive but sensitive to past anomalies. $\delta$ provides flexibility.
    * **Future Enhancements:** Could involve exploring non-linear solvers, adding skills matching, improving SPI/VEC predictions, and adding stability constraints.
 
+**Optimization Challenges:**
+
+During implementation, we discovered that the problem's dimensional complexity made it unsuitable for linear programming methods. Each engagement phase created its own dimension in the solution space, resulting in a combinatorial explosion that couldn't be efficiently represented in a linear model. The solver consistently failed to converge to a feasible solution despite various reformulation attempts.
+
+This revealed a fundamental limitation in our approach: resource allocation across multiple phases with different staffing ratios and interdependencies creates a highly non-linear problem space. The visualization above shows one of our earlier attempts at linear programming, but the approach proved inadequate for capturing the full complexity of the optimization challenge.
+
+For a more effective implementation, the problem would require:
+
+1. Non-linear optimization techniques capable of handling high-dimensional solution spaces
+2. Potentially neural network approaches that can learn the complex relationships between staffing decisions and performance outcomes
+3. Decomposition strategies that break the problem into manageable sub-problems
+
 ## Appendix 3: Modelling Assumptions
 
 This appendix outlines the key assumptions underpinning the analysis presented in this document. These assumptions were necessary due to data limitations or for simplification in the modelling process. They are categorized into critical and supporting assumptions.
@@ -382,8 +393,8 @@ This appendix outlines the key assumptions underpinning the analysis presented i
    * **Impact:** Facilitates simplified preliminary analysis; risk differentiation should be included when data permits.
 9. **Negative Hour Logs Offset Work on Other Projects for the Same Client.**
 
-    * **Basis:** Observed data patterns suggest this correlation, aligning with common project management practices for budget adjustments.
-    * **Impact:** Negative hours are interpreted as adjustments within the client's project portfolio. Further investigation is warranted to fully validate this interpretation.
+   * **Basis:** Observed data patterns suggest this correlation, aligning with common project management practices for budget adjustments.
+   * **Impact:** Negative hours are interpreted as adjustments within the client's project portfolio. Further investigation is warranted to fully validate this interpretation.
 10. **Time Reporting Behaviours Differ Between Internal and External Consultants.**
 
     * **Basis:** Analysis revealed significant variations in timesheet submission timeliness, with delays more pronounced among certain senior internal staff.
@@ -537,7 +548,7 @@ All variables in formulas use consistent suffixes to denote the entity they refe
 | $d_t$  | Rate Efficiency Factor                | $\frac{timesheets.charge\_out\_rate_t}{charge\_out\_rates.standard\_chargeout\_rate_c}$ | Measures charge-out rate efficiency                        |
 | $ea_c$ | External Adjustment Factor            | $1 - 0.1 \times employees.is\_external_c$                                               | Accounts for external consultants' impact on profitability |
 | $eo_c$ | Onboarding/New Hire Adjustment Factor | $1 - 0.2 \times isNew_c$                                                                | Accounts for newer consultants' learning curve             |
-| $pse$  | Phase Switching Efficiency            | Assume 1 (no loss) (configurable)                                                              | Productivity loss factor when switching engagements        |
+| $pse$  | Phase Switching Efficiency            | Assume 1 (no loss) (configurable)                                                         | Productivity loss factor when switching engagements        |
 
 #### Optimization Parameters
 
@@ -548,7 +559,6 @@ All variables in formulas use consistent suffixes to denote the entity they refe
 | $w_{en}$      | Strategic weight of engagement | Default: 1.0                    | `engagements.strategic_weight`  |
 | $r_{en}$      | Risk coefficient of engagement | Default: 1.0                    | `engagements.risk_coefficient`  |
 | $r_{l,pr,en}$ | Required staffing ratio        | Calculated from historical data | Derived from timesheet data       |
-
 
 ## Appendix 6: ETL (Extract, Transform, and Load) Pipeline
 
