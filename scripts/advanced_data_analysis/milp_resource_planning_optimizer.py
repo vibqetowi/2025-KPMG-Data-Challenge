@@ -86,9 +86,6 @@ class MILPResourceOptimizer:
         self.target_engagements = None  # New: optional list of (eng_no, eng_phase) tuples to optimize
         self.using_fallback = False  # Flag to indicate if we're using fallback data
 
-        # Add new visualization flag
-        self.visualize_model = False  # Flag to control model visualization
-
     def load_data(self):
         """Load all necessary data using the DataFetcher"""
         logger.info(f"Loading data for target week starting {self.target_week}")
@@ -719,13 +716,6 @@ class MILPResourceOptimizer:
                     f"Min_Hours_For_Troubled_{en}_{ph}"
                 )
         
-        # If visualization is enabled, log more details about the model
-        if self.visualize_model:
-            logger.info(f"Building model with visualization for debugging")
-            logger.info(f"Engagements: {len(self.engagements)}")
-            logger.info(f"Employees: {len(self.employees)}")
-            logger.info(f"Ratio constraints: {len(self.actual_ratios)}")
-        
         return model, hours_vars
     
     def analyze_constraints(self, model):
@@ -859,148 +849,6 @@ class MILPResourceOptimizer:
         
         return infeasible_constraints
 
-    def export_model_visualization(self, model, vars_dict, output_path):
-        """
-        Export a detailed visualization of the model to help diagnose infeasibility
-        
-        Args:
-            model: The PuLP LpProblem model to visualize
-            vars_dict: Dictionary of decision variables
-            output_path: Path to save the visualization
-        """
-        output = io.StringIO()
-        
-        # Model overview
-        output.write("=== MILP MODEL VISUALIZATION ===\n\n")
-        output.write(f"Problem name: {model.name}\n")
-        output.write(f"Optimization direction: {model.sense}\n")
-        output.write(f"Number of variables: {len(model.variables())}\n")
-        output.write(f"Number of constraints: {len(model.constraints)}\n\n")
-        
-        # Variables summary
-        output.write("=== VARIABLES ===\n\n")
-        
-        # Group variables by type
-        hours_vars = [v for v in model.variables() if v.name.startswith("Hours_")]
-        switch_vars = [v for v in model.variables() if v.name.startswith("Switch_")]
-        other_vars = [v for v in model.variables() if not (v.name.startswith("Hours_") or v.name.startswith("Switch_"))]
-        
-        output.write(f"Hours variables: {len(hours_vars)}\n")
-        output.write(f"Switch variables: {len(switch_vars)}\n")
-        output.write(f"Other variables: {len(other_vars)}\n\n")
-        
-        # Sample of variables
-        output.write("Sample of Hours variables:\n")
-        for v in hours_vars[:5]:
-            output.write(f"  {v.name}: {v.lowBound} <= x <= {v.upBound}, Category={v.cat}\n")
-        
-        output.write("\nSample of Switch variables:\n")
-        for v in switch_vars[:5]:
-            output.write(f"  {v.name}: {v.lowBound} <= x <= {v.upBound}, Category={v.cat}\n")
-        
-        # Constraints
-        output.write("\n=== CONSTRAINTS ===\n\n")
-        
-        # Group constraints by type
-        capacity_constraints = [c for name, c in model.constraints.items() if "Capacity_Constraint" in name]
-        level_ratio_constraints = [c for name, c in model.constraints.items() if "Level_Ratio" in name]
-        practice_ratio_constraints = [c for name, c in model.constraints.items() if "Practice_Ratio" in name]
-        switch_constraints = [c for name, c in model.constraints.items() if "Switch" in name]
-        internal_priority_constraints = [c for name, c in model.constraints.items() if "Internal_Priority" in name]
-        troubled_project_constraints = [c for name, c in model.constraints.items() if "Min_Hours_For_Troubled" in name]
-        other_constraints = [c for name, c in model.constraints.items() 
-                             if not any(t in name for t in ["Capacity_Constraint", "Level_Ratio", "Practice_Ratio", 
-                                                            "Switch", "Internal_Priority", "Min_Hours_For_Troubled"])]
-        
-        output.write(f"Capacity constraints: {len(capacity_constraints)}\n")
-        output.write(f"Level ratio constraints: {len(level_ratio_constraints)}\n")
-        output.write(f"Practice ratio constraints: {len(practice_ratio_constraints)}\n")
-        output.write(f"Switch logic constraints: {len(switch_constraints)}\n")
-        output.write(f"Internal priority constraints: {len(internal_priority_constraints)}\n")
-        output.write(f"Troubled project constraints: {len(troubled_project_constraints)}\n")
-        output.write(f"Other constraints: {len(other_constraints)}\n\n")
-        
-        # Sample of each constraint type
-        constraint_types = [
-            ("Capacity", capacity_constraints),
-            ("Level Ratio", level_ratio_constraints),
-            ("Practice Ratio", practice_ratio_constraints),
-            ("Switch Logic", switch_constraints),
-            ("Internal Priority", internal_priority_constraints),
-            ("Troubled Project", troubled_project_constraints),
-            ("Other", other_constraints)
-        ]
-        
-        for constraint_type, constraints in constraint_types:
-            if constraints:
-                output.write(f"Sample of {constraint_type} constraints:\n")
-                for i, constraint in enumerate(constraints[:3]):
-                    constraint_name = list(model.constraints.keys())[list(model.constraints.values()).index(constraint)]
-                    constraint_text = str(constraint)
-                    # Format the constraint text for readability
-                    formatted_text = textwrap.fill(constraint_text, width=80, subsequent_indent='    ')
-                    output.write(f"  {constraint_name}:\n    {formatted_text}\n")
-                output.write("\n")
-        
-        # Data summary
-        output.write("=== DATA SUMMARY ===\n\n")
-        
-        # Engagements
-        if hasattr(self, 'engagements') and self.engagements is not None:
-            output.write(f"Engagements: {len(self.engagements)}\n")
-            if not self.engagements.empty:
-                for idx, row in self.engagements.head(5).iterrows():
-                    output.write(f"  {row['eng_no']} - Phase {row['eng_phase']}\n")
-        
-        # Employees
-        if hasattr(self, 'employees') and self.employees is not None:
-            output.write(f"\nEmployees: {len(self.employees)}\n")
-            if not self.employees.empty:
-                staff_level_counts = self.employees.groupby('staff_level').size()
-                for level, count in staff_level_counts.items():
-                    output.write(f"  {level}: {count}\n")
-        
-        # Ratios
-        if hasattr(self, 'actual_ratios') and self.actual_ratios is not None:
-            output.write(f"\nStaffing Ratios: {len(self.actual_ratios)}\n")
-            if not self.actual_ratios.empty:
-                # Sample of staff level ratios
-                staff_ratios = self.actual_ratios[pd.notna(self.actual_ratios['staff_level'])]
-                if not staff_ratios.empty:
-                    output.write("  Staff Level Ratios (sample):\n")
-                    for idx, row in staff_ratios.head(3).iterrows():
-                        output.write(f"    Eng {row['eng_no']}, Phase {row['eng_phase']}, " 
-                                    f"Level {row['staff_level']}: {row['ratio']:.2f}\n")
-                
-                # Sample of practice ratios
-                practice_ratios = self.actual_ratios[pd.notna(self.actual_ratios['practice_id'])]
-                if not practice_ratios.empty:
-                    output.write("  Practice Ratios (sample):\n")
-                    for idx, row in practice_ratios.head(3).iterrows():
-                        output.write(f"    Eng {row['eng_no']}, Phase {row['eng_phase']}, " 
-                                    f"Practice {row['practice_id']}: {row['ratio']:.2f}\n")
-        
-        # EVM metrics
-        if hasattr(self, 'evm_metrics') and self.evm_metrics is not None:
-            output.write(f"\nEVM Metrics: {len(self.evm_metrics)}\n")
-            if not self.evm_metrics.empty:
-                for idx, row in self.evm_metrics.head(5).iterrows():
-                    output.write(f"  Eng {row['eng_no']}, Phase {row['eng_phase']}: " 
-                                f"SPI={row['spi']:.2f}, VEC={row['vec']:.2f}\n")
-        
-        # Optimization parameters
-        if hasattr(self, 'get_optimization_parameters'):
-            params = self.get_optimization_parameters()
-            output.write(f"\nOptimization Parameters:\n")
-            for key, value in params.items():
-                output.write(f"  {key}: {value}\n")
-        
-        # Write to file
-        with open(output_path, 'w') as f:
-            f.write(output.getvalue())
-        
-        logger.info(f"Model visualization exported to {output_path}")
-    
     def solve_model(self):
         """Solve the optimization model"""
         logger.info("Solving optimization model...")
@@ -1013,24 +861,8 @@ class MILPResourceOptimizer:
             logger.error("Failed to build optimization model")
             return self.get_previous_week_assignments()
         
-        # If visualization is enabled, export model details before solving
-        if self.visualize_model:
-            # Create logs directory if it doesn't exist
-            log_dir = Path(os.path.dirname(os.path.abspath(__file__))).parent.parent / "logs"
-            os.makedirs(log_dir, exist_ok=True)
-            
-            # Export model visualization
-            visualization_path = log_dir / f"model_pre_solve_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-            self.export_model_visualization(model, hours_vars, visualization_path)
-            logger.info(f"Pre-solve model visualization exported to {visualization_path}")
-            
-            # Also add a detailed LP file that can be imported into other solvers
-            lp_path = log_dir / f"model_{datetime.now().strftime('%Y%m%d_%H%M%S')}.lp"
-            model.writeLP(str(lp_path))
-            logger.info(f"Model LP file exported to {lp_path}")
-        
         # Solve
-        solver = pulp.PULP_CBC_CMD(msg=self.visualize_model, timeLimit=600)  # Show messages if visualizing
+        solver = pulp.PULP_CBC_CMD(msg=False, timeLimit=600)
         model.solve(solver)
         
         # Check solution status
@@ -1040,20 +872,16 @@ class MILPResourceOptimizer:
         else:
             logger.warning(f"No optimal solution found. Status: {pulp.LpStatus[model.status]}")
             
-            # If visualizing, provide more detail about the infeasibility
-            if self.visualize_model:
-                logger.info("Analyzing constraint conflicts...")
-                # Try to identify conflicting constraints - an advanced analysis would use IIS (Irreducible Infeasible Subsystem)
-                # but that requires commercial solvers. Instead we'll use a simpler approach to suggest likely issues
-                infeasible_constraints = self.analyze_constraints(model)
-                
-                if infeasible_constraints:
-                    logger.info("Potential sources of infeasibility:")
-                    for name, details in infeasible_constraints.items():
-                        logger.info(f"  - {name}: {details['reason']}")
-                        logger.info(f"    Suggestion: {details['suggestion']}")
-                else:
-                    logger.info("No obvious sources of infeasibility detected")
+            # Try to identify conflicting constraints
+            infeasible_constraints = self.analyze_constraints(model)
+            
+            if infeasible_constraints:
+                logger.info("Potential sources of infeasibility:")
+                for name, details in infeasible_constraints.items():
+                    logger.info(f"  - {name}: {details['reason']}")
+                    logger.info(f"    Suggestion: {details['suggestion']}")
+            else:
+                logger.info("No obvious sources of infeasibility detected")
             
             # Fall back to last week's assignments if optimization is infeasible
             logger.info("Falling back to previous week's staffing allocation")
