@@ -20,7 +20,9 @@
 
 ## 🎯 Project Overview
 
-Team 7 presents its submission for the KPMG case challenge: the **Predictive Resource Optimization Platform (PROP)**, focused on optimizing consulting assignment allocation. Leveraging our team's expertise in engineering, economics, project management, and finance, we have developed a solution addressing critical resource allocation challenges common within professional services organizations. While our primary backgrounds are not in direct consulting delivery, our technical skills and project coordination experience inform this solution. PROP is presented as a production-ready Proof of Concept (PoC) dashboard designed to implement enhanced resource management principles, adapting concepts from Earned Value Management (EVM) for the consulting context, to optimize resource allocation across engagements.
+Team 7 presents its submission for the KPMG case challenge: the **Predictive Resource Optimization Platform (PROP)**, focused on optimizing consulting assignment allocation. Leveraging our team's expertise in engineering, economics, project management, and finance, we have developed a solution addressing critical resource allocation challenges common within professional services organizations. 
+
+While our primary backgrounds are not in direct consulting delivery, our technical skills and project coordination experience inform this solution. PROP is presented as a production-ready Proof of Concept (PoC) dashboard designed to implement enhanced resource management principles, adapting concepts from Earned Value Management (EVM) for the consulting context, to optimize resource allocation across engagements.
 
 This dashboard is specifically engineered to address critical business needs prevalent in consulting practices:
 
